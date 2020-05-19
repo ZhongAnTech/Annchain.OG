@@ -53,23 +53,25 @@ type Ledger interface {
 
 type TxPool struct {
 	conf TxPoolConfig
-	dag  *Dag
 
-	queue   chan *txEvent // queue stores txs that need to validate later
-	storage *txPoolStorage
-	cached  *cachedConfirms
+	queue chan *txEvent // queue stores txs that need to validate later
+
+	storage       *txPoolStorage
+	chosenSeq     *tx_types.Sequencer
+	cachedBatches *cachedConfirms
+	dag           *Dag
 
 	close chan struct{}
 
 	mu sync.RWMutex
-	wg sync.WaitGroup // for TxPool Stop()
+	//wg sync.WaitGroup // for TxPool Stop()
 
 	onNewTxReceived      map[channelName]chan types.Txi   // for notifications of new txs.
 	OnBatchConfirmed     []chan map[common.Hash]types.Txi // for notifications of confirmation.
 	OnNewLatestSequencer []chan bool                      // for broadcasting new latest sequencer to record height
 
-	maxWeight     uint64
-	confirmStatus *ConfirmStatus
+	maxWeight uint64
+	//confirmStatus *ConfirmStatus
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
@@ -86,7 +88,7 @@ func (pool *TxPool) GetBenchmarks() map[string]interface{} {
 	}
 }
 
-func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
+func NewTxPool(conf TxPoolConfig, dag *Dag) *TxPool {
 	if conf.ConfirmStatusRefreshTime == 0 {
 		conf.ConfirmStatusRefreshTime = 30
 	}
@@ -94,14 +96,14 @@ func NewTxPool(conf TxPoolConfig, d *Dag) *TxPool {
 	pool := &TxPool{}
 
 	pool.conf = conf
-	pool.dag = d
+	pool.dag = dag
 	pool.queue = make(chan *txEvent, conf.QueueSize)
-	pool.storage = newTxPoolStorage(d)
+	pool.storage = newTxPoolStorage(dag)
+	pool.cachedBatches = newCachedConfirm(dag)
 	pool.close = make(chan struct{})
 
 	pool.onNewTxReceived = make(map[channelName]chan types.Txi)
 	pool.OnBatchConfirmed = []chan map[common.Hash]types.Txi{}
-	pool.confirmStatus = &ConfirmStatus{RefreshTime: time.Minute * time.Duration(conf.ConfirmStatusRefreshTime)}
 
 	return pool
 }
@@ -168,7 +170,7 @@ func (pool *TxPool) Start() {
 // Stop stops all the txpool sevices
 func (pool *TxPool) Stop() {
 	close(pool.close)
-	pool.wg.Wait()
+	//pool.wg.Wait()
 
 	log.Infof("TxPool Stopped")
 }
@@ -401,8 +403,8 @@ func (pool *TxPool) clearAll() {
 func (pool *TxPool) loop() {
 	defer log.Tracef("TxPool.loop() terminates")
 
-	pool.wg.Add(1)
-	defer pool.wg.Done()
+	//pool.wg.Add(1)
+	//defer pool.wg.Done()
 
 	//resetTimer := time.NewTicker(time.Duration(pool.conf.ResetDuration) * time.Second)
 
@@ -418,7 +420,13 @@ func (pool *TxPool) loop() {
 			var err error
 			tx := txEvent.txEnv.tx
 			// check if tx is duplicate
-			if pool.get(tx.GetTxHash()) != nil {
+			txStatus := pool.getStatus(tx.GetTxHash())
+			if txStatus == TxStatusNotExist {
+				log.WithField("tx", tx).Warn("tx not exists")
+				txEvent.callbackChan <- types.ErrTxNotExist
+				continue
+			}
+			if txStatus != TxStatusQueue {
 				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
 				txEvent.callbackChan <- types.ErrDuplicateTx
 				continue
@@ -428,7 +436,7 @@ func (pool *TxPool) loop() {
 
 			switch tx := tx.(type) {
 			case *tx_types.Sequencer:
-				err = pool.confirm(tx)
+				err = pool.preConfirm(tx)
 				if err != nil {
 					break
 				}
@@ -465,10 +473,10 @@ func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) erro
 		return fmt.Errorf("duplicate tx found in txpool: %s", tx.GetTxHash().String())
 	}
 
-	if normalTx, ok := tx.(*tx_types.Tx); ok {
-		normalTx.Setconfirm()
-		pool.confirmStatus.AddTxNum()
-	}
+	//if normalTx, ok := tx.(*tx_types.Tx); ok {
+	//	normalTx.Setconfirm()
+	//	pool.confirmStatus.AddTxNum()
+	//}
 
 	te := &txEvent{
 		callbackChan: make(chan error),
@@ -532,25 +540,8 @@ func (pool *TxPool) commit(tx types.Txi) error {
 			continue
 		}
 
-		// TODO
-		// To fulfil the requirements of hotstuff, sequencer will not be included
-		// in normal tx pool.
-
-		//// remove sequencer from pool
-		//if parent.GetType() == types.TxBaseTypeSequencer {
-		//	pool.tips.Remove(pHash)
-		//	pool.txLookup.Remove(pHash, removeFromFront)
-		//	continue
-		//}
-
 		// move parent to pending
 		pool.storage.switchTxStatus(parent.GetTxHash(), TxStatusPending)
-	}
-	if tx.GetType() != types.TxBaseTypeArchive {
-		// add tx to pool
-		if !pool.storage.flowExists(tx.Sender()) {
-			pool.storage.flowReset(tx.Sender())
-		}
 	}
 
 	pool.storage.flowProcess(tx)
@@ -692,6 +683,20 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 	return TxQualityIsGood
 }
 
+func (pool *TxPool) processSequencer(seq *tx_types.Sequencer) error {
+	if err := pool.isBadSeq(seq); err != nil {
+		return err
+	}
+
+	confirmSeqHash := seq.GetConfirmSeqHash()
+	cBatch := pool.cachedBatches.getConfirmBatch(confirmSeqHash)
+	if cBatch == nil {
+		return fmt.Errorf("can't find ")
+	}
+
+	return nil
+}
+
 // SimConfirm simulates the process of confirming a sequencer and return the
 // state root as result.
 func (pool *TxPool) SimConfirm(seq *tx_types.Sequencer) (hash common.Hash, err error) {
@@ -704,65 +709,96 @@ func (pool *TxPool) SimConfirm(seq *tx_types.Sequencer) (hash common.Hash, err e
 	return common.Hash{}, nil
 }
 
-// preConfirm try to confirm sequencer and store the related data into pool.cached.
+// preConfirm try to confirm sequencer and store the related data into pool.cachedBatches.
 // Once a sequencer is hardly confirmed after 3 later preConfirms, the function confirm()
 // will be dialed.
 func (pool *TxPool) preConfirm(seq *tx_types.Sequencer) error {
-	err := pool.isBadSeq(seq)
-	if err != nil {
-		return err
-	}
-
 	if seq.GetHeight() <= pool.dag.latestSequencer.GetHeight() {
 		return fmt.Errorf("the height of seq to pre-confirm is lower than "+
 			"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.latestSequencer.GetHeight())
 	}
-	elders, batch, err := pool.confirmHelper(seq)
-	if err != nil {
-		log.WithField("error", err).Errorf("confirm error: %v", err)
-		return err
-	}
-	rootHash, err := pool.dag.PrePush(batch)
+
+	err := pool.isBadSeq(seq)
 	if err != nil {
 		return err
 	}
-	pool.cached = newCachedConfirm(seq, rootHash, batch.Txs, elders)
-	return nil
+	// init confirm batch.
+	batch := newConfirmBatch(pool.dag, seq)
+
+	elders, err := pool.seekElders(seq)
+	if err != nil {
+		return err
+	}
+	if err = batch.construct(elders); err != nil {
+		return err
+	}
+	if err = batch.isValid(); err != nil {
+		return err
+	}
+
+	// bind parents and children
+	parentBatch := pool.cachedBatches.getConfirmBatch(seq.GetParentSeqHash())
+	if parentBatch == nil {
+		if pool.dag.GetTx(seq.GetParentSeqHash()) == nil {
+			return fmt.Errorf("can't find parent in pool and dag: %s", seq.GetParentSeqHash().Hex())
+		}
+	} else {
+		parentBatch.bindChildren(batch)
+	}
+	batch.bindParent(parentBatch)
+
+	// add batch into cachedBatches confirms
+	pool.cachedBatches.preConfirm(batch)
+
+	// check confirm
+
+	// deal with chosen batch first
+	// when coming height no higher than chosen height, there is no need to
+	// do any confirm process.
+	if seq.GetHeight() <= pool.chosenSeq.GetHeight() {
+		pool.storage.switchTxStatus(seq.GetTxHash(), TxStatusSeqPreConfirmByPass)
+		return nil
+	}
+	pool.storage.switchTxStatus(seq.GetTxHash(), TxStatusSeqPreConfirm)
+	pool.chosenSeq = seq
+
+	// do confirm
+	confirmHash := seq.GetConfirmSeqHash()
+	return pool.confirm(confirmHash)
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
-func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
-	log.WithField("seq", seq).Trace("start confirm seq")
+func (pool *TxPool) confirm(seqHash common.Hash) error {
+	log.WithField("seq", seqHash.Hex()).Trace("start confirm seq")
 
-	var err error
-	var batch *PushBatch
-	var elders map[common.Hash]types.Txi
-	if pool.cached != nil && seq.GetTxHash() == pool.cached.SeqHash() {
-		batch = &PushBatch{
-			Seq: seq,
-			Txs: pool.cached.Txs(),
-		}
-		elders = pool.cached.elders
-	} else {
-		elders, batch, err = pool.confirmHelper(seq)
-		if err != nil {
-			log.WithField("error", err).Errorf("confirm error: %v", err)
-			return err
-		}
+	batch := pool.cachedBatches.getConfirmBatch(seqHash)
+	if batch == nil {
+		return fmt.Errorf("the seq to confirm is nil, hash: %s", seqHash.Hex())
 	}
-	pool.cached = nil
 
-	// push batch to dag
-	if err := pool.dag.Push(batch); err != nil {
+	// push pushBatch to dag
+	pushBatch := &PushBatch{
+		Seq: batch.seq,
+		Txs: batch.elders,
+	}
+	if err := pool.dag.Push(pushBatch); err != nil {
 		log.WithField("error", err).Errorf("dag Push error: %v", err)
 		return err
 	}
 
-	for _, tx := range batch.Txs {
-		if normalTx, ok := tx.(*tx_types.Tx); ok {
-			pool.confirmStatus.AddConfirm(normalTx.GetConfirm())
-		}
-	}
+	// delete conflicts batch, the
+	pool.cachedBatches.confirm(batch)
+
+	// reTag the sequencer status
+	pool.cachedBatches.traverseFromRoot(batch, func(b *confirmBatch) {
+		curSeqHash := b.seq.GetTxHash()
+		pool.storage.switchTxStatus(curSeqHash, TxStatusSeqPreConfirmByPass)
+	})
+	leaf := pool.cachedBatches.getConfirmBatch(pool.chosenSeq.GetTxHash())
+	pool.cachedBatches.traverseFromLeaf(leaf, func(b *confirmBatch) {
+		curSeqHash := b.seq.GetTxHash()
+		pool.storage.switchTxStatus(curSeqHash, TxStatusSeqPreConfirm)
+	})
 
 	// solve conflicts of txs in pool
 	pool.solveConflicts(batch)
@@ -792,26 +828,6 @@ func (pool *TxPool) confirm(seq *tx_types.Sequencer) error {
 	return nil
 }
 
-func (pool *TxPool) confirmHelper(seq *tx_types.Sequencer) (map[common.Hash]types.Txi, *confirmBatch, error) {
-	// check if sequencer is correct
-	checkErr := pool.isBadSeq(seq)
-	if checkErr != nil {
-		return nil, nil, checkErr
-	}
-	// get sequencer's unconfirmed elders
-	elders, errElders := pool.seekElders(seq)
-	if errElders != nil {
-		return nil, nil, errElders
-	}
-	// verify the elders
-	log.WithField("seq height", seq.Height).WithField("count", len(elders)).Info("tx being confirmed by seq")
-	batch, err := pool.verifyConfirmBatch(seq, elders)
-	if err != nil {
-		return nil, nil, err
-	}
-	return elders, batch, err
-}
-
 // isBadSeq checks if a sequencer is correct.
 func (pool *TxPool) isBadSeq(seq *tx_types.Sequencer) error {
 	// check if the nonce is duplicate
@@ -819,6 +835,12 @@ func (pool *TxPool) isBadSeq(seq *tx_types.Sequencer) error {
 	if seqindag != nil {
 		return fmt.Errorf("bad seq,duplicate nonce %d found in dag, existing %s ", seq.GetNonce(), seqindag)
 	}
+
+	// TODO
+	// Reimplement this if statement. Consider the cachedBatches confirm batches.
+
+	// TODO check if confirmed seq is correct
+
 	if pool.dag.LatestSequencer().Height+1 != seq.Height {
 		return fmt.Errorf("bad seq hieght mismatch  height %d old_height %d", seq.Height, pool.dag.latestSequencer.Height)
 	}
@@ -849,13 +871,10 @@ func (pool *TxPool) seekElders(seq *tx_types.Sequencer) (map[common.Hash]types.T
 		elder := pool.get(elderHash)
 		if elder == nil {
 			// check if elder has been preConfirmed or confirmed.
-			pool.cached.existTx(seq.GetPreviousSeqHash(), elderHash)
-
-			elder = pool.dag.GetTx(elderHash)
-			if elder == nil {
-				return nil, fmt.Errorf("can't find elder %s", elderHash)
+			if pool.cachedBatches.existTx(seq.GetParentSeqHash(), elderHash) {
+				continue
 			}
-			continue
+			return nil, fmt.Errorf("can't find elder %s", elderHash)
 		}
 
 		if elders[elder.GetTxHash()] == nil {
@@ -871,58 +890,11 @@ func (pool *TxPool) seekElders(seq *tx_types.Sequencer) (map[common.Hash]types.T
 	return elders, nil
 }
 
-// verifyConfirmBatch verifies if the elders are correct.
-// If passes all verifications, it returns a batch for pushing to dag.
-func (pool *TxPool) verifyConfirmBatch(seq *tx_types.Sequencer, elders map[common.Hash]types.Txi) (*confirmBatch, error) {
-	// statistics of the confirmation txs.
-	// Sums up the related address' income and outcome values for later verify
-	// and combine the txs as confirmbatch
-	cTxs := types.Txis{}
-
-	// TODO
-	// confirmbatch variables.
-	batch := newConfirmBatch()
-	for _, txi := range elders {
-		if txi.GetType() != types.TxBaseTypeSequencer {
-			cTxs = append(cTxs, txi)
-		}
-		if txi.GetType() == types.TxBaseTypeArchive {
-			continue
-		}
-
-		// return error if a sequencer confirm a tx that has same nonce as itself.
-		if txi.Sender() == seq.Sender() && txi.GetNonce() == seq.GetNonce() {
-			return nil, fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
-				seq.GetNonce(), txi.GetTxHash())
-		}
-
-		switch tx := txi.(type) {
-		case *tx_types.Sequencer:
-			break
-		case *tx_types.Tx:
-			batch.processTx(tx)
-		default:
-			batch.addTx(tx)
-		}
-	}
-	// verify balance and nonce
-	for _, batchDetail := range batch.getDetails() {
-		err := batchDetail.isValid()
-		if err != nil {
-			return batch, err
-		}
-	}
-
-	//cb := &PushBatch{}
-	//cb.Seq = seq
-	//cb.Txs = cTxs
-	return batch, nil
-}
-
 // solveConflicts remove elders from txpool and reprocess
 // all txs in the pool in order to make sure all txs are
 // correct after seq confirmation.
-func (pool *TxPool) solveConflicts(batch *PushBatch) {
+func (pool *TxPool) solveConflicts(batch *confirmBatch) {
+
 	// remove elders from pool.txLookUp.txs
 	//
 	// pool.txLookUp.remove() will try remove tx from txLookup.order
@@ -980,51 +952,23 @@ func (pool *TxPool) solveConflicts(batch *PushBatch) {
 	}
 }
 
-//func (pool *TxPool) verifyNonce(addr common.Address, noncesP *nonceHeap, seq *tx_types.Sequencer) error {
-//	sort.Sort(noncesP)
-//	nonces := *noncesP
-//
-//	latestNonce, nErr := pool.dag.GetLatestNonce(addr)
-//	if nErr != nil {
-//		return fmt.Errorf("get latest nonce err: %v", nErr)
-//	}
-//	if nonces[0] != latestNonce+1 {
-//		return fmt.Errorf("nonce %d is not the next one of latest nonce %d, addr: %s", nonces[0], latestNonce, addr.String())
-//	}
-//
-//	for i := 1; i < nonces.Len(); i++ {
-//		if nonces[i] != nonces[i-1]+1 {
-//			return fmt.Errorf("nonce order mismatch, addr: %s, preNonce: %d, curNonce: %d", addr.String(), nonces[i-1], nonces[i])
-//		}
-//	}
-//
-//	if seq.Sender().Hex() == addr.Hex() {
-//		if seq.GetNonce() != nonces[len(nonces)-1]+1 {
-//			return fmt.Errorf("seq's nonce is not the next nonce of confirm list, seq nonce: %d, latest nonce in confirm list: %d", seq.GetNonce(), nonces[len(nonces)-1])
-//		}
-//	}
-//
-//	return nil
-//}
-
 type cachedConfirms struct {
 	ledger Ledger
 
 	fronts  []*confirmBatch
 	batches map[common.Hash]*confirmBatch
-
-	//seqHash common.Hash
-	//seq     *tx_types.Sequencer
-	//root    common.Hash
-	//txs     types.Txis
-	//elders  map[common.Hash]types.Txi
 }
 
-func newCachedConfirm() *cachedConfirms {
+func newCachedConfirm(ledger Ledger) *cachedConfirms {
 	return &cachedConfirms{
+		ledger:  ledger,
 		fronts:  make([]*confirmBatch, 0),
 		batches: make(map[common.Hash]*confirmBatch),
 	}
+}
+
+func (c *cachedConfirms) getConfirmBatch(seqHash common.Hash) *confirmBatch {
+	return c.batches[seqHash]
 }
 
 func (c *cachedConfirms) existTx(seqHash common.Hash, txHash common.Hash) bool {
@@ -1033,6 +977,59 @@ func (c *cachedConfirms) existTx(seqHash common.Hash, txHash common.Hash) bool {
 		return batch.existTx(txHash)
 	}
 	return c.ledger.GetTx(txHash) != nil
+}
+
+func (c *cachedConfirms) preConfirm(batch *confirmBatch) {
+	c.batches[batch.seq.GetTxHash()] = batch
+}
+
+func (c *cachedConfirms) confirm(batch *confirmBatch) {
+	for i := 0; i < len(c.fronts); i++ {
+		batchToDelete := c.fronts[i]
+		if batchToDelete.isSame(batch) {
+			continue
+		}
+
+		c.traverseFromRoot(batchToDelete, func(b *confirmBatch) {
+			delete(c.batches, b.seq.GetTxHash())
+		})
+	}
+	c.fronts = batch.children
+}
+
+// traverseFromRoot traverse the cached confirmBatch trees and process the function "f" for
+// every found confirm batches.
+func (c *cachedConfirms) traverseFromRoot(root *confirmBatch, f func(b *confirmBatch)) {
+	seekingPool := make([]*confirmBatch, 0)
+	seekingPool = append(seekingPool, root)
+
+	seeked := make(map[common.Hash]struct{})
+	for len(seekingPool) > 0 {
+		batch := seekingPool[0]
+		seekingPool = seekingPool[1:]
+
+		f(batch)
+		for _, newBatch := range batch.children {
+			if _, alreadySeeked := seeked[newBatch.seq.GetTxHash()]; alreadySeeked {
+				continue
+			}
+			seekingPool = append(seekingPool, newBatch)
+		}
+		seeked[batch.seq.GetTxHash()] = struct{}{}
+	}
+}
+
+func (c *cachedConfirms) traverseFromLeaf(leaf *confirmBatch, f func(b *confirmBatch)) {
+	seekingPool := make([]*confirmBatch, 0)
+	seekingPool = append(seekingPool, leaf)
+
+	for len(seekingPool) > 0 {
+		batch := seekingPool[0]
+		seekingPool = seekingPool[1:]
+
+		f(batch)
+		seekingPool = append(seekingPool, batch.parent)
+	}
 }
 
 type confirmBatch struct {
@@ -1048,13 +1045,15 @@ type confirmBatch struct {
 	details        map[common.Address]*batchDetail
 }
 
-func newConfirmBatch(ledger Ledger, seq *tx_types.Sequencer, parent *confirmBatch) *confirmBatch {
+//var emptyConfirmedBatch = &confirmBatch{}
+
+func newConfirmBatch(ledger Ledger, seq *tx_types.Sequencer) *confirmBatch {
 	c := &confirmBatch{}
 	//c.tempLedger = tempLedger
 	c.ledger = ledger
 	c.seq = seq
 
-	c.parent = parent
+	c.parent = nil
 	c.children = make([]*confirmBatch, 0)
 
 	c.elders = make([]types.Txi, 0)
@@ -1062,6 +1061,41 @@ func newConfirmBatch(ledger Ledger, seq *tx_types.Sequencer, parent *confirmBatc
 	c.details = make(map[common.Address]*batchDetail)
 
 	return c
+}
+
+func (c *confirmBatch) construct(elders map[common.Hash]types.Txi) error {
+	for _, txi := range elders {
+		// return error if a sequencer confirm a tx that has same nonce as itself.
+		if txi.Sender() == c.seq.Sender() && txi.GetNonce() == c.seq.GetNonce() {
+			return fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
+				c.seq.GetNonce(), txi.GetTxHash())
+		}
+
+		switch tx := txi.(type) {
+		case *tx_types.Sequencer:
+			break
+		case *tx_types.Tx:
+			c.processTx(tx)
+		default:
+			c.addTx(tx)
+		}
+	}
+	return nil
+}
+
+func (c *confirmBatch) isValid() error {
+	// verify balance and nonce
+	for _, batchDetail := range c.getDetails() {
+		err := batchDetail.isValid()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *confirmBatch) isSame(cb *confirmBatch) bool {
+	return c.seq.GetTxHash().Cmp(cb.seq.GetTxHash()) == 0
 }
 
 func (c *confirmBatch) getOrCreateDetail(addr common.Address) *batchDetail {
@@ -1137,13 +1171,6 @@ func (c *confirmBatch) existTx(hash common.Hash) bool {
 	return c.ledger.GetTx(hash) != nil
 }
 
-//func (c *confirmBatch) existConfirmedTx(hash common.Hash) bool {
-//	if c.parent != nil {
-//		return c.parent.existTx(hash)
-//	}
-//	return c.ledger.GetTx(hash) != nil
-//}
-
 func (c *confirmBatch) getCurrentBalance(addr common.Address, tokenID int32) *math.BigInt {
 	detail := c.getDetail(addr)
 	if detail == nil {
@@ -1198,9 +1225,9 @@ func (c *confirmBatch) getConfirmedLatestNonce(addr common.Address) (uint64, err
 	return c.ledger.GetLatestNonce(addr)
 }
 
-//func (c *confirmBatch) bindParent(parent *confirmBatch) {
-//	c.parent = parent
-//}
+func (c *confirmBatch) bindParent(parent *confirmBatch) {
+	c.parent = parent
+}
 
 func (c *confirmBatch) bindChildren(child *confirmBatch) {
 	c.children = append(c.children, child)
@@ -1220,8 +1247,7 @@ func (c *confirmBatch) confirmParent(confirmed *confirmBatch) {
 // - txList        - represents the txs sent by this addrs, ordered by nonce.
 // - earn          - the amount this address have earned.
 // - cost          - the amount this address should spent out.
-// - OriginBalance - balance of this address before this batch is confirmed.
-// - resultBalance - balance of this address after this batch is confirmed.
+// - resultBalance - balance of this address after the batch is confirmed.
 type batchDetail struct {
 	address common.Address
 	batch   *confirmBatch
@@ -1344,9 +1370,9 @@ func (bd *batchDetail) verifyNonce(nonces nonceHeap) error {
 	return nil
 }
 
-func (pool *TxPool) GetConfirmStatus() *ConfirmInfo {
-	return pool.confirmStatus.GetInfo()
-}
+//func (pool *TxPool) GetConfirmStatus() *ConfirmInfo {
+//	return pool.confirmStatus.GetInfo()
+//}
 
 func (pool *TxPool) GetOrder() common.Hashes {
 	return pool.txLookup.GetOrder()

@@ -18,9 +18,11 @@ import (
 )
 
 var (
-	ErrDuplicateTx = errors.New("Duplicate tx found in txlookup")
+	ErrDuplicateTx = errors.New("duplicate tx found in txlookup")
 
-	ErrDuplicateNonce = errors.New("Duplicate tx nonce")
+	ErrDuplicateNonce = errors.New("duplicate tx nonce")
 
-	ErrNonceNotExist = errors.New("Nonce not exist")
+	ErrTxNotExist = errors.New("transaction not exist")
+
+	ErrNonceNotExist = errors.New("nonce not exist")
 )

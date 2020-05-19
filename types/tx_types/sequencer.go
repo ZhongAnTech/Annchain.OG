@@ -236,7 +236,13 @@ func (t *Sequencer) SetSender(addr common.Address) {
 	t.Issuer = &addr
 }
 
-func (s *Sequencer) GetPreviousSeqHash() common.Hash {
+func (s *Sequencer) GetParentSeqHash() common.Hash {
+	// TODO
+	// not implemented yet!
+	return common.Hash{}
+}
+
+func (s *Sequencer) GetConfirmSeqHash() common.Hash {
 	// TODO
 	// not implemented yet!
 	return common.Hash{}

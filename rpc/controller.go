@@ -409,10 +409,10 @@ func (r *RpcController) ConStatus(c *gin.Context) {
 
 }
 
-func (r *RpcController) ConfirmStatus(c *gin.Context) {
-	cors(c)
-	Response(c, http.StatusOK, nil, r.Og.TxPool.GetConfirmStatus())
-}
+//func (r *RpcController) ConfirmStatus(c *gin.Context) {
+//	cors(c)
+//	Response(c, http.StatusOK, nil, r.Og.TxPool.GetConfirmStatus())
+//}
 
 type ReceiptResponse struct {
 	TxHash          string `json:"tx_hash"`

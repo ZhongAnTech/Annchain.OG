@@ -18,6 +18,9 @@ const (
 	TxStatusTip
 	TxStatusBadTx
 	TxStatusPending
+	TxStatusSeqPreConfirm
+	TxStatusSeqPreConfirmByPass
+
 	//TxStatusPreConfirm
 )
 
@@ -86,7 +89,7 @@ func (s *txPoolStorage) getTxByNonce(addr common.Address, nonce uint64) types.Tx
 }
 
 func (s *txPoolStorage) getTxHashesInOrder() common.Hashes {
-	return s.txLookup.getorder()
+	return s.txLookup.getOrder()
 }
 
 func (s *txPoolStorage) getLatestNonce(addr common.Address) (uint64, error) {
@@ -416,10 +419,10 @@ func (t *txLookUp) GetOrder() common.Hashes {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	return t.getorder()
+	return t.getOrder()
 }
 
-func (t *txLookUp) getorder() common.Hashes {
+func (t *txLookUp) getOrder() common.Hashes {
 	return t.order
 }
 

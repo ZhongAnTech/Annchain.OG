@@ -251,7 +251,7 @@ func (dag *Dag) Push(batch *PushBatch) error {
 }
 
 // PrePush simulates the action of pushing sequencer into Dag ledger. Simulates will
-// store the changes into cache statedb. Once the same sequencer comes, the cached
+// store the changes into cache statedb. Once the same sequencer comes, the cachedBatches
 // states will becomes regular ones.
 func (dag *Dag) PrePush(batch *PushBatch) (common.Hash, error) {
 	dag.mu.Lock()

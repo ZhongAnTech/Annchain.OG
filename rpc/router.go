@@ -81,7 +81,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("sync_status", rpc.SyncStatus)
 	router.GET("performance", rpc.Performance)
 	router.GET("consensus", rpc.ConStatus)
-	router.GET("confirm_status", rpc.ConfirmStatus)
+	//router.GET("confirm_status", rpc.ConfirmStatus)
 	router.POST("new_archive", rpc.NewArchive)
 	router.GET("debug/bft_status", rpc.BftStatus)
 	router.GET("debug/pool_hashes", rpc.GetPoolHashes)

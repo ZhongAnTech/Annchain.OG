@@ -28,7 +28,8 @@ import (
 )
 
 type AccountFlowSet struct {
-	afs    map[common.Address]*AccountFlow
+	afs map[common.Address]*AccountFlow
+
 	ledger Ledger
 	mu     sync.RWMutex
 }
@@ -151,9 +152,11 @@ func NewAccountFlow(originBalance state.BalanceSet) *AccountFlow {
 		txlist:   NewTxList(),
 	}
 }
+
 func (af *AccountFlow) BalanceState(tokenID int32) *BalanceState {
 	return af.balances[tokenID]
 }
+
 func (af *AccountFlow) TxList() *TxList {
 	return af.txlist
 }

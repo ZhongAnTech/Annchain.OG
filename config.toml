@@ -1,10 +1,10 @@
-config = "../config.toml"
-datadir = "./"
+config = "config.toml"
+datadir = "build/solo/data"
 genkey = false
-log_line_number = false
+log_line_number = true
 max_mined_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 max_tx_hash = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-mode = "normal"
+mode = "archive"
 multifile_by_level = false
 multifile_by_module = false
 title = "OG configuration"
@@ -65,22 +65,26 @@ title = "OG configuration"
   path = "rw/datadir_0"
 
 [log]
-  level = "debug"
-  log_dir = "log"
+  level = "trace"
+  log_dir = ""
 
 [p2p]
-  bootstrap_node = "true"
-  bootstrap_nodes = "onode://c5d29092fdbfd12bbb36822f5b9a494e04586a55cd8b82ada7254ee1daf50239334f5b05608ef169f83f3c2f2a5b6332aba2ee1e9145c8033804f1894450a604@127.0.0.1:8001"
+  bootstrap_node = true
+  bootstrap_nodes = "onode://0fef07b9c716bd49c8ec53a3aac399e935bb5a6c286392dce1f0b633fb5fe4d78f60db41dfb7d37490501b209eb0aa43414538f0c5f1350ea0fe2d30d3ff3bec@127.0.0.1:8001"
   enable_sync = true
-  enabled = false
+  enabled = true
   max_peers = 50
   network_id = "2"
   no_encryption = false
-  node_key = "9c2a300ed9a7e5783debe11b9a940dbf3dd9a9c27a7e6af8e0b7533312cbbf06"
+  node_key = "e68df8b3d162b25f4519cd39060cfd70c4db375952e2cf2f0d66d7b00a9586a2"
   port = 8001
 
 [profiling]
   port = 8003
+
+[report]
+  address = "127.0.0.1:2088"
+  enable = true
 
 [rpc]
   enabled = true

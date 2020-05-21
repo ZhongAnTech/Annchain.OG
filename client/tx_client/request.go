@@ -189,7 +189,7 @@ func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Addres
 		panic("not ok")
 	}
 	request := rpc.NewTxRequest{
-		Nonce:     fmt.Sprintf("%d", nonce),
+		Nonce:      nonce,
 		From:      tx.From.Hex(),
 		To:        to.String(),
 		Value:     tx.Value.String(),

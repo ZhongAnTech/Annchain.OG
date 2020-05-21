@@ -29,6 +29,7 @@ import (
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
+	"github.com/latifrons/soccerdash"
 )
 
 type Og struct {
@@ -193,6 +194,11 @@ func (og *Og) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 func (og *Og) BroadcastLatestSequencer() {
 	var notSend bool
 	var mu sync.RWMutex
+	var enableReport = viper.GetBool("report.enable")
+	r:= &soccerdash.Reporter{
+		Name:"node_" +fmt.Sprintf("%d",viper.GetInt("debug.node_id")),
+		TargetAddress: viper.GetString("report.address"),
+	}
 	for {
 		select {
 		case <-og.NewLatestSequencerCh:
@@ -217,6 +223,16 @@ func (og *Og) BroadcastLatestSequencer() {
 				og.Manager.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, &msg)
 			}
 			goroutine.New(function)
+			if enableReport {
+				re := func() {
+					r.Report("height",seq.GetHeight(),false)
+					r.Report("hash",seq.GetTxHash().Hex(),false)
+					r.Report("from",seq.GetSender().Hex(),false)
+					r.Report("nonce",seq.GetNonce(),false)
+					r.Report("root",seq.StateRoot.Hex(),false)
+				}
+				goroutine.New(re)
+			}
 		case <-time.After(200 * time.Millisecond):
 			if notSend && !og.Manager.Hub.Downloader.Synchronising() {
 				mu.Lock()

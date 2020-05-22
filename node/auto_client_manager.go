@@ -117,7 +117,9 @@ func (m *AutoClientManager) Init(accountIndices []int, delegate *Delegate, coinB
 			CampainEnable:        true,
 		}
 		client.Init()
-		m.RegisterReceiver(client.NewRawTx)
+		if m.RegisterReceiver!=nil {
+			m.RegisterReceiver(client.NewRawTx)
+		}
 		m.Clients = append(m.Clients, client)
 	}
 }

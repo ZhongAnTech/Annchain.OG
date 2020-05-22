@@ -119,6 +119,7 @@ func readConfig() {
 	if io.FileExists(configPath) {
 		mergeLocalConfig(configPath)
 	} else {
+		fmt.Println("config file not exist ",configPath)
 		mergeOnlineConfig(viper.GetString("config"))
 	}
 

@@ -85,7 +85,7 @@ func NewNode() *Node {
 	org, err := og.NewOg(
 		og.OGConfig{
 			NetworkId:   uint64(networkId),
-			GenesisPath:  io.FixPrefixPath(viper.GetString("datadir"),viper.GetString("dag.genesis_path")),
+			GenesisPath: io.FixPrefixPath(viper.GetString("datadir"), viper.GetString("dag.genesis_path")),
 		},
 	)
 	if err != nil {
@@ -143,7 +143,7 @@ func NewNode() *Node {
 	// p2p server
 	privKey := getNodePrivKey()
 	// isBootNode must be set to false if you need a centralized server to collect and dispatch bootstrap
-	if viper.GetBool("p2p.enabled") && viper.GetString("p2p.bootstrap_nodes") == "" {
+	if viper.GetBool("p2p.enabled") && (viper.GetString("p2p.bootstrap_nodes") == "" || viper.GetBool("p2p.enable_boot_server")) {
 
 		// get my url and then send to centralized bootstrap server if there is no bootstrap server specified
 		nodeURL := getOnodeURL(privKey)

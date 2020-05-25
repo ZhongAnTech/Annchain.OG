@@ -306,6 +306,7 @@ func (bs *BalanceState) TryRemoveValue(txValue *math.BigInt) error {
 
 type nonceHeap []uint64
 
+// TODO no need to use heap type to store the nonce
 func (n nonceHeap) Tail() uint64 {
 	sort.Sort(n)
 	return n[n.Len()-1]
@@ -338,6 +339,21 @@ func NewTxList() *TxList {
 		keys:   new(nonceHeap),
 		txflow: make(map[uint64]types.Txi),
 	}
+}
+
+func NewTxListByKeySet(txFlow map[uint64]types.Txi, multiKeys ...*nonceHeap) *TxList {
+	txList := &TxList{}
+
+	nonces := make(nonceHeap, 0)
+	for _, keys := range multiKeys {
+		for _, nonce := range *keys {
+			nonces.Push(nonce)
+		}
+	}
+
+	txList.keys = &nonces
+	txList.txflow = txFlow
+	return txList
 }
 
 func (t *TxList) Len() int {

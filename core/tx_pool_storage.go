@@ -36,8 +36,10 @@ func (ts *TxStatus) String() string {
 		return "Queueing"
 	case TxStatusTip:
 		return "Tip"
-	//case TxStatusPreConfirm:
-	//	return "PreConfirmed"
+	case TxStatusSeqPreConfirm:
+		return "SeqPreConfirm"
+	case TxStatusSeqPreConfirmByPass:
+		return "SeqPreConfirmByPass"
 	default:
 		return "UnknownStatus"
 	}
@@ -46,9 +48,9 @@ func (ts *TxStatus) String() string {
 type txPoolStorage struct {
 	ledger Ledger
 
-	tips     *TxMap
-	badtxs   *TxMap
-	pendings *TxMap
+	tips *TxMap
+	//badtxs   *TxMap
+	//pendings *TxMap
 	flows    *AccountFlowSet
 	txLookup *txLookUp // txLookUp stores all the txs for external query
 }
@@ -58,8 +60,8 @@ func newTxPoolStorage(ledger Ledger) *txPoolStorage {
 	storage.ledger = ledger
 
 	storage.tips = NewTxMap()
-	storage.badtxs = NewTxMap()
-	storage.pendings = NewTxMap()
+	//storage.badtxs = NewTxMap()
+	//storage.pendings = NewTxMap()
 	storage.flows = NewAccountFlowSet(ledger)
 	storage.txLookup = newTxLookUp()
 
@@ -92,6 +94,10 @@ func (s *txPoolStorage) getTxHashesInOrder() common.Hashes {
 	return s.txLookup.getOrder()
 }
 
+func (s *txPoolStorage) getTxEnvelope(hash common.Hash) *txEnvelope {
+	return s.txLookup.GetEnvelope(hash)
+}
+
 func (s *txPoolStorage) getLatestNonce(addr common.Address) (uint64, error) {
 	return s.flows.GetLatestNonce(addr)
 }
@@ -118,11 +124,11 @@ func (s *txPoolStorage) remove(tx types.Txi, removeType hashOrderRemoveType) {
 func (s *txPoolStorage) removeMember(hash common.Hash, status TxStatus) {
 	switch status {
 	case TxStatusBadTx:
-		s.badtxs.Remove(hash)
+		//s.badtxs.Remove(hash)
 	case TxStatusTip:
 		s.tips.Remove(hash)
 	case TxStatusPending:
-		s.pendings.Remove(hash)
+		//s.pendings.Remove(hash)
 	default:
 		log.Warnf("unknown tx status: %s", status.String())
 	}
@@ -130,9 +136,7 @@ func (s *txPoolStorage) removeMember(hash common.Hash, status TxStatus) {
 }
 
 func (s *txPoolStorage) removeAll() {
-	s.badtxs = NewTxMap()
 	s.tips = NewTxMap()
-	s.pendings = NewTxMap()
 	s.flows = NewAccountFlowSet(s.flows.ledger)
 	s.txLookup = newTxLookUp()
 }
@@ -144,12 +148,12 @@ func (s *txPoolStorage) addTxEnv(txEnv *txEnvelope) {
 
 func (s *txPoolStorage) addMember(tx types.Txi, status TxStatus) {
 	switch status {
-	case TxStatusBadTx:
-		s.badtxs.Add(tx)
 	case TxStatusTip:
 		s.tips.Add(tx)
+	case TxStatusBadTx:
+		//s.badtxs.Add(tx)
 	case TxStatusPending:
-		s.pendings.Add(tx)
+		//s.pendings.Add(tx)
 	default:
 		//log.Warnf("unknown tx status: %s", status.String())
 		return
@@ -209,6 +213,34 @@ func (s *txPoolStorage) tryProcessTx(tx types.Txi) TxQuality {
 	}
 
 	return TxQualityIsGood
+}
+
+func (s *txPoolStorage) switchToConfirmBatch(batch *confirmBatch) {
+	txToRejudge := make([]*txEnvelope, 0)
+	newTxOrder := make([]*txEnvelope, 0)
+	for _, hash := range s.getTxHashesInOrder() {
+		txEnv := s.getTxEnvelope(hash)
+		if txEnv.tx.GetType() == types.TxBaseTypeNormal && batch.existTx(hash) {
+			newTxOrder = append(newTxOrder, txEnv)
+			continue
+		} else if txEnv.tx.GetType() == types.TxBaseTypeSequencer && batch.existSeq(hash) {
+			newTxOrder = append(newTxOrder, txEnv)
+			continue
+		}
+		txToRejudge = append(txToRejudge, txEnv)
+	}
+	s.removeAll()
+
+	// deal confirmed txs
+	for _, txenv := range newTxOrder {
+		if txenv.tx.GetType() == types.TxBaseTypeNormal {
+			txenv.status = TxStatusPending
+		} else if txenv.tx.GetType() == types.TxBaseTypeSequencer {
+			txenv.status = TxStatusSeqPreConfirm
+		}
+		s.txLookup.Add(txenv)
+	}
+
 }
 
 // ----------------------------------------------------

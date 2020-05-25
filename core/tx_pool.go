@@ -20,12 +20,10 @@ import (
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types/tx_types"
+	"math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
-	"time"
-
-	"math/rand"
 
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types"
@@ -750,8 +748,6 @@ func (pool *TxPool) preConfirm(seq *tx_types.Sequencer) error {
 	// add batch into cachedBatches confirms
 	pool.cachedBatches.preConfirm(batch)
 
-	// check confirm
-
 	// deal with chosen batch first
 	// when coming height no higher than chosen height, there is no need to
 	// do any confirm process.
@@ -759,21 +755,20 @@ func (pool *TxPool) preConfirm(seq *tx_types.Sequencer) error {
 		pool.storage.switchTxStatus(seq.GetTxHash(), TxStatusSeqPreConfirmByPass)
 		return nil
 	}
-	pool.storage.switchTxStatus(seq.GetTxHash(), TxStatusSeqPreConfirm)
-	pool.chosenSeq = seq
 
 	// do confirm
-	confirmHash := seq.GetConfirmSeqHash()
-	return pool.confirm(confirmHash)
+	return pool.confirm(seq)
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
-func (pool *TxPool) confirm(seqHash common.Hash) error {
-	log.WithField("seq", seqHash.Hex()).Trace("start confirm seq")
+func (pool *TxPool) confirm(tailSeq *tx_types.Sequencer) error {
 
-	batch := pool.cachedBatches.getConfirmBatch(seqHash)
+	confirmSeqHash := tailSeq.GetConfirmSeqHash()
+	log.WithField("seq", confirmSeqHash.Hex()).Trace("start confirm seq")
+
+	batch := pool.cachedBatches.getConfirmBatch(confirmSeqHash)
 	if batch == nil {
-		return fmt.Errorf("the seq to confirm is nil, hash: %s", seqHash.Hex())
+		return fmt.Errorf("the seq to confirm is nil, hash: %s", confirmSeqHash.Hex())
 	}
 
 	// push pushBatch to dag
@@ -786,9 +781,11 @@ func (pool *TxPool) confirm(seqHash common.Hash) error {
 		return err
 	}
 
-	// delete conflicts batch, the
-	pool.cachedBatches.confirm(batch)
+	//pool.storage.switchTxStatus(tailSeq.GetTxHash(), TxStatusSeqPreConfirm)
+	pool.chosenSeq = tailSeq
 
+	// delete conflicts batch
+	pool.cachedBatches.confirm(batch)
 	// reTag the sequencer status
 	pool.cachedBatches.traverseFromRoot(batch, func(b *confirmBatch) {
 		curSeqHash := b.seq.GetTxHash()
@@ -894,7 +891,6 @@ func (pool *TxPool) seekElders(seq *tx_types.Sequencer) (map[common.Hash]types.T
 // all txs in the pool in order to make sure all txs are
 // correct after seq confirmation.
 func (pool *TxPool) solveConflicts(batch *confirmBatch) {
-
 	// remove elders from pool.txLookUp.txs
 	//
 	// pool.txLookUp.remove() will try remove tx from txLookup.order
@@ -912,16 +908,14 @@ func (pool *TxPool) solveConflicts(batch *confirmBatch) {
 		pool.txLookup.removeTxFromMapOnly(elderHash)
 	}
 
+	// change storage status to chosen seq batch status
+
 	var txsInPool []*txEnvelope
-	for _, hash := range pool.txLookup.getorder() {
-		txEnv := pool.txLookup.GetEnvelope(hash)
+	for _, hash := range pool.storage.getTxHashesInOrder() {
+		txEnv := pool.storage.getTxEnvelope(hash)
 		if txEnv == nil {
 			continue
 		}
-		// TODO
-		// sequencer is removed from txpool later when calling
-		// pool.clearall() but not added back. Try figure out if this
-		// will cause any problem.
 		if txEnv.tx.GetType() == types.TxBaseTypeSequencer {
 			continue
 		}
@@ -984,8 +978,9 @@ func (c *cachedConfirms) preConfirm(batch *confirmBatch) {
 }
 
 func (c *cachedConfirms) confirm(batch *confirmBatch) {
-	for i := 0; i < len(c.fronts); i++ {
-		batchToDelete := c.fronts[i]
+	// delete conflicts batches
+	for _, batchToDelete := range c.fronts {
+		//batchToDelete := c.fronts[i]
 		if batchToDelete.isSame(batch) {
 			continue
 		}
@@ -1049,7 +1044,6 @@ type confirmBatch struct {
 
 func newConfirmBatch(ledger Ledger, seq *tx_types.Sequencer) *confirmBatch {
 	c := &confirmBatch{}
-	//c.tempLedger = tempLedger
 	c.ledger = ledger
 	c.seq = seq
 
@@ -1169,6 +1163,16 @@ func (c *confirmBatch) existTx(hash common.Hash) bool {
 		return c.parent.existTx(hash)
 	}
 	return c.ledger.GetTx(hash) != nil
+}
+
+func (c *confirmBatch) existSeq(seqHash common.Hash) bool {
+	if c.seq.GetTxHash().Cmp(seqHash) == 0 {
+		return true
+	}
+	if c.parent != nil {
+		return c.parent.existSeq(seqHash)
+	}
+	return c.ledger.GetTx(seqHash) != nil
 }
 
 func (c *confirmBatch) getCurrentBalance(addr common.Address, tokenID int32) *math.BigInt {

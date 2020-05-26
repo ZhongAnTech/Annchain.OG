@@ -59,7 +59,8 @@ type BootstrapInfoResponse struct {
 
 func getNodePrivKey() *ecdsa.PrivateKey {
 	nodeKey := viper.GetString("p2p.node_key")
-	if nodeKey != "" {
+	generate := viper.GetBool("p2p.gen_node_key")
+	if nodeKey != "" && !generate {
 		keyByte, err := hex.DecodeString(nodeKey)
 		if err != nil {
 			panic(fmt.Sprintf("get nodekey error %v ", err))

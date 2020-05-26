@@ -14,3 +14,7 @@ type AccountProvider interface {
 type SignatureProvider interface {
 	Sign(data []byte) (publicKey []byte, signature []byte)
 }
+
+type PrivateInfoProvider interface {
+	PrivateInfo() *account.PrivateInfo
+}

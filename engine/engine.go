@@ -10,17 +10,13 @@ import (
 	"sync"
 )
 
-type EngineConfig struct {
-	Id int
-}
-
 type Engine struct {
-	Config        EngineConfig
 	plugins       []communication.GeneralMessageHandlerPlugin
 	messageRouter map[message.GeneralMessageType]communication.GeneralMessageEventHandler
 	eventBus      *eventbus.DefaultEventBus
-	PeerOutgoing  communication.GeneralPeerCommunicatorOutgoing
-	PeerIncoming  communication.GeneralPeerCommunicatorIncoming
+	//PeerOutgoing  communication.GeneralPeerCommunicatorOutgoing
+	//PeerIncoming  communication.GeneralPeerCommunicatorIncoming
+	components []Component
 
 	quit        chan bool
 	quitWg      sync.WaitGroup

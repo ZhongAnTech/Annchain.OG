@@ -253,7 +253,7 @@ func (b *TxBuffer) isLocalHash(hash common.Hash) bool {
 	return b.PoolHashLocator.IsLocalHash(hash) || b.LedgerHashLocator.IsLocalHash(hash)
 }
 
-// updateDependencyMap will update dependency relationship currently known.
+// updateDependencyMap will update dependency community currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
 func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
 	if self == nil {

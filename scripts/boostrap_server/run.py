@@ -22,6 +22,7 @@ networks = {}
 
 
 def handle(req, sourceip, requirePartners):
+    print(req)
     network_id = req['networkid']
     publickey = req['publickey']
     # partners = req['partners']

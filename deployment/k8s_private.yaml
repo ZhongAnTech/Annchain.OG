@@ -22,6 +22,10 @@ spec:
               value: "false"
             - name: og_p2p.network_id
               value: 2
+            - name: OG_P2P_ENABLE_BOOT_SERVER
+              value: "true"
+            - name: OG_P2P_GEN_NODE_KEY
+              value: "true"
           ports:
             - name: rpc
               containerPort: 8000

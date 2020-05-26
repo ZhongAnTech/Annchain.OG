@@ -340,7 +340,10 @@ func (t *udp) sendPing(toid onode.ID, toaddr *net.UDPAddr, callback func()) <-ch
 		return ok
 	})
 	t.localNode.UDPContact(toaddr)
-	t.write(toaddr, req.name(), packet)
+	errW := t.write(toaddr, req.name(), packet)
+	if errW != nil {
+		logrus.WithField("to", toaddr).WithError(errW).WithField("hash", hash).Trace("send ping  error")
+	}
 	return errc
 }
 
@@ -380,7 +383,10 @@ func (t *udp) findnode(toid onode.ID, toaddr *net.UDPAddr, target EncPubkey) ([]
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	}
 	data, _ := findNode.MarshalMsg(nil)
-	t.send(toaddr, findnodePacket, data, findNode.name())
+	hash, err := t.send(toaddr, findnodePacket, data, findNode.name())
+	if err != nil {
+		logrus.WithField("to", toaddr).WithError(err).WithField("hash", hash).Trace("send error")
+	}
 	return nodes, <-errc
 }
 
@@ -599,7 +605,11 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 			log.WithError(err).Debug("UDP read error")
 			return
 		}
-		if t.handlePacket(from, buf[:nbytes]) != nil && unhandled != nil {
+		handleErr := t.handlePacket(from, buf[:nbytes])
+		if handleErr != nil {
+			logrus.WithError(err).WithField("from", from).Trace("handle err")
+		}
+		if handleErr != nil && unhandled != nil {
 			select {
 			case unhandled <- ReadPacket{buf[:nbytes], from}:
 			default:
@@ -688,7 +698,10 @@ func (req *Ping) handle(t *udp, from *net.UDPAddr, fromKey EncPubkey, mac []byte
 		t.tab.addThroughPing(n)
 	}
 	t.localNode.UDPEndpointStatement(from, &net.UDPAddr{IP: req.To.IP, Port: int(req.To.UDP)})
-	t.db.UpdateLastPingReceived(n.ID(), time.Now())
+	dbErr := t.db.UpdateLastPingReceived(n.ID(), time.Now())
+	if dbErr != nil {
+		logrus.WithError(dbErr).WithField("from", from).Trace("update  err")
+	}
 	return nil
 }
 
@@ -703,7 +716,10 @@ func (req *Pong) handle(t *udp, from *net.UDPAddr, fromKey EncPubkey, mac []byte
 		return errUnsolicitedReply
 	}
 	t.localNode.UDPEndpointStatement(from, &net.UDPAddr{IP: req.To.IP, Port: int(req.To.UDP)})
-	t.db.UpdateLastPongReceived(fromID, time.Now())
+	dbErr := t.db.UpdateLastPongReceived(fromID, time.Now())
+	if dbErr != nil {
+		logrus.WithError(dbErr).WithField("from", from).Trace("update  err")
+	}
 	return nil
 }
 
@@ -745,7 +761,10 @@ func (req *Findnode) handle(t *udp, from *net.UDPAddr, fromKey EncPubkey, mac []
 	}
 	if len(p.Nodes) > 0 || !sent {
 		data, _ := p.MarshalMsg(nil)
-		t.send(from, neighborsPacket, data, p.name())
+		_, sendErr := t.send(from, neighborsPacket, data, p.name())
+		if sendErr != nil {
+			logrus.WithError(sendErr).WithField("from", from).Trace("send  err")
+		}
 	}
 	return nil
 }

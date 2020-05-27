@@ -18,7 +18,6 @@ import (
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/annsensus/term"
 	"github.com/annchain/OG/types/tx_types"
@@ -38,9 +37,7 @@ func logInit() {
 	Formatter.FullTimestamp = true
 	logrus.SetFormatter(Formatter)
 	logrus.SetLevel(logrus.TraceLevel)
-	filenameHook := filename.NewHook()
-	filenameHook.Field = "line"
-	logrus.AddHook(filenameHook)
+	logrus.SetReportCaller(true)
 	log = logrus.StandardLogger()
 }
 func TestVrfSelections_Le(t *testing.T) {

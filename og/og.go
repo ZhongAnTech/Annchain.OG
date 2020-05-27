@@ -204,7 +204,7 @@ func (og *Og) BroadcastLatestSequencer() {
 		reportKey = "node_" +fmt.Sprintf("%d",viper.GetInt("debug.node_id"))
 	}
 	r:= &soccerdash.Reporter{
-		Name:reportKey,
+		Id:reportKey,
 		TargetAddress: viper.GetString("report.address"),
 	}
 	var reportTime  = time.Now()

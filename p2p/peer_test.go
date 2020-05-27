@@ -19,7 +19,6 @@ package p2p
 import (
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common/filename"
 	"github.com/annchain/OG/types/msg"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -377,8 +376,5 @@ func init() {
 		panic(err)
 	}
 	logrus.SetOutput(f)
-	log = logrus.StandardLogger()
-	filenameHook := filename.NewHook()
-	filenameHook.Field = "line"
-	logrus.AddHook(filenameHook)
+	logrus.SetReportCaller(true)
 }

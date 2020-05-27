@@ -15,7 +15,6 @@ package bft
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/filename"
 	"github.com/sirupsen/logrus"
 	"runtime"
 	"testing"
@@ -32,9 +31,7 @@ func init() {
 	Formatter.FullTimestamp = true
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetFormatter(Formatter)
-	filenameHook := filename.NewHook()
-	filenameHook.Field = "line"
-	logrus.AddHook(filenameHook)
+	logrus.SetReportCaller(true)
 }
 
 func start(peers []BFTPartner, second int) {

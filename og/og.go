@@ -15,13 +15,15 @@ package og
 
 import (
 	"fmt"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
-	"sync"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -195,10 +197,17 @@ func (og *Og) BroadcastLatestSequencer() {
 	var notSend bool
 	var mu sync.RWMutex
 	var enableReport = viper.GetBool("report.enable")
+	var reportKey string
+	if v, ok := os.LookupEnv("HOSTNAME"); ok {
+		reportKey = v
+	}else {
+		reportKey = "node_" +fmt.Sprintf("%d",viper.GetInt("debug.node_id"))
+	}
 	r:= &soccerdash.Reporter{
-		Name:"node_" +fmt.Sprintf("%d",viper.GetInt("debug.node_id")),
+		Name:reportKey,
 		TargetAddress: viper.GetString("report.address"),
 	}
+	var reportTime  = time.Now()
 	for {
 		select {
 		case <-og.NewLatestSequencerCh:
@@ -232,6 +241,7 @@ func (og *Og) BroadcastLatestSequencer() {
 					r.Report("root",seq.StateRoot.Hex(),false)
 				}
 				goroutine.New(re)
+				reportTime = time.Now()
 			}
 		case <-time.After(200 * time.Millisecond):
 			if notSend && !og.Manager.Hub.Downloader.Synchronising() {
@@ -248,6 +258,14 @@ func (og *Og) BroadcastLatestSequencer() {
 					og.Manager.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, &msg)
 				}
 				goroutine.New(function)
+			}
+			if enableReport  && time.Now().Sub(reportTime) > time.Second*15{
+				re := func() {
+					r.Report("msg", "synchronising or stopping?",false)
+					r.Report("height",og.Dag.LatestSequencer().Height,false)
+				}
+				goroutine.New(re)
+				reportTime = time.Now()
 			}
 		case <-og.quit:
 			logrus.Info("hub BroadcastLatestSequencer received quit message. Quitting...")

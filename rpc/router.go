@@ -54,6 +54,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("transaction", rpc.Transaction)
 	router.GET("confirm", rpc.Confirm)
 	router.GET("transactions", rpc.Transactions)
+	router.GET("transaction_hashes", rpc.TransactionHashes)
 	router.GET("validators", rpc.Validator)
 	router.GET("sequencer", rpc.Sequencer)
 	router.GET("genesis", rpc.Genesis)
@@ -130,14 +131,15 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 		"query_share":      "pubkey",
 		"contract_payload": "payload, abistr",
 
-		"query_receipt":    "hash",
-		"transaction":      "hash",
-		"transactions":     "height,address",
-		"confirm":          "hash",
-		"query_contract":   "address,data",
-		"token/list":       "",
-		"token":            "id",
-		"new_transactions": "",
+		"query_receipt":      "hash",
+		"transaction":        "hash",
+		"transactions":       "height,address",
+		"transaction_hashes": "height",
+		"confirm":            "hash",
+		"query_contract":     "address,data",
+		"token/list":         "",
+		"token":              "id",
+		"new_transactions":   "",
 
 		// debug
 		"debug": "f",

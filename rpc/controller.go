@@ -217,6 +217,37 @@ func (r *RpcController) Transactions(c *gin.Context) {
 	Response(c, http.StatusOK, nil, txsResp)
 }
 
+type TxHahesResponse struct {
+	Total       int      `json:"total"`
+	Hashes      []string `json:"hashes"`
+	SequencerId uint64   `json:"sequencer_id"`
+}
+
+func (r *RpcController) TransactionHashes(c *gin.Context) {
+	heightStr := c.Query("height")
+	cors(c)
+	height, err := strconv.Atoi(heightStr)
+	if err != nil || height < 0 {
+		Response(c, http.StatusOK, fmt.Errorf("seq_id format error"), nil)
+		return
+	}
+	if r.Og.Dag.GetHeight() < uint64(height) {
+		Response(c, http.StatusOK, fmt.Errorf("txs not found"), nil)
+		return
+	}
+	hashes := r.Og.Dag.GetTxsHashesByNumber(uint64(height))
+
+	var resp TxHahesResponse
+	resp.SequencerId = uint64(height)
+	if hashes !=nil  {
+		for _, hash := range *hashes {
+			resp.Hashes = append(resp.Hashes,hash.Hex())
+		}
+	}
+
+	Response(c, http.StatusOK, nil, resp)
+}
+
 func (r *RpcController) Genesis(c *gin.Context) {
 	cors(c)
 	sq := r.Og.Dag.Genesis()

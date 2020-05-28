@@ -71,7 +71,7 @@ mode="normal"
 
 [p2p]
   bootstrap_node = "true"
-  bootstrap_nodes = "onode://c5d29092fdbfd12bbb36822f5b9a494e04586a55cd8b82ada7254ee1daf50239334f5b05608ef169f83f3c2f2a5b6332aba2ee1e9145c8033804f1894450a604@127.0.0.1:8001"
+  bootstrap_nodes = ""
   enable_sync = true
   enabled = true
   max_peers = 50

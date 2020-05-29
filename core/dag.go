@@ -268,6 +268,11 @@ func (dag *Dag) GetTx(hash common.Hash) types.Txi {
 
 	return dag.getTx(hash)
 }
+
+func (dag *Dag) GetTxSize(hash common.Hash) (size int, err error) {
+	return dag.accessor.GetTxSize(hash)
+}
+
 func (dag *Dag) getTx(hash common.Hash) types.Txi {
 	tx := dag.txcached.get(hash)
 	if tx != nil {

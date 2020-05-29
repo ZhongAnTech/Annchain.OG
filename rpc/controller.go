@@ -137,6 +137,23 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	Response(c, http.StatusNotFound, fmt.Errorf("status not found, only support transaction and sequencer"), nil)
 }
 
+//Transaction  get  transaction
+func (r *RpcController) TransactionSize(c *gin.Context) {
+	hashtr := c.Query("hash")
+	hash, err := common.HexStringToHash(hashtr)
+	cors(c)
+	if err != nil {
+		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
+		return
+	}
+	size, err := r.Og.Dag.GetTxSize(hash)
+	if err != nil {
+		Response(c, http.StatusNotFound, fmt.Errorf("tx not found"), nil)
+		return
+	}
+	Response(c, http.StatusOK, nil, size)
+}
+
 //Confirm checks if tx has already been confirmed.
 func (r *RpcController) Confirm(c *gin.Context) {
 	hashtr := c.Query("hash")

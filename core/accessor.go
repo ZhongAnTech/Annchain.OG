@@ -574,6 +574,15 @@ func (da *Accessor) WriteIndexedTxHashs(putter *Putter, SeqHeight uint64, hashs 
 	return da.put(putter, key, data)
 }
 
+func (da *Accessor) GetTxSize(hash common.Hash) (size int, err error) {
+	data, err := da.db.Get(transactionKey(hash))
+	if err != nil {
+		return
+	}
+	size = len(data)
+	return
+}
+
 /**
 Components
 */

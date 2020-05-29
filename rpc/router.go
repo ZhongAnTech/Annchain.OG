@@ -52,6 +52,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("peers_info", rpc.PeersInfo)
 	router.GET("og_peers_info", rpc.OgPeersInfo)
 	router.GET("transaction", rpc.Transaction)
+	router.GET("transaction_size", rpc.TransactionSize)
 	router.GET("confirm", rpc.Confirm)
 	router.GET("transactions", rpc.Transactions)
 	router.GET("transaction_hashes", rpc.TransactionHashes)

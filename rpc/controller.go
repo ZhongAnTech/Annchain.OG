@@ -84,6 +84,7 @@ type TransactionResp struct {
 	Type        uint8                    `json:"type"`
 	Transaction *tx_types.TransactionMsg `json:"transaction"`
 	Sequencer   *tx_types.SequencerMsg   `json:"sequencer"`
+	Archive     *tx_types.ArchiveMsg     `json:"archive"`
 }
 
 //Transaction  get  transaction
@@ -115,11 +116,13 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	case *tx_types.Sequencer:
 		seqMsg := tx.ToJsonMsg()
 		txResp.Sequencer = &seqMsg
-		Response(c, http.StatusOK, nil, seqMsg)
+		Response(c, http.StatusOK, nil, txResp)
 		return
-		//case *tx_types.Archive:
-		//	Response(c, http.StatusOK, nil, tx)
-		//	return
+	case *tx_types.Archive:
+		seqMsg := tx.ToJsonMsg()
+		txResp.Archive = &seqMsg
+		Response(c, http.StatusOK, nil, txResp)
+		return
 		//case *tx_types.Campaign:
 		//	Response(c, http.StatusOK, nil, tx)
 		//	return
@@ -239,9 +242,9 @@ func (r *RpcController) TransactionHashes(c *gin.Context) {
 
 	var resp TxHahesResponse
 	resp.SequencerId = uint64(height)
-	if hashes !=nil  {
+	if hashes != nil {
 		for _, hash := range *hashes {
-			resp.Hashes = append(resp.Hashes,hash.Hex())
+			resp.Hashes = append(resp.Hashes, hash.Hex())
 		}
 	}
 
@@ -256,6 +259,67 @@ func (r *RpcController) Genesis(c *gin.Context) {
 	} else {
 		Response(c, http.StatusNotFound, fmt.Errorf("genesis not found"), nil)
 	}
+	return
+}
+
+func (r *RpcController) SequencerV1(c *gin.Context) {
+	cors(c)
+	var sq *tx_types.Sequencer
+	hashtr := c.Query("hash")
+	seqId := c.Query("seq_id")
+	if seqId == "" {
+		seqId = c.Query("id")
+	}
+	if seqId != "" {
+		id, err := strconv.Atoi(seqId)
+		if err != nil || id < 0 {
+			Response(c, http.StatusBadRequest, fmt.Errorf("id format error"), nil)
+			return
+		}
+		sq = r.Og.Dag.GetSequencerByHeight(uint64(id))
+		if sq != nil {
+			seqMsg := sq.ToJsonMsg()
+			Response(c, http.StatusOK, nil, seqMsg)
+			return
+		} else {
+			Response(c, http.StatusNotFound, fmt.Errorf("sequencer not found"), nil)
+			return
+		}
+	}
+	if hashtr == "" {
+		sq = r.Og.Dag.LatestSequencer()
+		if sq != nil {
+			Response(c, http.StatusOK, nil, sq)
+			return
+		} else {
+			Response(c, http.StatusNotFound, fmt.Errorf("sequencer not found"), nil)
+			return
+		}
+	} else {
+		hash, err := common.HexStringToHash(hashtr)
+		if err != nil {
+			Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
+			return
+		}
+		txi := r.Og.Dag.GetTx(hash)
+		if txi == nil {
+			txi = r.Og.TxPool.Get(hash)
+		}
+		if txi == nil {
+			Response(c, http.StatusNotFound, fmt.Errorf("tx not found"), nil)
+			return
+		}
+		switch t := txi.(type) {
+		case *tx_types.Sequencer:
+			seqMsg := t.ToJsonMsg()
+			Response(c, http.StatusOK, nil, seqMsg)
+			return
+		default:
+			Response(c, http.StatusNotFound, fmt.Errorf("tx not sequencer"), nil)
+			return
+		}
+	}
+	Response(c, http.StatusNotFound, fmt.Errorf("not found"), nil)
 	return
 }
 

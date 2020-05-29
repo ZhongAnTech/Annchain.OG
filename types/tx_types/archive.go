@@ -159,3 +159,29 @@ func (t *Archive) CalcTxHash() (hash common.Hash) {
 func (t *Archive) SetSender(address common.Address) {
 	return
 }
+
+type ArchiveMsg struct {
+	Type         int      `json:"type"`
+	Hash         string   `json:"hash"`
+	Parents      []string `json:"parents"`
+	AccountNonce uint64   `json:"account_nonce"`
+	MindNonce    uint64   `json:"mind_nonce"`
+	Weight       uint64   `json:"weight"`
+	Data         []byte   `json:"data"`
+}
+
+func (t *Archive) ToJsonMsg() ArchiveMsg {
+	txMsg := ArchiveMsg{}
+
+	txMsg.Type = int(t.GetType())
+	txMsg.Hash = t.GetTxHash().Hex()
+	txMsg.AccountNonce = t.GetNonce()
+	txMsg.MindNonce = t.MineNonce
+	txMsg.Weight = t.GetWeight()
+	txMsg.Parents = make([]string, 0)
+	for _, p := range t.ParentsHash {
+		txMsg.Parents = append(txMsg.Parents, p.Hex())
+	}
+	txMsg.Data = t.Data
+	return txMsg
+}

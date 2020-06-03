@@ -1,10 +1,7 @@
 package core
 
 import (
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
-	"github.com/annchain/OG/arefactor/performance"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // SoloNode is the basic entrypoint for all modules to start.
@@ -19,22 +16,7 @@ func (n *SoloNode) InitDefault() {
 }
 
 func (n *SoloNode) Setup() {
-
-	hostname := utilfuncs.GetHostName()
-	reporter := &performance.SoccerdashReporter{
-		Id:         hostname,
-		IpPort:     viper.GetString("report.address"),
-		BufferSize: viper.GetInt("report.buffer_size"),
-	}
-	reporter.InitDefault()
-
-	pm := &performance.PerformanceMonitor{
-		Reporters: []performance.PerformanceReporter{
-			reporter,
-		},
-	}
-
-	n.components = append(n.components, pm)
+	n.components = append(n.components, getPerformanceMonitor())
 }
 
 func (n *SoloNode) Start() {

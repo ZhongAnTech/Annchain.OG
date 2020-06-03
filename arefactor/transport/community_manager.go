@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/arefactor/transport_event"
 	"github.com/annchain/OG/ffchan"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core/crypto"
@@ -34,25 +35,25 @@ type Neighbour struct {
 	Id              peer.ID
 	Stream          network.Stream
 	IoEventChannel  chan *IoEvent
-	IncomingChannel chan *WireMessage
+	IncomingChannel chan *transport_event.WireMessage
 	msgpReader      *msgp.Reader
 	msgpWriter      *msgp.Writer
 	event           chan bool
-	outgoingChannel chan *OutgoingMsg
+	outgoingChannel chan *transport_event.OutgoingMsg
 	quit            chan bool
 }
 
 func (c *Neighbour) InitDefault() {
 	c.event = make(chan bool)
 	c.quit = make(chan bool)
-	c.outgoingChannel = make(chan *OutgoingMsg) // messages already dispatched
+	c.outgoingChannel = make(chan *transport_event.OutgoingMsg) // messages already dispatched
 }
 
 func (c *Neighbour) StartRead() {
 	var err error
 	c.msgpReader = msgp.NewReader(c.Stream)
 	for {
-		msg := &WireMessage{}
+		msg := &transport_event.WireMessage{}
 		err = msg.DecodeMsg(c.msgpReader)
 		if err != nil {
 			// bad message, drop
@@ -84,7 +85,7 @@ loop:
 				panic(err)
 			}
 
-			wireMessage := WireMessage{
+			wireMessage := transport_event.WireMessage{
 				MsgType:      req.Typev,
 				ContentBytes: contentBytes,
 				SenderId:     req.SenderId,
@@ -111,7 +112,7 @@ loop:
 	}
 }
 
-func (c *Neighbour) Send(req *OutgoingMsg) {
+func (c *Neighbour) Send(req *transport_event.OutgoingMsg) {
 	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "send").C
 	//c.outgoingChannel <- req
 }
@@ -122,16 +123,26 @@ type PhysicalCommunicator struct {
 	PrivateKey core.PrivKey
 	ProtocolId string
 
-	node            host.Host              // p2p host to receive new streams
-	activePeers     map[peer.ID]*Neighbour // active peers that will be reconnect if error
-	tryingPeers     map[peer.ID]bool       // peers that is trying to connect.
-	incomingChannel chan *WireMessage      // incoming message channel
-	outgoingChannel chan *OutgoingRequest  // universal outgoing channel to collect send requests
-	ioEventChannel  chan *IoEvent          // receive event when peer disconnects
+	node            host.Host                             // p2p host to receive new streams
+	activePeers     map[peer.ID]*Neighbour                // active peers that will be reconnect if error
+	tryingPeers     map[peer.ID]bool                      // peers that is trying to connect.
+	incomingChannel chan *transport_event.WireMessage     // incoming message channel
+	outgoingChannel chan *transport_event.OutgoingRequest // universal outgoing channel to collect send requests
+	ioEventChannel  chan *IoEvent                         // receive event when peer disconnects
+
+	newIncomingMessageSubscribers []transport_event.NewIncomingMessageEventSubscriber
 
 	initWait sync.WaitGroup
 	quit     chan bool
 	mu       sync.RWMutex
+}
+
+func (c *PhysicalCommunicator) GetNewOutgoingMessageEventChannel() chan *transport_event.OutgoingRequest {
+	return c.outgoingChannel
+}
+
+func (c *PhysicalCommunicator) RegisterSubscriberNewIncomingMessageEventSubscriber(sub transport_event.NewIncomingMessageEventSubscriber) {
+	c.newIncomingMessageSubscribers = append(c.newIncomingMessageSubscribers, sub)
 }
 
 func (c *PhysicalCommunicator) Name() string {
@@ -141,10 +152,11 @@ func (c *PhysicalCommunicator) Name() string {
 func (c *PhysicalCommunicator) InitDefault() {
 	c.activePeers = make(map[peer.ID]*Neighbour)
 	c.tryingPeers = make(map[peer.ID]bool)
-	c.outgoingChannel = make(chan *OutgoingRequest)
-	c.incomingChannel = make(chan *WireMessage)
+	c.outgoingChannel = make(chan *transport_event.OutgoingRequest)
+	c.incomingChannel = make(chan *transport_event.WireMessage)
 	c.ioEventChannel = make(chan *IoEvent)
 	c.initWait.Add(1)
+	c.newIncomingMessageSubscribers = []transport_event.NewIncomingMessageEventSubscriber{}
 	c.quit = make(chan bool)
 }
 
@@ -162,6 +174,12 @@ func (c *PhysicalCommunicator) consumeQueue() {
 		case req := <-c.outgoingChannel:
 			logrus.WithField("req", req).Trace("physical communicator got a request from outgoing channel")
 			go c.handleRequest(req)
+		case msg := <-c.incomingChannel:
+			for _, sub := range c.newIncomingMessageSubscribers {
+				//sub.GetNewIncomingMessageEventChannel() <- msg
+				//ffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), msg, "receive message")
+				sub.GetNewIncomingMessageEventChannel() <- msg
+			}
 		case <-c.quit:
 			return
 		}
@@ -177,7 +195,7 @@ func (c *PhysicalCommunicator) Stop() {
 	}
 }
 
-func (c *PhysicalCommunicator) GetIncomingChannel() chan *WireMessage {
+func (c *PhysicalCommunicator) GetIncomingChannel() chan *transport_event.WireMessage {
 	return c.incomingChannel
 }
 
@@ -335,7 +353,7 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) (peerIds string
 	return
 }
 
-func (c *PhysicalCommunicator) Enqueue(req *OutgoingRequest) {
+func (c *PhysicalCommunicator) Enqueue(req *transport_event.OutgoingRequest) {
 	logrus.WithField("req", req).Info("Sending message")
 	c.initWait.Wait()
 	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
@@ -343,9 +361,9 @@ func (c *PhysicalCommunicator) Enqueue(req *OutgoingRequest) {
 }
 
 // we use direct connection currently so let's build a connection if not exists.
-func (c *PhysicalCommunicator) handleRequest(req *OutgoingRequest) {
+func (c *PhysicalCommunicator) handleRequest(req *transport_event.OutgoingRequest) {
 	logrus.Trace("handling send request")
-	if req.SendType == SendTypeBroadcast {
+	if req.SendType == transport_event.SendTypeBroadcast {
 		for _, neighbour := range c.activePeers {
 			go neighbour.Send(req.Msg)
 		}

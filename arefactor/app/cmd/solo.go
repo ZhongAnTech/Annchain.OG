@@ -15,10 +15,11 @@ import (
 
 // runCmd represents the run command
 var soloCmd = &cobra.Command{
-	Use:   "run",
+	Use:   "solo",
 	Short: "Start a solo node",
 	Long:  `Start a solo node. No consensus will be involved.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		ensureFolder()
 		initLogger()
 		// init logs and other facilities before the node starts
 		readConfig()
@@ -47,4 +48,8 @@ var soloCmd = &cobra.Command{
 			os.Exit(0)
 		}()
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(soloCmd)
 }

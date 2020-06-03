@@ -1,0 +1,11 @@
+[p2p]
+port = 3332
+network_id = "1"
+
+[profiling]
+  port = 8003
+
+[report]
+  enable = true
+  address = "127.0.0.1:8080"
+  buffer_size = 30

@@ -29,6 +29,7 @@ var runCmd = &cobra.Command{
 	Short: "Start a full node",
 	Long:  `Start a full node`,
 	Run: func(cmd *cobra.Command, args []string) {
+		ensureFolder()
 		initLogger()
 		// init logs and other facilities before the node starts
 		readConfig()
@@ -36,7 +37,7 @@ var runCmd = &cobra.Command{
 		pid := os.Getpid()
 		writeConfig()
 
-		log.WithField("with id ", pid).Info("SoloNode Starting")
+		log.WithField("with id ", pid).Info("Node Starting")
 		node := &core.Node{}
 		node.InitDefault()
 		node.Setup()

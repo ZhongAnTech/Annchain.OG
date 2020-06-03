@@ -55,7 +55,7 @@ func init() {
 	// log
 	rootCmd.PersistentFlags().BoolP("log-stdout", "", true, "Whether the log will be printed to stdout")
 	rootCmd.PersistentFlags().BoolP("log-file", "", false, "Whether the log will be printed to file")
-	rootCmd.PersistentFlags().StringP("log-level", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
+	rootCmd.PersistentFlags().StringP("log-level", "v", "trace", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
 	rootCmd.PersistentFlags().BoolP("log-line-number", "n", false, "Whether the log will contain line number")
 
 	rootCmd.PersistentFlags().BoolP("multifile_by_level", "m", false, "multifile_by_level")
@@ -72,4 +72,7 @@ func init() {
 
 	_ = viper.BindPFlag("multifile_by_level", rootCmd.PersistentFlags().Lookup("multifile_by_level"))
 	_ = viper.BindPFlag("multifile_by_module", rootCmd.PersistentFlags().Lookup("multifile_by_module"))
+
+	rootCmd.PersistentFlags().Int("id", 0, "Node Id for debugging")
+	_ = viper.BindPFlag("id", rootCmd.PersistentFlags().Lookup("id"))
 }

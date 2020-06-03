@@ -1,4 +1,4 @@
-package transport
+package transport_event
 
 //go:generate msgp
 

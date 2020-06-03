@@ -14,7 +14,7 @@
 package cmd
 
 import (
-	"github.com/annchain/OG/node"
+	//"github.com/annchain/OG/node"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
@@ -37,9 +37,9 @@ var runCmd = &cobra.Command{
 		//fmt.Println(viper.Get("clients.data"))
 		pid := os.Getpid()
 		log.WithField("with id ", pid).Info("Node Starting")
-		node := node.NewNode()
+		//node := node.NewNode()
 		writeConfig()
-		node.Start()
+		//node.Start()
 
 		// prevent sudden stop. Do your clean up here
 		var gracefulStop = make(chan os.Signal)
@@ -51,14 +51,12 @@ var runCmd = &cobra.Command{
 			sig := <-gracefulStop
 			log.Warnf("caught sig: %+v", sig)
 			log.Warn("Exiting... Please do no kill me")
-			node.Stop()
+			//node.Stop()
 			os.Exit(0)
 		}()
 
 	},
 }
-
-
 
 func init() {
 	rootCmd.AddCommand(runCmd)

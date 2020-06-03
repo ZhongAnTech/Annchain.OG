@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/tools/go/ssa/interp/testdata/src/fmt"
 	_ "net/http/pprof"
 	"os"
 )
@@ -35,6 +36,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	defer DumpStack()
+	fmt.Println(viper.GetString("rootdir"))
 	if err := rootCmd.Execute(); err != nil {
 		logrus.WithError(err).Fatalf("Fatal error occurred. Program will exit")
 		os.Exit(1)
@@ -47,6 +49,7 @@ func init() {
 	// will be global for your application.
 
 	// folders
+	rootCmd.PersistentFlags().StringP("rootdir", "r", "nodedata", "Folder for all data of one node")
 	rootCmd.PersistentFlags().StringP("datadir", "d", "data", "Folder for ledger")
 	rootCmd.PersistentFlags().StringP("configdir", "c", "config", "Folder for config")
 	rootCmd.PersistentFlags().StringP("configurl", "u", "", "URL for online config")

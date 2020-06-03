@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"github.com/annchain/OG/engine"
-	"github.com/annchain/OG/node"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
@@ -10,9 +8,9 @@ import (
 	"syscall"
 )
 
-func setupSoloEngine(myNode *node.Node2) {
-	myNode.Setup()
-}
+//func setupSoloEngine(myNode *node.Node2) {
+//	myNode.Setup()
+//}
 
 // runCmd represents the run command
 var soloCmd = &cobra.Command{
@@ -28,11 +26,11 @@ var soloCmd = &cobra.Command{
 		pid := os.Getpid()
 		log.WithField("pid", pid).Info("Node Starting")
 
-		ogEngine := &engine.Engine{}
-		ogEngine.InitDefault()
+		//ogEngine := &engine.Engine{}
+		//ogEngine.InitDefault()
 
 		writeConfig()
-		ogEngine.Start()
+		//ogEngine.Start()
 
 		// prevent sudden stop. Do your clean up here
 		var gracefulStop = make(chan os.Signal)
@@ -44,7 +42,7 @@ var soloCmd = &cobra.Command{
 			sig := <-gracefulStop
 			log.Warnf("caught sig: %+v", sig)
 			log.Warn("Exiting... Please do no kill me")
-			ogEngine.Stop()
+			//ogEngine.Stop()
 			os.Exit(0)
 		}()
 

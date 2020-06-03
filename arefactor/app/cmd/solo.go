@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/annchain/OG/arefactor/core"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
@@ -16,21 +17,21 @@ import (
 var soloCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Start a solo node",
-	Long:  `Start a solo node`,
+	Long:  `Start a solo node. No consensus will be involved.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		initLogger()
 		// init logs and other facilities before the node starts
 		readConfig()
-		initLogger()
 		startPerformanceMonitor()
-
 		pid := os.Getpid()
+		writeConfig()
+
 		log.WithField("pid", pid).Info("Node Starting")
 
-		//ogEngine := &engine.Engine{}
-		//ogEngine.InitDefault()
-
-		writeConfig()
-		//ogEngine.Start()
+		node := &core.SoloNode{}
+		node.InitDefault()
+		node.Setup()
+		node.Start()
 
 		// prevent sudden stop. Do your clean up here
 		var gracefulStop = make(chan os.Signal)
@@ -42,9 +43,8 @@ var soloCmd = &cobra.Command{
 			sig := <-gracefulStop
 			log.Warnf("caught sig: %+v", sig)
 			log.Warn("Exiting... Please do no kill me")
-			//ogEngine.Stop()
+			node.Stop()
 			os.Exit(0)
 		}()
-
 	},
 }

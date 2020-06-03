@@ -33,13 +33,10 @@ var runCmd = &cobra.Command{
 		// init logs and other facilities before the node starts
 		readConfig()
 		startPerformanceMonitor()
-		//fmt.Println(viper.GetString("title"))
-		//fmt.Println(viper.GetStringSlice("database.ports"))
-		//fmt.Println(viper.Get("clients.data"))
 		pid := os.Getpid()
 		writeConfig()
 
-		log.WithField("with id ", pid).Info("Node Starting")
+		log.WithField("with id ", pid).Info("SoloNode Starting")
 		node := &core.Node{}
 		node.InitDefault()
 		node.Setup()

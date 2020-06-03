@@ -8,17 +8,17 @@ import (
 )
 
 // SoloNode is the basic entrypoint for all modules to start.
-type Node struct {
+type SoloNode struct {
 	components []Component
 }
 
 // InitDefault only set necessary data structures.
 // to Init a node with components, use Setup
-func (n *Node) InitDefault() {
+func (n *SoloNode) InitDefault() {
 	n.components = []Component{}
 }
 
-func (n *Node) Setup() {
+func (n *SoloNode) Setup() {
 
 	hostname := utilfuncs.GetHostName()
 	reporter := &performance.SoccerdashReporter{
@@ -37,7 +37,7 @@ func (n *Node) Setup() {
 	n.components = append(n.components, pm)
 }
 
-func (n *Node) Start() {
+func (n *SoloNode) Start() {
 	for _, component := range n.components {
 		logrus.Infof("Starting %s", component.Name())
 		component.Start()
@@ -46,7 +46,7 @@ func (n *Node) Start() {
 	}
 	logrus.Info("SoloNode Started")
 }
-func (n *Node) Stop() {
+func (n *SoloNode) Stop() {
 	for i := len(n.components) - 1; i >= 0; i-- {
 		comp := n.components[i]
 		logrus.Infof("Stopping %s", comp.Name())

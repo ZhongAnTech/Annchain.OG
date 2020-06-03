@@ -16,9 +16,10 @@ package node
 import (
 	"fmt"
 	"github.com/annchain/OG/account"
+	archive2 "github.com/annchain/OG/archive"
+	"github.com/annchain/OG/arefactor/common/io"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/encryption"
-	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/og/message_archive"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types/archive"
@@ -43,9 +44,9 @@ import (
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/fetcher"
 
+	"github.com/annchain/OG/arefactor/performance"
 	miner2 "github.com/annchain/OG/ogcore/miner"
 	"github.com/annchain/OG/p2p"
-	"github.com/annchain/OG/performance"
 	"github.com/spf13/viper"
 )
 
@@ -462,7 +463,7 @@ func NewNode() *Node {
 	}
 
 	//txMetrics
-	txCounter := performance.NewTxCounter()
+	txCounter := archive2.NewTxCounter()
 
 	org.TxPool.RegisterOnNewTxReceived(txCounter.NewTxReceivedChan, "txCounter.NewTxReceivedChan", true)
 	org.TxPool.onBatchConfirmed = append(org.TxPool.onBatchConfirmed, txCounter.BatchConfirmedChan)

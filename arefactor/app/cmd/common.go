@@ -3,7 +3,9 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/files"
 	"github.com/annchain/OG/arefactor/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/mylog"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
@@ -17,6 +19,12 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"time"
+)
+
+var (
+	LogDir    = "log"
+	DataDir   = "data"
+	ConfigDir = "config"
 )
 
 func DumpStack() {
@@ -38,12 +46,13 @@ func DumpStack() {
 
 // initLogger uses viper to get the log path and level. It should be called by all other commands
 func initLogger() {
-	logdir := viper.GetString("logdir")
-	stdout := viper.GetBool("log_stdout")
+	doStdout := viper.GetBool("log-stdout")
+	doFile := viper.GetBool("log-file")
+	logdir := files.FixPrefixPath(viper.GetString("rootdir"), LogDir)
 
-	var writer io.Writer
+	var writers []io.Writer
 
-	if logdir != "" {
+	if doFile {
 		folderPath, err := filepath.Abs(logdir)
 		utilfuncs.PanicIfError(err, fmt.Sprintf("Error on parsing log path: %s", logdir))
 
@@ -52,27 +61,23 @@ func initLogger() {
 
 		err = os.MkdirAll(folderPath, os.ModePerm)
 		utilfuncs.PanicIfError(err, fmt.Sprintf("Error on creating log dir: %s", folderPath))
-
-		if stdout {
-			logFile, err := os.OpenFile(abspath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			utilfuncs.PanicIfError(err, fmt.Sprintf("Error on creating log file: %s", abspath))
-			abspath += ".log"
-			fmt.Println("Will be logged to stdout and ", abspath)
-			writer = io.MultiWriter(os.Stdout, logFile)
-		} else {
-			fmt.Println("Will be logged to ", abspath+".log")
-			writer = mylog.RotateLog(abspath)
-		}
-	} else {
-		// stdout only
+		writers = append(writers, mylog.RotateLog(abspath))
+		fmt.Println("Will be logged to " + abspath + ".log")
+	}
+	if doStdout {
 		fmt.Println("Will be logged to stdout")
-		writer = os.Stdout
+		writers = append(writers, os.Stdout)
 	}
 
-	logrus.SetOutput(writer)
+	if doStdout && doFile {
+		writer := io.MultiWriter(writers...)
+		logrus.SetOutput(writer)
+	} else if doStdout {
+		logrus.SetOutput(os.Stdout)
+	}
 
 	// Only log the warning severity or above.
-	switch viper.GetString("log_level") {
+	switch viper.GetString("log-level") {
 	case "panic":
 		logrus.SetLevel(logrus.PanicLevel)
 	case "fatal":
@@ -88,22 +93,22 @@ func initLogger() {
 	case "trace":
 		logrus.SetLevel(logrus.TraceLevel)
 	default:
-		fmt.Println("Unknown level", viper.GetString("log_level"), "Set to INFO")
+		fmt.Println("Unknown level: ", viper.GetString("log-level"), "Set to INFO")
 		logrus.SetLevel(logrus.InfoLevel)
 	}
 
 	Formatter := new(logrus.TextFormatter)
-	Formatter.ForceColors = logdir == ""
-	//Formatter.DisableColors = true
+	Formatter.ForceColors = doStdout
+	//Formatter.DisableColors = false
 	Formatter.TimestampFormat = "2006-01-02 15:04:05.000000"
 	Formatter.FullTimestamp = true
 
-	logrus.SetFormatter(Formatter)
+	logrus.StandardLogger().SetFormatter(Formatter)
 
 	// redirect standard log to logrus
 	//log.SetOutput(logrus.StandardLogger().Writer())
 	//log.Println("Standard logger. Am I here?")
-	lineNum := viper.GetBool("log_line_number")
+	lineNum := viper.GetBool("log-line-number")
 	if lineNum {
 		//filenameHook := filename.NewHook()
 		//filenameHook.Field = "line"
@@ -111,7 +116,7 @@ func initLogger() {
 		logrus.SetReportCaller(true)
 	}
 	byLevel := viper.GetBool("multifile_by_level")
-	if byLevel && logdir != "" {
+	if byLevel && doFile {
 		panicLog, _ := filepath.Abs(path.Join(logdir, "panic"))
 		fatalLog, _ := filepath.Abs(path.Join(logdir, "fatal"))
 		warnLog, _ := filepath.Abs(path.Join(logdir, "warn"))
@@ -133,25 +138,20 @@ func initLogger() {
 			Formatter,
 		))
 	}
-	logger := logrus.StandardLogger()
+	//logger := logrus.StandardLogger()
 	logrus.Debug("Logger initialized.")
 	byModule := viper.GetBool("multifile_by_module")
 	if !byModule {
 		logdir = ""
 	}
-
-	downloader.InitLoggers(logger, logdir)
-	fetcher.InitLoggers(logger, logdir)
-	p2p.InitLoggers(logger, logdir)
-	og.InitLoggers(logger, logdir)
-	syncer.InitLoggers(logger, logdir)
-	annsensus.InitLoggers(logger, logdir)
 }
 
 func startPerformanceMonitor() {
 	function := func() {
-		logrus.WithField("port", viper.GetString("profiling.port")).Info("Performance monitor started")
-		log.Println(http.ListenAndServe("0.0.0.0:"+viper.GetString("profiling.port"), nil))
+		port := viper.GetString("profiling.port")
+		logrus.WithField("port", port).Info("Performance monitor started")
+
+		log.Println(http.ListenAndServe("0.0.0.0:"+port, nil))
 	}
 	goroutine.New(function)
 }

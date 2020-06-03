@@ -14,7 +14,7 @@
 package syncer
 
 import (
-	"github.com/annchain/OG/mylog"
+	"github.com/annchain/OG/arefactor/common/mylog"
 	"github.com/sirupsen/logrus"
 )
 

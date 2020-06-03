@@ -14,8 +14,8 @@
 package og
 
 import (
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"

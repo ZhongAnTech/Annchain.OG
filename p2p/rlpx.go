@@ -29,7 +29,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"hash"
 	"io"

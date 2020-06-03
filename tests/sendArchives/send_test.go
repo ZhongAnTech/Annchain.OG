@@ -16,7 +16,7 @@ package sendArchives
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/client/httplib"
+	"github.com/annchain/OG/arefactor/common/httplib"
 	"testing"
 	"time"
 )

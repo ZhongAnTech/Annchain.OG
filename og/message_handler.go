@@ -15,8 +15,8 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"

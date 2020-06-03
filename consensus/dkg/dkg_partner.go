@@ -1,7 +1,7 @@
 package dkg
 
 import (
-	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/ffchan"
 	"github.com/annchain/kyber/v3"

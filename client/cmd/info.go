@@ -17,7 +17,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/client/httplib"
+	"github.com/annchain/OG/arefactor/common/httplib"
 	"github.com/spf13/cobra"
 )
 

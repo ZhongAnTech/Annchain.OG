@@ -23,15 +23,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/common/io"
+	"github.com/annchain/OG/arefactor/common/format"
+	"github.com/annchain/OG/arefactor/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/io"
 	"github.com/annchain/OG/p2p/onode"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"sort"
 
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/discover"
@@ -790,7 +790,7 @@ running:
 			}
 		case pd := <-srv.delpeer:
 			// A peer disconnected.
-			d := common.PrettyDuration(mclock.Now() - pd.created)
+			d := format.PrettyDuration(mclock.Now() - pd.created)
 			log.WithFields(logrus.Fields{"duration": d, "peers": len(peers) - 1, "req": pd.requested}).
 				WithError(pd.err).
 				Debug("Removing p2p peer")

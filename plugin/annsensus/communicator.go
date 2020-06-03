@@ -1,7 +1,7 @@
 package annsensus
 
 import (
-	"github.com/annchain/OG/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/communication"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/message"

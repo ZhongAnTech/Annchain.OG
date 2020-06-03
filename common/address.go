@@ -18,7 +18,7 @@ package common
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"math/big"
 	"math/rand"
 	"reflect"

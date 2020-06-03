@@ -18,7 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/tools/go/ssa/interp/testdata/src/fmt"
 	_ "net/http/pprof"
 	"os"
 )
@@ -36,7 +35,6 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	defer DumpStack()
-	fmt.Println(viper.GetString("rootdir"))
 	if err := rootCmd.Execute(); err != nil {
 		logrus.WithError(err).Fatalf("Fatal error occurred. Program will exit")
 		os.Exit(1)
@@ -50,46 +48,28 @@ func init() {
 
 	// folders
 	rootCmd.PersistentFlags().StringP("rootdir", "r", "nodedata", "Folder for all data of one node")
-	rootCmd.PersistentFlags().StringP("datadir", "d", "data", "Folder for ledger")
-	rootCmd.PersistentFlags().StringP("configdir", "c", "config", "Folder for config")
 	rootCmd.PersistentFlags().StringP("configurl", "u", "", "URL for online config")
-	rootCmd.PersistentFlags().StringP("iddir", "i", "identity", "Folder for identity")
-	rootCmd.PersistentFlags().StringP("logdir", "l", "log", "Folder for log")
-
 	// identity generation
 	rootCmd.PersistentFlags().BoolP("genkey", "g", false, "Automatically generate a private key if the privkey is missing.")
 
 	// log
-	rootCmd.PersistentFlags().BoolP("log_stdout", "s", false, "Whether the log will be printed to stdout")
-	rootCmd.PersistentFlags().StringP("log_level", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
-	rootCmd.PersistentFlags().BoolP("log_line_number", "n", false, "Whether the log will contain line number")
+	rootCmd.PersistentFlags().BoolP("log-stdout", "", true, "Whether the log will be printed to stdout")
+	rootCmd.PersistentFlags().BoolP("log-file", "", false, "Whether the log will be printed to file")
+	rootCmd.PersistentFlags().StringP("log-level", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
+	rootCmd.PersistentFlags().BoolP("log-line-number", "n", false, "Whether the log will contain line number")
+
 	rootCmd.PersistentFlags().BoolP("multifile_by_level", "m", false, "multifile_by_level")
 	rootCmd.PersistentFlags().BoolP("multifile_by_module", "M", false, "multifile_by_module")
 
-	_ = viper.BindPFlag("datadir", rootCmd.PersistentFlags().Lookup("datadir"))
-	_ = viper.BindPFlag("configdir", rootCmd.PersistentFlags().Lookup("configdir"))
+	_ = viper.BindPFlag("rootdir", rootCmd.PersistentFlags().Lookup("rootdir"))
 	_ = viper.BindPFlag("configurl", rootCmd.PersistentFlags().Lookup("configurl"))
-	_ = viper.BindPFlag("iddir", rootCmd.PersistentFlags().Lookup("iddir"))
-	_ = viper.BindPFlag("logdir", rootCmd.PersistentFlags().Lookup("logdir"))
-
 	_ = viper.BindPFlag("genkey", rootCmd.PersistentFlags().Lookup("genkey"))
 
-	_ = viper.BindPFlag("log.stdout", rootCmd.PersistentFlags().Lookup("log.stdout"))
-	_ = viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log.level"))
-	_ = viper.BindPFlag("log.line_number", rootCmd.PersistentFlags().Lookup("log.line_number"))
+	_ = viper.BindPFlag("log-stdout", rootCmd.PersistentFlags().Lookup("log-stdout"))
+	_ = viper.BindPFlag("log-file", rootCmd.PersistentFlags().Lookup("log-file"))
+	_ = viper.BindPFlag("log-level", rootCmd.PersistentFlags().Lookup("log-level"))
+	_ = viper.BindPFlag("log-line-number", rootCmd.PersistentFlags().Lookup("log-line-number"))
+
 	_ = viper.BindPFlag("multifile_by_level", rootCmd.PersistentFlags().Lookup("multifile_by_level"))
 	_ = viper.BindPFlag("multifile_by_module", rootCmd.PersistentFlags().Lookup("multifile_by_module"))
-	//_ = viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log_level"))
-
-	//viper.SetDefault("hub.outgoing_buffer_size", 100)
-	//viper.SetDefault("hub.incoming_buffer_size", 100)
-	//viper.SetDefault("hub.message_cache_expiration_seconds", 60)
-	//viper.SetDefault("hub.message_cache_max_size", 30000)
-	//viper.SetDefault("crypto.algorithm", "ed25519")
-	//viper.SetDefault("tx_buffer.new_tx_queue_size", 1)
-	//
-	//viper.SetDefault("max_tx_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
-	//viper.SetDefault("max_mined_hash", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
-	//
-	//viper.SetDefault("debug.node_id", 0)
 }

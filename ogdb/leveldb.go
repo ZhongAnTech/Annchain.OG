@@ -18,7 +18,7 @@ package ogdb
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"strconv"
 	"strings"
 	"sync"

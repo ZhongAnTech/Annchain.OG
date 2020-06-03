@@ -1,12 +1,12 @@
 package engine_test
 
 import (
+	"github.com/annchain/OG/arefactor/common/mylog"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/dkg"
 	"github.com/annchain/OG/consensus/term"
 	"github.com/annchain/OG/engine"
 	"github.com/annchain/OG/message"
-	"github.com/annchain/OG/mylog"
 	"github.com/annchain/OG/plugin/annsensus"
 	"github.com/annchain/kyber/v3/pairing/bn256"
 	"github.com/sirupsen/logrus"

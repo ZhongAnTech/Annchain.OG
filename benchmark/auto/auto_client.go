@@ -16,8 +16,8 @@ package auto
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/node"
 	"github.com/annchain/OG/og/types"

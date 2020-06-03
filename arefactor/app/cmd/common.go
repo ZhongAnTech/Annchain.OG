@@ -22,9 +22,10 @@ import (
 )
 
 var (
-	LogDir    = "log"
-	DataDir   = "data"
-	ConfigDir = "config"
+	LogDir     = "log"
+	DataDir    = "data"
+	ConfigDir  = "config"
+	PrivateDir = "private"
 )
 
 func DumpStack() {

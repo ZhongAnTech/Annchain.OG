@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 )
@@ -24,7 +25,7 @@ import (
 // 3, config.toml or online toml if config.toml is not found
 func readConfig() {
 
-	configPath := files.FixPrefixPath(viper.GetString("rootdir"), ConfigDir+"/config.toml")
+	configPath := files.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "config.toml"))
 
 	if files.FileExists(configPath) {
 		mergeLocalConfig(configPath)
@@ -37,7 +38,7 @@ func readConfig() {
 	}
 
 	// load injected config from ogbootstrap if any
-	injectedPath := files.FixPrefixPath(viper.GetString("rootdir"), ConfigDir+"/injected.toml")
+	injectedPath := files.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "injected.toml"))
 	if files.FileExists(injectedPath) {
 		log.Info("merging local config file")
 		mergeLocalConfig(injectedPath)
@@ -57,7 +58,7 @@ func mergeEnvConfig() {
 }
 
 func writeConfig() {
-	configPath := files.FixPrefixPath(viper.GetString("rootdir"), ConfigDir+"/config_dump.toml")
+	configPath := files.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "config_dump.toml"))
 	err := viper.WriteConfigAs(configPath)
 	utilfuncs.PanicIfError(err, "dump config")
 }

@@ -1,10 +1,12 @@
 package files
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 )
 
 func FileExists(filename string) bool {
@@ -47,4 +49,28 @@ func CopyFile(sourceFile string, destinationFile string) {
 		fmt.Println(err)
 		return
 	}
+}
+
+func ReadLines(filename string) (lines []string, err error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	lines = []string{}
+
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	return
 }

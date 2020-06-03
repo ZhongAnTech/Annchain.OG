@@ -14,6 +14,7 @@
 package cmd
 
 import (
+	"github.com/annchain/OG/arefactor/core"
 	//"github.com/annchain/OG/node"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -28,18 +29,21 @@ var runCmd = &cobra.Command{
 	Short: "Start a full node",
 	Long:  `Start a full node`,
 	Run: func(cmd *cobra.Command, args []string) {
+		initLogger()
 		// init logs and other facilities before the node starts
 		readConfig()
-		initLogger()
 		startPerformanceMonitor()
 		//fmt.Println(viper.GetString("title"))
 		//fmt.Println(viper.GetStringSlice("database.ports"))
 		//fmt.Println(viper.Get("clients.data"))
 		pid := os.Getpid()
-		log.WithField("with id ", pid).Info("Node Starting")
-		//node := node.NewNode()
 		writeConfig()
-		//node.Start()
+
+		log.WithField("with id ", pid).Info("Node Starting")
+		node := &core.Node{}
+		node.InitDefault()
+		node.Setup()
+		node.Start()
 
 		// prevent sudden stop. Do your clean up here
 		var gracefulStop = make(chan os.Signal)
@@ -51,7 +55,7 @@ var runCmd = &cobra.Command{
 			sig := <-gracefulStop
 			log.Warnf("caught sig: %+v", sig)
 			log.Warn("Exiting... Please do no kill me")
-			//node.Stop()
+			node.Stop()
 			os.Exit(0)
 		}()
 

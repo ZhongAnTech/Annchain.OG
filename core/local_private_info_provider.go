@@ -3,7 +3,7 @@ package core
 import (
 	"encoding/json"
 	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/common/io"
+	"github.com/annchain/OG/arefactor/common/io"
 	"github.com/spf13/viper"
 	"io/ioutil"
 )

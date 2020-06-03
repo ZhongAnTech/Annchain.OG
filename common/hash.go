@@ -19,8 +19,8 @@ package common
 import (
 	"crypto/sha256"
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/common/utilfuncs"
 	"math/big"
 	"math/rand"
 	"reflect"

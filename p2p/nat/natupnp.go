@@ -19,7 +19,7 @@ package nat
 import (
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"net"
 	"strings"
 	"time"

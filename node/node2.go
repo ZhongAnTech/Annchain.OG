@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/og/account"
 	"github.com/annchain/OG/plugin/community"
@@ -24,7 +25,7 @@ func (n *Node2) InitDefault() {
 func (n *Node2) Setup() {
 	n.PrivateInfoProvider = &core.LocalPrivateInfoProvider{}
 
-	hostname := getHostname()
+	hostname := utilfuncs.getHostname()
 
 	// load identity from config
 	reporter := &soccerdash.Reporter{

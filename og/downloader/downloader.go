@@ -16,8 +16,8 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/og/types"

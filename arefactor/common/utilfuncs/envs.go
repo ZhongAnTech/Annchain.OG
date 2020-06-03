@@ -1,8 +1,8 @@
-package node
+package utilfuncs
 
 import "os"
 
-func getHostname() string {
+func GetHostName() string {
 	// Kubernetes first
 	if v, ok := os.LookupEnv("HOSTNAME"); ok {
 		return v

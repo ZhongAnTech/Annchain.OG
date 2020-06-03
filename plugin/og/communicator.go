@@ -1,7 +1,7 @@
 package og
 
 import (
-	"github.com/annchain/OG/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	general_communication "github.com/annchain/OG/communication"
 	general_message "github.com/annchain/OG/message"
 	"github.com/annchain/OG/ogcore/communication"

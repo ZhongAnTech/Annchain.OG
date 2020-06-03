@@ -15,13 +15,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"os"
 	"path"
 	"strings"
 
 	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/common/io"
+	"github.com/annchain/OG/arefactor/common/io"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

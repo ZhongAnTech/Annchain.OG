@@ -3,7 +3,7 @@ package byteutil
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/annchain/OG/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 )
 
 type BinaryWriter struct {

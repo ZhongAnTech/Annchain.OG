@@ -19,7 +19,7 @@ package common
 
 import (
 	"encoding/hex"
-	"github.com/annchain/OG/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 )
 
 // ToHex returns the hex representation of b, prefixed with '0x'.

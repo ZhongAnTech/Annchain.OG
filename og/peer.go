@@ -16,8 +16,8 @@ package og
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/message_archive"
 	"github.com/annchain/OG/types/msg"

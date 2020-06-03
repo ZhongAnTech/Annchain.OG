@@ -1,7 +1,7 @@
 package p2p
 
 import (
-	"github.com/annchain/OG/mylog"
+	"github.com/annchain/OG/arefactor/common/mylog"
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/annchain/OG/p2p/discv5"
 	"github.com/annchain/OG/p2p/onode"

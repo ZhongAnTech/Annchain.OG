@@ -19,7 +19,7 @@ package p2p
 import (
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/p2p/enr"
 	"io"
 	"net"

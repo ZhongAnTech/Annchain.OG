@@ -43,6 +43,7 @@ require (
 	go.uber.org/atomic v1.6.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
+	golang.org/x/tools v0.0.0-20191216052735-49a3e744a425
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/yaml.v2 v2.2.4
 )

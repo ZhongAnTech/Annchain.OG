@@ -16,8 +16,8 @@ package bft
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/goroutine"
 	"strings"
 	"time"
 

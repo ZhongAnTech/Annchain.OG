@@ -11,8 +11,8 @@ logs/
 vendor/
 *.lock
 /.project
-app/app
-app/app.exe
+arefactor/app/app
+arefactor/app/app.exe
 client/client
 .vscode/
 /client/main
@@ -24,13 +24,13 @@ data/
 db_*/
 common/crypto/debug.test
 core/debug.test
-app/debug
+arefactor/app/debug
 *.test
 ogcore/state/debug.test
 /vm/compiler/
 tests/genesis_account/secret.json
 main.exe
-app/app1.exe
+arefactor/app/app1.exe
 deployment/deployment
 tests/testDbTPs/testDb.exe
 tests/testDbTPs/datadir

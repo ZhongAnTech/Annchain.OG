@@ -14,7 +14,7 @@
 package ffchan
 
 import (
-	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/sirupsen/logrus"
 	"reflect"
 	"runtime/debug"

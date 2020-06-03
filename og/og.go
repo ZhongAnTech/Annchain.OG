@@ -15,9 +15,9 @@ package og
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/io"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/common/io"
 	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"

@@ -15,7 +15,7 @@ package auto
 
 import (
 	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/node"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/types"

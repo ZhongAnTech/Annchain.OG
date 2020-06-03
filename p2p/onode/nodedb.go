@@ -21,7 +21,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"github.com/annchain/OG/common/goroutine"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/p2p/enr"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"

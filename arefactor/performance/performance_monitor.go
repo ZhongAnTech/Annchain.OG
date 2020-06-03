@@ -14,24 +14,29 @@
 package performance
 
 import (
-	"github.com/annchain/OG/common/goroutine"
-	"github.com/sirupsen/logrus"
+	"fmt"
+	"github.com/annchain/OG/arefactor/common/goroutine"
 	"runtime"
 	"time"
 )
 
 type PerformanceReporter interface {
+	Report(key string, value interface{})
+}
+
+type PerformanceDataProvider interface {
 	Name() string
 	GetBenchmarks() map[string]interface{}
 }
 
 type PerformanceMonitor struct {
-	reporters []PerformanceReporter
-	quit      bool
+	dataProviders []PerformanceDataProvider
+	quit          bool
+	Reporters     []PerformanceReporter
 }
 
-func (p *PerformanceMonitor) Register(holder PerformanceReporter) {
-	p.reporters = append(p.reporters, holder)
+func (p *PerformanceMonitor) Register(dataProvider PerformanceDataProvider) {
+	p.dataProviders = append(p.dataProviders, dataProvider)
 }
 
 func (p *PerformanceMonitor) Start() {
@@ -40,9 +45,12 @@ func (p *PerformanceMonitor) Start() {
 		//runtime.SetBlockProfileRate(1)
 
 		for !p.quit {
-			fields := logrus.Fields(p.CollectData())
-			logrus.WithFields(fields).Info("Performance")
-			//pprof.Lookup("block").WriteTo(os.Stdout, 1)
+			fmt.Println("reporting")
+			for key, value := range p.CollectData() {
+				for _, reporter := range p.Reporters {
+					reporter.Report(key, value)
+				}
+			}
 
 			time.Sleep(time.Second * 10)
 		}
@@ -59,7 +67,7 @@ func (PerformanceMonitor) Name() string {
 
 func (p *PerformanceMonitor) CollectData() map[string]interface{} {
 	data := make(map[string]interface{})
-	for _, ch := range p.reporters {
+	for _, ch := range p.dataProviders {
 		data[ch.Name()] = ch.GetBenchmarks()
 	}
 	// add additional fields

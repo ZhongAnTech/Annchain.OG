@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/mylog"
 	"github.com/annchain/OG/debug/dep"
 	"github.com/annchain/OG/engine"
 	"github.com/annchain/OG/message"
-	"github.com/annchain/OG/mylog"
 	"github.com/annchain/OG/ogcore/communication"
 	"github.com/annchain/OG/plugin/og"
 	"github.com/sirupsen/logrus"

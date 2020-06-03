@@ -156,3 +156,15 @@ func startPerformanceMonitor() {
 	}
 	goroutine.New(function)
 }
+
+func ensureFolder() {
+	root := viper.GetString("rootdir")
+	err := files.MkDirIfNotExists(root)
+	utilfuncs.PanicIfError(err, "creating root folder")
+
+	folders := []string{LogDir, DataDir, ConfigDir, PrivateDir}
+	for _, folder := range folders {
+		err = files.MkDirIfNotExists(files.FixPrefixPath(root, folder))
+		utilfuncs.PanicIfError(err, "creating folder: "+folder)
+	}
+}

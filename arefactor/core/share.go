@@ -16,7 +16,7 @@ var (
 func getPerformanceMonitor() *performance.PerformanceMonitor {
 	hostname := utilfuncs.GetHostName()
 	reporter := &performance.SoccerdashReporter{
-		Id:         hostname,
+		Id:         hostname + viper.GetString("id"),
 		IpPort:     viper.GetString("report.address"),
 		BufferSize: viper.GetInt("report.buffer_size"),
 	}

@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/annchain/OG/client/httplib"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/io"
-	"github.com/annchain/OG/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/common/format"
+	"github.com/annchain/OG/arefactor/common/httplib"
+	"github.com/annchain/OG/arefactor/common/io"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/spf13/viper"
 	"net/url"
 	"os"
@@ -14,8 +14,14 @@ import (
 	"time"
 )
 
-// readConfig will respect --config first. If not found, try --datadir/--config
-// If neither config exists, try to use --config as an online source.
+// readConfig will respect {configdir}/config.toml first.
+// If not found, get config from online source {configurl}
+// {configdir}/injected.toml is the config issued by bootstrap server.
+// finally merge env config so that any config can be override by env variables.
+// Importance order:
+// 1, ENV
+// 2, injected.toml
+// 3, config.toml or online toml if config.toml is not found
 func readConfig() {
 	configPath := io.FixPrefixPath(viper.GetString("configdir"), "config.toml")
 
@@ -33,7 +39,7 @@ func readConfig() {
 
 	mergeEnvConfig()
 	// print running config in console.
-	b, err := common.PrettyJson(viper.AllSettings())
+	b, err := format.PrettyJson(viper.AllSettings())
 	utilfuncs.PanicIfError(err, "dump json")
 	fmt.Println(b)
 }

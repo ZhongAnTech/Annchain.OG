@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/annchain/OG/app/cmd"
+import "github.com/annchain/OG/arefactor/app/cmd"
 
 func main() {
 	cmd.Execute()

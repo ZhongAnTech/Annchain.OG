@@ -37,8 +37,8 @@ var runCmd = &cobra.Command{
 		pid := os.Getpid()
 		writeConfig()
 
-		log.WithField("with id ", pid).Info("Node Starting")
-		node := &core.Node{}
+		log.WithField("with id ", pid).Info("SampleNode Starting")
+		node := &core.SampleNode{}
 		node.InitDefault()
 		node.Setup()
 		node.Start()

@@ -15,7 +15,6 @@ package performance
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/goroutine"
 	"runtime"
 	"time"
 )
@@ -40,7 +39,7 @@ func (p *PerformanceMonitor) Register(dataProvider PerformanceDataProvider) {
 }
 
 func (p *PerformanceMonitor) Start() {
-	goroutine.New(func() {
+	go func() {
 		p.quit = false
 		//runtime.SetBlockProfileRate(1)
 
@@ -54,7 +53,7 @@ func (p *PerformanceMonitor) Start() {
 
 			time.Sleep(time.Second * 1)
 		}
-	})
+	}()
 }
 
 func (p *PerformanceMonitor) Stop() {
@@ -63,6 +62,10 @@ func (p *PerformanceMonitor) Stop() {
 
 func (PerformanceMonitor) Name() string {
 	return "PerformanceMonitor"
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }
 
 func (p *PerformanceMonitor) CollectData() map[string]interface{} {
@@ -75,6 +78,11 @@ func (p *PerformanceMonitor) CollectData() map[string]interface{} {
 	}
 	// add additional fields
 	data["goroutines"] = runtime.NumGoroutine()
-	data["goroutineNUmbers"] = goroutine.GetGoRoutineNum()
+	ms := &runtime.MemStats{}
+	runtime.ReadMemStats(ms)
+	data["NumGC"] = ms.NumGC
+	data["Alloc"] = bToMb(ms.Alloc)
+	data["TotalAlloc"] = bToMb(ms.TotalAlloc)
+	data["Sys"] = bToMb(ms.Sys)
 	return data
 }

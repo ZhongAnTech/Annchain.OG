@@ -12,8 +12,8 @@ import (
 	"path"
 )
 
-// SoloNode is the basic entrypoint for all modules to start.
-type Node struct {
+// SampleNode is the basic entry point for all modules to start.
+type SampleNode struct {
 	components              []Component
 	transportIdentityHolder *transport.DefaultTransportIdentityHolder
 	cpTransport             *transport.PhysicalCommunicator
@@ -22,11 +22,11 @@ type Node struct {
 
 // InitDefault only set necessary data structures.
 // to Init a node with components, use Setup
-func (n *Node) InitDefault() {
+func (n *SampleNode) InitDefault() {
 	n.components = []Component{}
 }
 
-func (n *Node) Setup() {
+func (n *SampleNode) Setup() {
 	// load private info
 	// check if file exists
 	n.transportIdentityHolder = &transport.DefaultTransportIdentityHolder{
@@ -85,17 +85,17 @@ func getTransport(identityHolder *transport.DefaultTransportIdentityHolder) *tra
 	return p2p
 }
 
-func (n *Node) Start() {
+func (n *SampleNode) Start() {
 	for _, component := range n.components {
 		logrus.Infof("Starting %s", component.Name())
 		component.Start()
 		logrus.Infof("Started: %s", component.Name())
 
 	}
-	logrus.Info("Node Started")
+	logrus.Info("SampleNode Started")
 	n.AfterStart()
 }
-func (n *Node) AfterStart() {
+func (n *SampleNode) AfterStart() {
 	knownPeersAddress, err := transport_event.LoadKnownPeers(
 		io.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "peers.lst")))
 	if err != nil {
@@ -113,12 +113,12 @@ func (n *Node) AfterStart() {
 		n.cpTransport.SuggestConnection(peer)
 	}
 }
-func (n *Node) Stop() {
+func (n *SampleNode) Stop() {
 	for i := len(n.components) - 1; i >= 0; i-- {
 		comp := n.components[i]
 		logrus.Infof("Stopping %s", comp.Name())
 		comp.Stop()
 		logrus.Infof("Stopped: %s", comp.Name())
 	}
-	logrus.Info("Node Stopped")
+	logrus.Info("SampleNode Stopped")
 }

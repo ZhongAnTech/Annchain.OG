@@ -5,32 +5,10 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
+	"runtime"
 	"runtime/debug"
-	"sync/atomic"
 	"time"
 )
-
-var globalGoRoutineNum int32
-
-var calculateGoroutineNum = true
-
-func GetGoRoutineNum() int32 {
-	return atomic.LoadInt32(&globalGoRoutineNum)
-}
-
-func New(function func()) {
-	//todo we can handle goroutine num here
-	if calculateGoroutineNum {
-		atomic.AddInt32(&globalGoRoutineNum, 1)
-	}
-	go func() {
-		if calculateGoroutineNum {
-			defer atomic.AddInt32(&globalGoRoutineNum, -1)
-		}
-		defer DumpStack(true)
-		function()
-	}()
-}
 
 func WithRecover(handler func()) {
 	//todo we can handle goroutine num here
@@ -42,7 +20,7 @@ func WithRecover(handler func()) {
 
 func DumpStack(exitIFPanic bool) {
 	if err := recover(); err != nil {
-		fmt.Println("goroutine num ", globalGoRoutineNum)
+		fmt.Println("goroutine num ", runtime.NumGoroutine())
 		logrus.WithField("obj", err).Error("Fatal error occurred. Program will exit")
 		var buf bytes.Buffer
 		stack := debug.Stack()

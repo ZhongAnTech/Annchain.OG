@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_event"
@@ -40,6 +41,7 @@ func (n *Node) Setup() {
 		Id:    viper.GetInt("id"),
 		Peers: []string{},
 	}
+	cpBouncer.InitDefault()
 
 	n.components = append(n.components, cpTransport)
 	n.components = append(n.components, cpPerformanceMonitor)
@@ -48,6 +50,9 @@ func (n *Node) Setup() {
 	// event registration
 	cpBouncer.RegisterSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpTransport.RegisterSubscriberNewIncomingMessageEventSubscriber(cpBouncer)
+
+	// performance monitor registration
+	cpPerformanceMonitor.Register(cpBouncer)
 
 	n.cpTransport = cpTransport
 	n.cpBouncer = cpBouncer
@@ -78,18 +83,24 @@ func (n *Node) Start() {
 
 	}
 	logrus.Info("Node Started")
-	go n.AfterStart()
+	n.AfterStart()
 }
 func (n *Node) AfterStart() {
-	knownPeers, err := transport_event.LoadKnownPeers(
+	knownPeersAddress, err := transport_event.LoadKnownPeers(
 		io.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "peers.lst")))
 	if err != nil {
-		logrus.WithError(err).Fatal("you need provide at least one known peer to connect to the peer network. Place them in config/peers.lst")
+		logrus.WithError(err).Fatal("you need provide at least one known address to connect to the address network. Place them in config/peers.lst")
 	}
 
-	for _, peer := range knownPeers {
-		peerId := n.cpTransport.SuggestConnection(peer)
-		n.cpBouncer.Peers = append(n.cpBouncer.Peers, peerId)
+	// let bouncer knows first. pretend that the suggest is given by bouncer
+	for _, address := range knownPeersAddress {
+		nodeId, err := n.cpTransport.GetPeerId(address)
+		utilfuncs.PanicIfError(err, "parse node address")
+		n.cpBouncer.Peers = append(n.cpBouncer.Peers, nodeId)
+	}
+
+	for _, peer := range knownPeersAddress {
+		n.cpTransport.SuggestConnection(peer)
 	}
 }
 func (n *Node) Stop() {

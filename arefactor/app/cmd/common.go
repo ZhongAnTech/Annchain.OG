@@ -42,6 +42,7 @@ func DumpStack() {
 			fmt.Println(buf.String())
 		}
 		logrus.WithField("stack ", buf.String()).Error("panic")
+		fmt.Println(buf.String())
 	}
 }
 

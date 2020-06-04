@@ -1,5 +1,5 @@
 [p2p]
-port = 8001
+port = 3330
 network_id = "1"
 
 [profiling]
@@ -8,5 +8,5 @@ port = 8003
 [report]
 enable = true
 address = "127.0.0.1:8080"
+address_log = "127.0.0.1:8082"
 buffer_size = 30
-

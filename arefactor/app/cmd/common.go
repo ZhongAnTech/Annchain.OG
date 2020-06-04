@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/files"
-	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/arefactor/common/mylog"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/rifflock/lfshook"
@@ -149,13 +148,12 @@ func initLogger() {
 }
 
 func startPerformanceMonitor() {
-	function := func() {
+	go func() {
 		port := viper.GetString("profiling.port")
 		logrus.WithField("port", port).Info("Performance monitor started")
 
 		log.Println(http.ListenAndServe("0.0.0.0:"+port, nil))
-	}
-	goroutine.New(function)
+	}()
 }
 
 func ensureFolder() {

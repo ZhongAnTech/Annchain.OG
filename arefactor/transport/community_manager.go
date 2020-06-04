@@ -177,8 +177,8 @@ func (c *PhysicalCommunicator) consumeQueue() {
 		case msg := <-c.incomingChannel:
 			for _, sub := range c.newIncomingMessageSubscribers {
 				//sub.GetNewIncomingMessageEventChannel() <- msg
-				//ffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), msg, "receive message")
-				sub.GetNewIncomingMessageEventChannel() <- msg
+				<-ffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), msg, "receive message").C
+				//sub.GetNewIncomingMessageEventChannel() <- msg
 			}
 		case <-c.quit:
 			return
@@ -272,17 +272,17 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 		return
 	}
 
-	neightbour := &Neighbour{
+	neighbour := &Neighbour{
 		Id:              peerId,
 		Stream:          s,
 		IoEventChannel:  c.ioEventChannel,
 		IncomingChannel: c.incomingChannel,
 	}
-	neightbour.InitDefault()
-	c.activePeers[peerId] = neightbour
+	neighbour.InitDefault()
+	c.activePeers[peerId] = neighbour
 
-	go neightbour.StartRead()
-	go neightbour.StartWrite()
+	go neighbour.StartRead()
+	go neighbour.StartWrite()
 }
 
 func (c *PhysicalCommunicator) ClosePeer(id string) {
@@ -298,6 +298,30 @@ func (c *PhysicalCommunicator) GetNeighbour(id string) (neighbour *Neighbour, er
 	if !ok {
 		err = errors.New("peer not active")
 	}
+	return
+}
+
+func (c *PhysicalCommunicator) GetPeerId(address string) (peerIds string, err error) {
+	fullAddr, err := multiaddr.NewMultiaddr(address)
+	if err != nil {
+		logrus.WithField("address", address).WithError(err).Warn("bad address")
+		return
+	}
+	// p2p layer address
+	p2pAddr, err := fullAddr.ValueForProtocol(multiaddr.P_P2P)
+
+	if err != nil {
+		logrus.WithField("address", address).WithError(err).Warn("bad address")
+		return
+	}
+
+	// recover peerId from Base58 Encoded p2pAddr
+	peerId, err := peer.Decode(p2pAddr)
+	if err != nil {
+		logrus.WithField("address", address).WithError(err).Warn("bad address")
+		return
+	}
+	peerIds = peerId.String()
 	return
 }
 
@@ -404,7 +428,10 @@ func (c *PhysicalCommunicator) pickOneAndConnect() {
 	peerId := peerIds[rand.Intn(len(peerIds))]
 
 	// start a stream
-	logrus.WithField("peerId", peerId).Trace("connecting peer")
+	logrus.WithField("address", c.node.Peerstore().PeerInfo(peerId).String()).
+		//WithField("peerId", peerId).
+		Trace("connecting peer")
+
 	s, err := c.node.NewStream(context.Background(), peerId, protocol.ID(c.ProtocolId))
 	if err != nil {
 		if err != swarm.ErrDialBackoff {

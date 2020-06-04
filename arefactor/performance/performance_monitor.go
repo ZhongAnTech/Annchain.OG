@@ -52,7 +52,7 @@ func (p *PerformanceMonitor) Start() {
 				}
 			}
 
-			time.Sleep(time.Second * 10)
+			time.Sleep(time.Second * 1)
 		}
 	})
 }
@@ -68,7 +68,10 @@ func (PerformanceMonitor) Name() string {
 func (p *PerformanceMonitor) CollectData() map[string]interface{} {
 	data := make(map[string]interface{})
 	for _, ch := range p.dataProviders {
-		data[ch.Name()] = ch.GetBenchmarks()
+		m := ch.GetBenchmarks()
+		for k, v := range m {
+			data[ch.Name()+"_"+k] = v
+		}
 	}
 	// add additional fields
 	data["goroutines"] = runtime.NumGoroutine()

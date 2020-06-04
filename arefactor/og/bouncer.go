@@ -18,6 +18,11 @@ type Bouncer struct {
 	quit                         chan bool
 	transportEventReceiver       chan *transport_event.WireMessage
 	newOutgoingMessageSubscriber []transport_event.NewOutgoingMessageEventSubscriber
+	lastReceiveTime              time.Time
+}
+
+func (b *Bouncer) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{}{"value": b.i}
 }
 
 func (b *Bouncer) InitDefault() {
@@ -34,7 +39,7 @@ func (b *Bouncer) GetNewIncomingMessageEventChannel() chan *transport_event.Wire
 	return b.transportEventReceiver
 }
 
-func (b *Bouncer) Start() {
+func (b *Bouncer) loop() {
 	for {
 		logrus.Trace("bouncer loop round start")
 		select {
@@ -63,27 +68,38 @@ func (b *Bouncer) Start() {
 				EndReceivers: []string{b.Peers[(b.Id+1)%len(b.Peers)]},
 			}
 			for _, c := range b.newOutgoingMessageSubscriber {
-				ffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000)
+				<-ffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
+
 			}
+			b.i = bm.Value + 1
+			b.lastReceiveTime = time.Now()
 		case <-time.Tick(time.Second * 10):
+			if b.lastReceiveTime.Add(time.Second * 10).After(time.Now()) {
+				break
+			}
 			if b.Id == 0 {
 				or := &transport_event.OutgoingRequest{
 					Msg: &transport_event.OutgoingMsg{
 						Typev:    1,
 						SenderId: strconv.Itoa(b.Id),
 						Content: &BouncerMessage{
-							Value: b.i * 10,
+							Value: b.i,
 						},
 					},
 					SendType:     transport_event.SendTypeUnicast,
 					EndReceivers: []string{b.Peers[1]},
 				}
 				for _, c := range b.newOutgoingMessageSubscriber {
-					ffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000)
+					<-ffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
 				}
+				b.i += 10
 			}
 		}
 	}
+}
+
+func (b *Bouncer) Start() {
+	go b.loop()
 }
 
 func (b *Bouncer) Stop() {

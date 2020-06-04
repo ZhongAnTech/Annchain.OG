@@ -37,6 +37,7 @@ func Execute() {
 	defer DumpStack()
 	if err := rootCmd.Execute(); err != nil {
 		logrus.WithError(err).Fatalf("Fatal error occurred. Program will exit")
+
 		os.Exit(1)
 	}
 }

@@ -17,14 +17,13 @@ import (
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/sirupsen/logrus"
-	"github.com/tinylib/msgp/msgp"
 	"log"
 	"math/rand"
 	"sync"
 	"time"
 )
 
-var BackoffConnect = time.Second * 5
+//var BackoffConnect = time.Second * 5
 var IpLayerProtocol = "tcp"
 
 type IoEvent struct {
@@ -32,108 +31,20 @@ type IoEvent struct {
 	Err       error
 }
 
-type Neighbour struct {
-	Id              peer.ID
-	Stream          network.Stream
-	IoEventChannel  chan *IoEvent
-	IncomingChannel chan *transport_event.WireMessage
-	msgpReader      *msgp.Reader
-	msgpWriter      *msgp.Writer
-	event           chan bool
-	outgoingChannel chan *transport_event.OutgoingMsg
-	quit            chan bool
-}
-
-func (c *Neighbour) InitDefault() {
-	c.event = make(chan bool)
-	c.quit = make(chan bool)
-	c.outgoingChannel = make(chan *transport_event.OutgoingMsg) // messages already dispatched
-}
-
-func (c *Neighbour) StartRead() {
-	var err error
-	c.msgpReader = msgp.NewReader(c.Stream)
-	for {
-		msg := &transport_event.WireMessage{}
-		err = msg.DecodeMsg(c.msgpReader)
-		if err != nil {
-			// bad message, drop
-			logrus.WithError(err).Warn("read error")
-			break
-		}
-
-		<-ffchan.NewTimeoutSenderShort(c.IncomingChannel, msg, "read").C
-		//c.IncomingChannel <- msg
-	}
-	// neighbour disconnected, notify the communicator
-	c.IoEventChannel <- &IoEvent{
-		Neighbour: c,
-		Err:       err,
-	}
-
-}
-
-func (c *Neighbour) StartWrite() {
-	var err error
-	c.msgpWriter = msgp.NewWriter(c.Stream)
-loop:
-	for {
-		select {
-		case req := <-c.outgoingChannel:
-			logrus.Trace("neighbour got send request")
-			contentBytes, err := req.Content.MarshalMsg([]byte{})
-			if err != nil {
-				panic(err)
-			}
-
-			wireMessage := transport_event.WireMessage{
-				MsgType:      req.Typev,
-				ContentBytes: contentBytes,
-				SenderId:     req.SenderId,
-			}
-
-			err = wireMessage.EncodeMsg(c.msgpWriter)
-			if err != nil {
-				break
-			}
-			err = c.msgpWriter.Flush()
-			if err != nil {
-				break
-			}
-			logrus.Trace("neighbour sent")
-
-		case <-c.quit:
-			break loop
-		}
-	}
-	// neighbour disconnected, notify the communicator
-	c.IoEventChannel <- &IoEvent{
-		Neighbour: c,
-		Err:       err,
-	}
-}
-
-func (c *Neighbour) Send(req *transport_event.OutgoingMsg) {
-	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "send").C
-	//c.outgoingChannel <- req
-}
-
 // PhysicalCommunicator
 type PhysicalCommunicator struct {
-	Port       int // listening port
-	PrivateKey core.PrivKey
-	ProtocolId string
-
-	node            host.Host                             // p2p host to receive new streams
-	activePeers     map[peer.ID]*Neighbour                // active peers that will be reconnect if error
-	tryingPeers     map[peer.ID]bool                      // peers that is trying to connect.
-	incomingChannel chan *transport_event.WireMessage     // incoming message channel
-	outgoingChannel chan *transport_event.OutgoingRequest // universal outgoing channel to collect send requests
-	ioEventChannel  chan *IoEvent                         // receive event when peer disconnects
-
-	newIncomingMessageSubscribers []transport_event.NewIncomingMessageEventSubscriber
-
+	Port            int // listening port
+	PrivateKey      core.PrivKey
+	ProtocolId      string
 	NetworkReporter *performance.SoccerdashReporter
+
+	node                          host.Host                             // p2p host to receive new streams
+	activePeers                   map[peer.ID]*Neighbour                // active peers that will be reconnect if error
+	tryingPeers                   map[peer.ID]bool                      // peers that is trying to connect.
+	incomingChannel               chan *transport_event.WireMessage     // incoming message channel
+	outgoingChannel               chan *transport_event.OutgoingRequest // universal outgoing channel to collect send requests
+	ioEventChannel                chan *IoEvent                         // receive event when peer disconnects
+	newIncomingMessageSubscribers []transport_event.NewIncomingMessageEventSubscriber
 
 	initWait sync.WaitGroup
 	quit     chan bool
@@ -180,9 +91,9 @@ func (c *PhysicalCommunicator) consumeQueue() {
 		case msg := <-c.incomingChannel:
 			c.NetworkReporter.Report("receive", msg)
 			for _, sub := range c.newIncomingMessageSubscribers {
-				//sub.GetNewIncomingMessageEventChannel() <- msg
+				//sub.GetNewIncomingMessageEventChannel() <- message
 				<-ffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), msg, "receive message").C
-				//sub.GetNewIncomingMessageEventChannel() <- msg
+				//sub.GetNewIncomingMessageEventChannel() <- message
 			}
 		case <-c.quit:
 			return

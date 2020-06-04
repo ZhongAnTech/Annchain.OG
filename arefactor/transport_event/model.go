@@ -3,7 +3,7 @@ package transport_event
 //go:generate msgp
 
 // WireMessage is for transportation.
-//msgp:tuple WireMessage
+//msgp WireMessage
 type WireMessage struct {
 	MsgType      int // what ContentByte is.
 	SenderId     string

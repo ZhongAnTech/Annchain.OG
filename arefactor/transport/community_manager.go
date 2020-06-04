@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/transport_event"
 	"github.com/annchain/OG/ffchan"
 	"github.com/libp2p/go-libp2p"
@@ -132,6 +133,8 @@ type PhysicalCommunicator struct {
 
 	newIncomingMessageSubscribers []transport_event.NewIncomingMessageEventSubscriber
 
+	NetworkReporter *performance.SoccerdashReporter
+
 	initWait sync.WaitGroup
 	quit     chan bool
 	mu       sync.RWMutex
@@ -175,6 +178,7 @@ func (c *PhysicalCommunicator) consumeQueue() {
 			logrus.WithField("req", req).Trace("physical communicator got a request from outgoing channel")
 			go c.handleRequest(req)
 		case msg := <-c.incomingChannel:
+			c.NetworkReporter.Report("receive", msg)
 			for _, sub := range c.newIncomingMessageSubscribers {
 				//sub.GetNewIncomingMessageEventChannel() <- msg
 				<-ffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), msg, "receive message").C
@@ -408,6 +412,7 @@ func (c *PhysicalCommunicator) handleRequest(req *transport_event.OutgoingReques
 			continue
 		}
 		logrus.WithField("peerId", peerId).Trace("go send")
+		c.NetworkReporter.Report("send", req)
 		go neighbour.Send(req.Msg)
 	}
 }

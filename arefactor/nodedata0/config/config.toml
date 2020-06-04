@@ -8,4 +8,5 @@ network_id = "1"
 [report]
   enable = true
   address = "127.0.0.1:8080"
+  address_log = "127.0.0.1:8082"
   buffer_size = 30

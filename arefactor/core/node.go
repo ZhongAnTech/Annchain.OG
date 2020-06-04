@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/og"
+	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_event"
 	"github.com/annchain/OG/common/io"
@@ -65,10 +66,19 @@ func getTransport(identityHolder *transport.DefaultTransportIdentityHolder) *tra
 		logrus.WithError(err).Fatal("failed to init transport")
 	}
 
+	hostname := utilfuncs.GetHostName()
+	reporter := &performance.SoccerdashReporter{
+		Id:         hostname + viper.GetString("id"),
+		IpPort:     viper.GetString("report.address_log"),
+		BufferSize: viper.GetInt("report.buffer_size"),
+	}
+	reporter.InitDefault()
+
 	p2p := &transport.PhysicalCommunicator{
-		Port:       viper.GetInt("p2p.port"),
-		PrivateKey: identity.PrivateKey,
-		ProtocolId: viper.GetString("p2p.network_id"),
+		Port:            viper.GetInt("p2p.port"),
+		PrivateKey:      identity.PrivateKey,
+		ProtocolId:      viper.GetString("p2p.network_id"),
+		NetworkReporter: reporter,
 	}
 	p2p.InitDefault()
 	// load known peers

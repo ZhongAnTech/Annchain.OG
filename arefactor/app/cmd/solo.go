@@ -27,7 +27,7 @@ var soloCmd = &cobra.Command{
 		pid := os.Getpid()
 		writeConfig()
 
-		log.WithField("pid", pid).Info("SampleNode Starting")
+		log.WithField("pid", pid).Info("OgNode Starting")
 
 		node := &core.SoloNode{}
 		node.InitDefault()

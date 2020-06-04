@@ -2,7 +2,6 @@ package transport_event
 
 import (
 	"fmt"
-	"github.com/tinylib/msgp/msgp"
 )
 
 type SendType int
@@ -27,22 +26,29 @@ const (
 )
 
 type OutgoingRequest struct {
-	Msg          *OutgoingMsg
-	SendType     SendType
-	EndReceivers []string
+	Msg            OutgoingMsg
+	SendType       SendType
+	CloseAfterSent bool
+	EndReceivers   []string // may be the relayer
 }
 
 func (o OutgoingRequest) String() string {
-	return fmt.Sprintf("sendtype=%s receivers=%s msg=%s", o.SendType, PrettyIds(o.EndReceivers), o.Msg)
+	return fmt.Sprintf("sendtype=%s receivers=%s message=%s", o.SendType, PrettyIds(o.EndReceivers), o.Msg)
 }
 
-// OutgoingMsg is NOT for transportation. It is only an internal structure
-type OutgoingMsg struct {
-	Typev    int
-	SenderId string // no need to fill it when sending
-	Content  msgp.Marshaler
+type Bytable interface {
+	ToBytes() []byte
+	FromBytes(bts []byte) error
 }
 
-func (m OutgoingMsg) String() string {
-	return fmt.Sprintf("[type:%d sender=%s content=%s]", m.Typev, PrettyId(m.SenderId), m.Content)
+type OutgoingMsg interface {
+	Bytable
+	GetType() int
+	String() string
+}
+
+type RelayableOutgoingMsg interface {
+	OutgoingMsg
+	GetReceiverId() string // final receiver.
+	GetOriginId() string   // original sender
 }

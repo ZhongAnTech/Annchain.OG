@@ -30,12 +30,6 @@ func (z *WireMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "MsgType")
 				return
 			}
-		case "SenderId":
-			z.SenderId, err = dc.ReadString()
-			if err != nil {
-				err = msgp.WrapError(err, "SenderId")
-				return
-			}
 		case "ContentBytes":
 			z.ContentBytes, err = dc.ReadBytes(z.ContentBytes)
 			if err != nil {
@@ -55,25 +49,15 @@ func (z *WireMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *WireMessage) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 3
+	// map header, size 2
 	// write "MsgType"
-	err = en.Append(0x83, 0xa7, 0x4d, 0x73, 0x67, 0x54, 0x79, 0x70, 0x65)
+	err = en.Append(0x82, 0xa7, 0x4d, 0x73, 0x67, 0x54, 0x79, 0x70, 0x65)
 	if err != nil {
 		return
 	}
 	err = en.WriteInt(z.MsgType)
 	if err != nil {
 		err = msgp.WrapError(err, "MsgType")
-		return
-	}
-	// write "SenderId"
-	err = en.Append(0xa8, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x49, 0x64)
-	if err != nil {
-		return
-	}
-	err = en.WriteString(z.SenderId)
-	if err != nil {
-		err = msgp.WrapError(err, "SenderId")
 		return
 	}
 	// write "ContentBytes"
@@ -92,13 +76,10 @@ func (z *WireMessage) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *WireMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 3
+	// map header, size 2
 	// string "MsgType"
-	o = append(o, 0x83, 0xa7, 0x4d, 0x73, 0x67, 0x54, 0x79, 0x70, 0x65)
+	o = append(o, 0x82, 0xa7, 0x4d, 0x73, 0x67, 0x54, 0x79, 0x70, 0x65)
 	o = msgp.AppendInt(o, z.MsgType)
-	// string "SenderId"
-	o = append(o, 0xa8, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x49, 0x64)
-	o = msgp.AppendString(o, z.SenderId)
 	// string "ContentBytes"
 	o = append(o, 0xac, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x42, 0x79, 0x74, 0x65, 0x73)
 	o = msgp.AppendBytes(o, z.ContentBytes)
@@ -129,12 +110,6 @@ func (z *WireMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "MsgType")
 				return
 			}
-		case "SenderId":
-			z.SenderId, bts, err = msgp.ReadStringBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "SenderId")
-				return
-			}
 		case "ContentBytes":
 			z.ContentBytes, bts, err = msgp.ReadBytesBytes(bts, z.ContentBytes)
 			if err != nil {
@@ -155,6 +130,6 @@ func (z *WireMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *WireMessage) Msgsize() (s int) {
-	s = 1 + 8 + msgp.IntSize + 9 + msgp.StringPrefixSize + len(z.SenderId) + 13 + msgp.BytesPrefixSize + len(z.ContentBytes)
+	s = 1 + 8 + msgp.IntSize + 13 + msgp.BytesPrefixSize + len(z.ContentBytes)
 	return
 }

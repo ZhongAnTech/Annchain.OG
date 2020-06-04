@@ -1,10 +1,9 @@
-package og
+package bouncer
 
 import (
 	"github.com/annchain/OG/arefactor/transport_event"
 	"github.com/annchain/OG/ffchan"
 	"github.com/sirupsen/logrus"
-	"strconv"
 	"time"
 )
 
@@ -12,13 +11,13 @@ import (
 // Test p2p and event routing
 // Bouncer listens to transport's new message event and consume it
 type Bouncer struct {
-	Id                           int
-	Peers                        []string
-	i                            int
-	quit                         chan bool
-	transportEventReceiver       chan *transport_event.WireMessage
-	newOutgoingMessageSubscriber []transport_event.NewOutgoingMessageEventSubscriber
-	lastReceiveTime              time.Time
+	Id                            int
+	Peers                         []string
+	i                             int
+	quit                          chan bool
+	myNewIncomingMessageEventChan chan *transport_event.WireMessage
+	newOutgoingMessageSubscribers []transport_event.NewOutgoingMessageEventSubscriber
+	lastReceiveTime               time.Time
 }
 
 func (b *Bouncer) GetBenchmarks() map[string]interface{} {
@@ -26,17 +25,17 @@ func (b *Bouncer) GetBenchmarks() map[string]interface{} {
 }
 
 func (b *Bouncer) InitDefault() {
-	b.transportEventReceiver = make(chan *transport_event.WireMessage)
-	b.newOutgoingMessageSubscriber = []transport_event.NewOutgoingMessageEventSubscriber{}
+	b.myNewIncomingMessageEventChan = make(chan *transport_event.WireMessage)
+	b.newOutgoingMessageSubscribers = []transport_event.NewOutgoingMessageEventSubscriber{}
 	b.quit = make(chan bool)
 }
 
 func (b *Bouncer) RegisterSubscriberNewOutgoingMessageEvent(sub transport_event.NewOutgoingMessageEventSubscriber) {
-	b.newOutgoingMessageSubscriber = append(b.newOutgoingMessageSubscriber, sub)
+	b.newOutgoingMessageSubscribers = append(b.newOutgoingMessageSubscribers, sub)
 }
 
 func (b *Bouncer) GetNewIncomingMessageEventChannel() chan *transport_event.WireMessage {
-	return b.transportEventReceiver
+	return b.myNewIncomingMessageEventChan
 }
 
 func (b *Bouncer) loop() {
@@ -45,9 +44,9 @@ func (b *Bouncer) loop() {
 		select {
 		case <-b.quit:
 			return
-		case msg := <-b.transportEventReceiver:
+		case msg := <-b.myNewIncomingMessageEventChan:
 			if msg.MsgType != 1 {
-				panic("bad msg")
+				panic("bad message")
 			}
 			bm := &BouncerMessage{}
 			_, err := bm.UnmarshalMsg(msg.ContentBytes)
@@ -55,19 +54,15 @@ func (b *Bouncer) loop() {
 				panic(err)
 			}
 
-			// generate new msg
+			// generate new message
 			or := &transport_event.OutgoingRequest{
-				Msg: &transport_event.OutgoingMsg{
-					Typev:    1,
-					SenderId: strconv.Itoa(b.Id),
-					Content: &BouncerMessage{
-						Value: bm.Value + 1,
-					},
+				Msg: &BouncerMessage{
+					Value: 1,
 				},
 				SendType:     transport_event.SendTypeUnicast,
 				EndReceivers: []string{b.Peers[(b.Id+1)%len(b.Peers)]},
 			}
-			for _, c := range b.newOutgoingMessageSubscriber {
+			for _, c := range b.newOutgoingMessageSubscribers {
 				<-ffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
 
 			}
@@ -79,17 +74,13 @@ func (b *Bouncer) loop() {
 			}
 			if b.Id == 0 {
 				or := &transport_event.OutgoingRequest{
-					Msg: &transport_event.OutgoingMsg{
-						Typev:    1,
-						SenderId: strconv.Itoa(b.Id),
-						Content: &BouncerMessage{
-							Value: b.i,
-						},
+					Msg: &BouncerMessage{
+						Value: 1,
 					},
 					SendType:     transport_event.SendTypeUnicast,
 					EndReceivers: []string{b.Peers[1]},
 				}
-				for _, c := range b.newOutgoingMessageSubscriber {
+				for _, c := range b.newOutgoingMessageSubscribers {
 					<-ffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
 				}
 				b.i += 10

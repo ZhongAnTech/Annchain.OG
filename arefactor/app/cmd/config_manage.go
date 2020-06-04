@@ -53,7 +53,7 @@ func readConfig() {
 
 func mergeEnvConfig() {
 	// env override
-	viper.SetEnvPrefix("og")
+	viper.SetEnvPrefix("bouncer")
 	viper.AutomaticEnv()
 }
 

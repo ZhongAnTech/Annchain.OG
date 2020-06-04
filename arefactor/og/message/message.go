@@ -2,12 +2,11 @@ package message
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
 )
 
 //go:generate msgp
 
-type OgMessageType uint16
+type OgMessageType int
 
 // og protocol message codes
 // TODO: use MessageTypeManager to manage global messages
@@ -82,17 +81,13 @@ const (
 	MessageTypeNewActionTx
 )
 
-type OgMessage interface {
-	Bytable
-	GetType() OgMessageType
-	String() string
+//msgp OgMessagePing
+type OgMessagePing struct {
+	Protocol string
 }
 
-//msgp:tuple OgMessagePing
-type OgMessagePing struct{}
-
-func (z *OgMessagePing) GetType() OgMessageType {
-	return OgMessageTypePing
+func (z *OgMessagePing) GetType() int {
+	return int(OgMessageTypePing)
 }
 
 func (m *OgMessagePing) ToBytes() []byte {
@@ -115,15 +110,17 @@ func (z *OgMessagePing) FromBytes(bts []byte) error {
 	return nil
 }
 
-//msgp:tuple OgMessagePong
-type OgMessagePong struct{}
+//msgp OgMessagePong
+type OgMessagePong struct {
+	Protocol string
+}
 
 func (m *OgMessagePong) String() string {
 	return "MessageTypePong"
 }
 
-func (m *OgMessagePong) GetType() OgMessageType {
-	return OgMessageTypePong
+func (m *OgMessagePong) GetType() int {
+	return int(OgMessageTypePong)
 }
 
 func (m *OgMessagePong) ToBytes() []byte {
@@ -142,210 +139,210 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 	return nil
 }
 
-//msgp:tuple OgMessageBatchSyncRequest
-type OgMessageBatchSyncRequest struct {
-	Hashes common.Hashes
-	//BloomFilter []byte
-	RequestId uint32 //avoid msg drop
-	//HashTerminats *HashTerminats
-}
+////msgp OgMessageBatchSyncRequest
+//type OgMessageBatchSyncRequest struct {
+//	Hashes [][]byte
+//	//BloomFilter []byte
+//	RequestId uint32 //avoid message drop
+//	//HashTerminats *HashTerminats
+//}
+//
+//func (m *OgMessageBatchSyncRequest) GetType() int {
+//	return int(OgMessageTypeBatchSyncRequest)
+//}
+//
+//func (m *OgMessageBatchSyncRequest) ToBytes() []byte {
+//	b, err := m.MarshalMsg(nil)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return b
+//}
+//
+//func (m *OgMessageBatchSyncRequest) String() string {
+//	return fmt.Sprintf("OgMessageBatchSyncRequest[req %d]", m.RequestId)
+//}
+//
+//func (z *OgMessageBatchSyncRequest) FromBytes(bts []byte) error {
+//	_, err := z.UnmarshalMsg(bts)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+////msgp OgMessageSyncResponse
+//type OgMessageSyncResponse struct {
+//	//RawTxs *RawTxs
+//	////SequencerIndex  []uint32
+//	//RawSequencers  *RawSequencers
+//	//RawCampaigns   *RawCampaigns
+//	//RawTermChanges *RawTermChanges
+//	//RawTxs    *TxisMarshaler
+//	RequestId uint32 //avoid message drop
+//	Height    uint64
+//	Offset    int
+//	Resources []MessageContentResource
+//}
+//
+//func (m *OgMessageSyncResponse) GetType() int {
+//	return int(OgMessageTypeSyncResponse)
+//}
+//
+//func (m *OgMessageSyncResponse) ToBytes() []byte {
+//	b, err := m.MarshalMsg(nil)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return b
+//}
+//
+//func (m *OgMessageSyncResponse) String() string {
+//	return fmt.Sprintf("OgMessageSyncResponse[req %d height %d]", m.RequestId, len(m.Resources))
+//}
+//
+//func (z *OgMessageSyncResponse) FromBytes(bts []byte) error {
+//	_, err := z.UnmarshalMsg(bts)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+////msgp OgMessageQueryStatusRequest
+//type OgMessageQueryStatusRequest struct{}
+//
+//func (m *OgMessageQueryStatusRequest) GetType() int {
+//	return int(OgMessageTypeQueryStatusRequest)
+//}
+//
+//func (m *OgMessageQueryStatusRequest) ToBytes() []byte {
+//	b, err := m.MarshalMsg(nil)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return b
+//}
+//
+//func (m *OgMessageQueryStatusRequest) String() string {
+//	return "OgMessageQueryStatusRequest"
+//}
+//
+//func (m *OgMessageQueryStatusRequest) FromBytes(bts []byte) error {
+//	_, err := m.UnmarshalMsg(bts)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+////msgp OgMessageQueryStatusResponse
+//type OgMessageQueryStatusResponse struct {
+//	ProtocolVersion uint32
+//	NetworkId       uint64
+//	CurrentBlock    types.Hash
+//	GenesisBlock    types.Hash
+//	CurrentHeight   uint64
+//}
+//
+//func (m *OgMessageQueryStatusResponse) GetType() int {
+//	return int(OgMessageTypeQueryStatusResponse)
+//}
+//
+//func (m *OgMessageQueryStatusResponse) ToBytes() []byte {
+//	b, err := m.MarshalMsg(nil)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return b
+//}
+//
+//func (m *OgMessageQueryStatusResponse) String() string {
+//	return "OgMessageQueryStatusResponse"
+//}
+//
+//func (m *OgMessageQueryStatusResponse) FromBytes(bts []byte) error {
+//	_, err := m.UnmarshalMsg(bts)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+////msgp OgMessageNewResource
+//type OgMessageNewResource struct {
+//	Resources []MessageContentResource
+//}
+//
+//func (m *OgMessageNewResource) GetType() int {
+//	return int(OgMessageTypeNewResource)
+//}
+//
+//func (m *OgMessageNewResource) ToBytes() []byte {
+//	b, err := m.MarshalMsg(nil)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return b
+//}
+//func (m *OgMessageNewResource) String() string {
+//	return "OgMessageNewResource"
+//}
+//
+//func (z *OgMessageNewResource) FromBytes(bts []byte) error {
+//	_, err := z.UnmarshalMsg(bts)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+////msgp HandleMessageHeightSyncRequest
+//type OgMessageHeightSyncRequest struct {
+//	//Hashes common.Hashes
+//	//SeqHash   common.Hash
+//	Height    uint64
+//	Offset    int
+//	RequestId uint32 //avoid message drop
+//}
+//
+//func (z *OgMessageHeightSyncRequest) GetType() int {
+//	return int(OgMessageTypeHeightSyncRequest)
+//}
+//
+//func (m *OgMessageHeightSyncRequest) ToBytes() []byte {
+//	b, err := m.MarshalMsg(nil)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return b
+//}
+//
+//func (z *OgMessageHeightSyncRequest) FromBytes(bts []byte) error {
+//	_, err := z.UnmarshalMsg(bts)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+//func (m *OgMessageHeightSyncRequest) String() string {
+//	return fmt.Sprintf("height: %d, offset: %d, requestId: %d", m.Height, m.Offset, m.RequestId)
+//}
 
-func (m *OgMessageBatchSyncRequest) GetType() OgMessageType {
-	return OgMessageTypeBatchSyncRequest
-}
-
-func (m *OgMessageBatchSyncRequest) ToBytes() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m *OgMessageBatchSyncRequest) String() string {
-	return fmt.Sprintf("OgMessageBatchSyncRequest[req %d]", m.RequestId)
-}
-
-func (z *OgMessageBatchSyncRequest) FromBytes(bts []byte) error {
-	_, err := z.UnmarshalMsg(bts)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-//msgp:tuple OgMessageSyncResponse
-type OgMessageSyncResponse struct {
-	//RawTxs *RawTxs
-	////SequencerIndex  []uint32
-	//RawSequencers  *RawSequencers
-	//RawCampaigns   *RawCampaigns
-	//RawTermChanges *RawTermChanges
-	//RawTxs    *TxisMarshaler
-	RequestId uint32 //avoid msg drop
-	Height    uint64
-	Offset    int
-	Resources []MessageContentResource
-}
-
-func (m *OgMessageSyncResponse) GetType() OgMessageType {
-	return OgMessageTypeSyncResponse
-}
-
-func (m *OgMessageSyncResponse) ToBytes() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m *OgMessageSyncResponse) String() string {
-	return fmt.Sprintf("OgMessageSyncResponse[req %d height %d]", m.RequestId, len(m.Resources))
-}
-
-func (z *OgMessageSyncResponse) FromBytes(bts []byte) error {
-	_, err := z.UnmarshalMsg(bts)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-//msgp:tuple OgMessageQueryStatusRequest
-type OgMessageQueryStatusRequest struct{}
-
-func (m *OgMessageQueryStatusRequest) GetType() OgMessageType {
-	return OgMessageTypeQueryStatusRequest
-}
-
-func (m *OgMessageQueryStatusRequest) ToBytes() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m *OgMessageQueryStatusRequest) String() string {
-	return "OgMessageQueryStatusRequest"
-}
-
-func (m *OgMessageQueryStatusRequest) FromBytes(bts []byte) error {
-	_, err := m.UnmarshalMsg(bts)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-//msgp:tuple OgMessageQueryStatusResponse
-type OgMessageQueryStatusResponse struct {
-	ProtocolVersion uint32
-	NetworkId       uint64
-	CurrentBlock    common.Hash
-	GenesisBlock    common.Hash
-	CurrentHeight   uint64
-}
-
-func (m *OgMessageQueryStatusResponse) GetType() OgMessageType {
-	return OgMessageTypeQueryStatusResponse
-}
-
-func (m *OgMessageQueryStatusResponse) ToBytes() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (m *OgMessageQueryStatusResponse) String() string {
-	return "OgMessageQueryStatusResponse"
-}
-
-func (m *OgMessageQueryStatusResponse) FromBytes(bts []byte) error {
-	_, err := m.UnmarshalMsg(bts)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-//msgp:tuple OgMessageNewResource
-type OgMessageNewResource struct {
-	Resources []MessageContentResource
-}
-
-func (m *OgMessageNewResource) GetType() OgMessageType {
-	return OgMessageTypeNewResource
-}
-
-func (m *OgMessageNewResource) ToBytes() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-func (m *OgMessageNewResource) String() string {
-	return "OgMessageNewResource"
-}
-
-func (z *OgMessageNewResource) FromBytes(bts []byte) error {
-	_, err := z.UnmarshalMsg(bts)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-//msgp:tuple HandleMessageHeightSyncRequest
-type OgMessageHeightSyncRequest struct {
-	//Hashes common.Hashes
-	//SeqHash   common.Hash
-	Height    uint64
-	Offset    int
-	RequestId uint32 //avoid msg drop
-}
-
-func (z *OgMessageHeightSyncRequest) GetType() OgMessageType {
-	return OgMessageTypeHeightSyncRequest
-}
-
-func (m *OgMessageHeightSyncRequest) ToBytes() []byte {
-	b, err := m.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (z *OgMessageHeightSyncRequest) FromBytes(bts []byte) error {
-	_, err := z.UnmarshalMsg(bts)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *OgMessageHeightSyncRequest) String() string {
-	return fmt.Sprintf("height: %d, offset: %d, requestId: %d", m.Height, m.Offset, m.RequestId)
-}
-
-////msgp:tuple MessageTxsResponse
+////msgp MessageTxsResponse
 //type MessageTxsResponse struct {
 //	//RawTxs         *RawTxs
 //	//RawSequencer *RawSequencer
 //	//RawCampaigns   *RawCampaigns
 //	//RawTermChanges *RawTermChanges
 //	//RawTxs      *TxisMarshaler
-//	RequestedId uint32 //avoid msg drop
+//	RequestedId uint32 //avoid message drop
 //	Resources   []MessageContentResource
 //}
 //
-//func (m *MessageTxsResponse) GetType() OgMessageType {
-//	return OgMessageType(MessageTypeTxsResponse)
+//func (m *MessageTxsResponse) GetType() int {
+//	return int(OgMessageType(MessageTypeTxsResponse)
 //}
 //
 //func (m *MessageTxsResponse) GetBytes() []byte {
@@ -374,17 +371,17 @@ func (m *OgMessageHeightSyncRequest) String() string {
 
 // getBlockHeadersData represents a block header query.
 
-//msgp:tuple OgMessageHeaderRequest
+//msgp OgMessageHeaderRequest
 type OgMessageHeaderRequest struct {
 	//Origin    HashOrNumber // Block from which to retrieve headers
 	Amount    uint64 // Maximum number of headers to retrieve
 	Skip      uint64 // Blocks to skip between consecutive headers
 	Reverse   bool   // Query direction (false = rising towards latest, true = falling towards genesis)
-	RequestId uint32 //avoid msg drop
+	RequestId uint32 //avoid message drop
 }
 
-func (m *OgMessageHeaderRequest) GetType() OgMessageType {
-	return OgMessageTypeHeaderRequest
+func (m *OgMessageHeaderRequest) GetType() int {
+	return int(OgMessageTypeHeaderRequest)
 }
 
 func (m *OgMessageHeaderRequest) ToBytes() []byte {
@@ -415,14 +412,14 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 	return nil
 }
 
-////msgp:tuple MessageSequencerHeader
+////msgp MessageSequencerHeader
 //type MessageSequencerHeader struct {
 //	Hash   common.Hash
 //	Number uint64
 //}
 //
-//func (m *MessageSequencerHeader) GetType() OgMessageType {
-//	return OgMessageType(MessageTypeSequencerHeader)
+//func (m *MessageSequencerHeader) GetType() int {
+//	return int(OgMessageType(MessageTypeSequencerHeader)
 //}
 //
 //func (m *MessageSequencerHeader) GetBytes() []byte {
@@ -449,14 +446,14 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	return fmt.Sprintf("hash: %s, number : %d", m.Hash.String(), m.Number)
 //}
 //
-////msgp:tuple MessageHeaderResponse
+////msgp MessageHeaderResponse
 //type MessageHeaderResponse struct {
 //	Headers     *SequencerHeaders
-//	RequestedId uint32 //avoid msg drop
+//	RequestedId uint32 //avoid message drop
 //}
 //
-//func (m *MessageHeaderResponse) GetType() OgMessageType {
-//	return OgMessageType(MessageTypeHeaderResponse)
+//func (m *MessageHeaderResponse) GetType() int {
+//	return int(OgMessageType(MessageTypeHeaderResponse)
 //}
 //
 //func (m *MessageHeaderResponse) GetBytes() []byte {
@@ -483,14 +480,14 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	return fmt.Sprintf("headers: [%s] reuqestedId :%d", m.Headers.String(), m.RequestedId)
 //}
 //
-////msgp:tuple MessageBodiesRequest
+////msgp MessageBodiesRequest
 //type MessageBodiesRequest struct {
 //	SeqHashes common.Hashes
-//	RequestId uint32 //avoid msg drop
+//	RequestId uint32 //avoid message drop
 //}
 //
-//func (m *MessageBodiesRequest) GetType() OgMessageType {
-//	return OgMessageType(MessageTypeBodiesRequest)
+//func (m *MessageBodiesRequest) GetType() int {
+//	return int(OgMessageType(MessageTypeBodiesRequest)
 //}
 //
 //func (m *MessageBodiesRequest) GetBytes() []byte {
@@ -517,13 +514,13 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	return m.SeqHashes.String() + fmt.Sprintf(" requestId :%d", m.RequestId)
 //}
 //
-////msgp:tuple MessageBodiesResponse
+////msgp MessageBodiesResponse
 //type MessageBodiesResponse struct {
 //	Bodies      []RawData
-//	RequestedId uint32 //avoid msg drop
+//	RequestedId uint32 //avoid message drop
 //}
 //
-//func (m *MessageBodiesResponse) GetType() OgMessageType {
+//func (m *MessageBodiesResponse) GetType() int {
 //	return MessageTypeBodiesResponse
 //}
 //
@@ -551,12 +548,12 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	return fmt.Sprintf("bodies len : %d, reuqestedId :%d", len(m.Bodies), m.RequestedId)
 //}
 
-////msgp:tuple MessageControl
+////msgp MessageControl
 //type MessageControl struct {
 //	Hash *common.Hash
 //}
 //
-//func (m *MessageControl) GetType() OgMessageType {
+//func (m *MessageControl) GetType() int {
 //	return MessageTypeControl
 //}
 //
@@ -587,12 +584,12 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	return m.Hash.String()
 //}
 
-////msgp:tuple MessageGetMsg
+////msgp MessageGetMsg
 //type MessageGetMsg struct {
 //	Hash *common.Hash
 //}
 //
-//func (m *MessageGetMsg) GetType() OgMessageType {
+//func (m *MessageGetMsg) GetType() int {
 //	return MessageTypeGetMsg
 //}
 //
@@ -623,10 +620,10 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	return m.Hash.String()
 //}
 
-////msgp:tuple MessageGetMsg
+////msgp MessageGetMsg
 //type MessageDuplicate bool
 //
-//func (m *MessageDuplicate) GetType() OgMessageType {
+//func (m *MessageDuplicate) GetType() int {
 //	return MessageTypeDuplicate
 //}
 //
@@ -654,12 +651,12 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	return "MessageDuplicate"
 //}
 //
-////msgp:tuple MessageNewActionTx
+////msgp MessageNewActionTx
 //type MessageNewActionTx struct {
 //	ActionTx *ActionTx
 //}
 //
-//func (m *MessageNewActionTx) GetType() OgMessageType {
+//func (m *MessageNewActionTx) GetType() int {
 //	return MessageTypeNewActionTx
 //}
 //

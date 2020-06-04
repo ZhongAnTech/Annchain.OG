@@ -17,4 +17,4 @@
 # vendor/
 
 dump*
-/nodedata
+/data/nodedata

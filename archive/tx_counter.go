@@ -15,7 +15,7 @@ package archive
 
 import (
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/types"
 	"go.uber.org/atomic"
 	"time"
@@ -33,13 +33,13 @@ type TxCounter struct {
 	// listeners
 	NewTxReceivedChan  chan types.Txi                 `json:"-"`
 	NewTxGeneratedChan chan types.Txi                 `json:"-"`
-	BatchConfirmedChan chan map[common.Hash]types.Txi `json:"-"`
+	BatchConfirmedChan chan map[types2.Hash]types.Txi `json:"-"`
 	quit               chan bool                      `json:"-"`
 }
 
 func NewTxCounter() *TxCounter {
 	return &TxCounter{
-		BatchConfirmedChan: make(chan map[common.Hash]types.Txi),
+		BatchConfirmedChan: make(chan map[types2.Hash]types.Txi),
 		NewTxReceivedChan:  make(chan types.Txi),
 		NewTxGeneratedChan: make(chan types.Txi),
 		quit:               make(chan bool),

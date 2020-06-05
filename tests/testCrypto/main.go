@@ -15,6 +15,7 @@ package main
 
 import (
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
@@ -52,7 +53,7 @@ func main() {
 
 }
 
-func newUnsignedSequencer(issuer common.Address, id uint64, contractHashOrder common.Hashes, accountNonce uint64) types.Txi {
+func newUnsignedSequencer(issuer common.Address, id uint64, contractHashOrder types2.Hashes, accountNonce uint64) types.Txi {
 	tx := types.Sequencer{
 		Issuer:            &issuer,
 		Id:                id,

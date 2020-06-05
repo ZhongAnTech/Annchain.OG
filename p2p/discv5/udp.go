@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"net"
 	"time"
 
@@ -322,7 +322,7 @@ func (t *udp) sendNeighbours(remote *Node, results []*Node) {
 	}
 }
 
-func (t *udp) sendFindnodeHash(remote *Node, target common.Hash) {
+func (t *udp) sendFindnodeHash(remote *Node, target types.Hash) {
 	f := FindnodeHash{
 		Target:     target.Bytes,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
@@ -341,7 +341,7 @@ func (t *udp) sendTopicRegister(remote *Node, topics []Topic, idx int, pong []by
 	t.sendPacket(remote.ID, remote.addr(), byte(topicRegisterPacket), data)
 }
 
-func (t *udp) sendTopicNodes(remote *Node, queryHash common.Hash, nodes []*Node) {
+func (t *udp) sendTopicNodes(remote *Node, queryHash types.Hash, nodes []*Node) {
 	p := TopicNodes{Echo: queryHash.Bytes}
 	var sent bool
 	for _, result := range nodes {

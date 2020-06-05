@@ -2,13 +2,13 @@ package bit_test
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"testing"
 )
 
 func TestBits(t *testing.T) {
 
-	b := common.RandomHash().ToBytes()
+	b := types.RandomHash().ToBytes()
 	k := 4
 
 	//for j=:0;j<100;j++ {

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -204,7 +205,7 @@ func GetSampleAccounts() []*account.Account {
 
 func newUnsignedSequencer(height uint64, accountNonce uint64) *types.Sequencer {
 	tx := types.Sequencer{
-		Hash:         common.Hash{},
+		Hash:         types2.Hash{},
 		ParentsHash:  nil,
 		Height:       height,
 		MineNonce:    0,
@@ -212,7 +213,7 @@ func newUnsignedSequencer(height uint64, accountNonce uint64) *types.Sequencer {
 		Issuer:       common.Address{},
 		Signature:    nil,
 		PublicKey:    nil,
-		StateRoot:    common.Hash{},
+		StateRoot:    types2.Hash{},
 		Weight:       0,
 	}
 	return &tx

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/types"
@@ -14,8 +15,8 @@ import (
 )
 
 type TxFormatVerifier struct {
-	MaxTxHash         common.Hash // The difficulty of TxHash
-	MaxMinedHash      common.Hash // The difficulty of MinedHash
+	MaxTxHash         types2.Hash // The difficulty of TxHash
+	MaxMinedHash      types2.Hash // The difficulty of MinedHash
 	NoVerifyHash      bool
 	NoVerifySignatrue bool
 	powMiner          miner.PoWMiner

@@ -19,8 +19,7 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/annchain/OG/common"
-
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/ogdb"
 	log "github.com/sirupsen/logrus"
@@ -104,7 +103,7 @@ func (t *SecureTrie) Prove(key []byte, fromLevel uint, proofDb ogdb.Putter) erro
 // VerifyProof checks merkle proofs. The given proof must contain the value for
 // key in a trie with the given root hash. VerifyProof returns an error if the
 // proof contains invalid trie nodes or the wrong value.
-func VerifyProof(rootHash common.Hash, key []byte, proofDb DatabaseReader) (value []byte, nodes int, err error) {
+func VerifyProof(rootHash types.Hash, key []byte, proofDb DatabaseReader) (value []byte, nodes int, err error) {
 	key = keybytesToHex(key)
 	wantHash := rootHash
 	for i := 0; ; i++ {

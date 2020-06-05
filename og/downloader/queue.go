@@ -3,6 +3,7 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/og/protocol/dagmessage"
@@ -35,7 +36,7 @@ type fetchRequest struct {
 // all outstanding pieces complete and the result as a whole can be processed.
 type fetchResult struct {
 	Pending int         // Number of data fetches still pending
-	Hash    common.Hash // Hash of the header to prevent recalculating
+	Hash    types2.Hash // Hash of the header to prevent recalculating
 
 	Header       *dagmessage.SequencerHeader
 	Transactions types.Txis
@@ -47,7 +48,7 @@ type queue struct {
 	mode SyncMode // Synchronisation mode to decide on the block parts to schedule for fetching
 
 	// Headers are "special", they download in batches, supported by a skeleton chain
-	headerHead      common.Hash                            // [og/01] Hash of the last queued header to verify order
+	headerHead      types2.Hash                            // [og/01] Hash of the last queued header to verify order
 	headerTaskPool  map[uint64]*dagmessage.SequencerHeader // [og/01] Pending header retrieval tasks, mapping starting indexes to skeleton headers
 	headerTaskQueue *prque.Prque                           // [og/01] Priority queue of the skeleton indexes to fetch the filling headers for
 	headerPeerMiss  map[string]map[uint64]struct{}         // [og/01] Set of per-peer header batches known to be unavailable
@@ -58,15 +59,15 @@ type queue struct {
 	headerContCh    chan bool                              // [og/01] Channel to notify when header download finishes
 
 	// All data retrievals below are based on an already assembles header chain
-	blockTaskPool  map[common.Hash]*dagmessage.SequencerHeader // [og/01] Pending block (body) retrieval tasks, mapping hashes to headers
+	blockTaskPool  map[types2.Hash]*dagmessage.SequencerHeader // [og/01] Pending block (body) retrieval tasks, mapping hashes to headers
 	blockTaskQueue *prque.Prque                                // [og/01] Priority queue of the headers to fetch the blocks (bodies) for
 	blockPendPool  map[string]*fetchRequest                    // [og/01] Currently pending block (body) retrieval operations
-	blockDonePool  map[common.Hash]struct{}                    // [og/01] Set of the completed block (body) fetches
+	blockDonePool  map[types2.Hash]struct{}                    // [og/01] Set of the completed block (body) fetches
 
-	receiptTaskPool  map[common.Hash]*dagmessage.SequencerHeader // [og/02] Pending receipt retrieval tasks, mapping hashes to headers
+	receiptTaskPool  map[types2.Hash]*dagmessage.SequencerHeader // [og/02] Pending receipt retrieval tasks, mapping hashes to headers
 	receiptTaskQueue *prque.Prque                                // [og/02] Priority queue of the headers to fetch the receipts for
 	receiptPendPool  map[string]*fetchRequest                    // [og/02] Currently pending receipt retrieval operations
-	receiptDonePool  map[common.Hash]struct{}                    // [og/02] Set of the completed receipt fetches
+	receiptDonePool  map[types2.Hash]struct{}                    // [og/02] Set of the completed receipt fetches
 
 	resultCache  []*fetchResult     // Downloaded but not yet delivered fetch results
 	resultOffset uint64             // Offset of the first cached fetch result in the block chain
@@ -83,14 +84,14 @@ func newQueue() *queue {
 	return &queue{
 		headerPendPool:   make(map[string]*fetchRequest),
 		headerContCh:     make(chan bool),
-		blockTaskPool:    make(map[common.Hash]*dagmessage.SequencerHeader),
+		blockTaskPool:    make(map[types2.Hash]*dagmessage.SequencerHeader),
 		blockTaskQueue:   prque.New(),
 		blockPendPool:    make(map[string]*fetchRequest),
-		blockDonePool:    make(map[common.Hash]struct{}),
-		receiptTaskPool:  make(map[common.Hash]*dagmessage.SequencerHeader),
+		blockDonePool:    make(map[types2.Hash]struct{}),
+		receiptTaskPool:  make(map[types2.Hash]*dagmessage.SequencerHeader),
 		receiptTaskQueue: prque.New(),
 		receiptPendPool:  make(map[string]*fetchRequest),
-		receiptDonePool:  make(map[common.Hash]struct{}),
+		receiptDonePool:  make(map[types2.Hash]struct{}),
 		resultCache:      make([]*fetchResult, blockCacheItems),
 		active:           sync.NewCond(lock),
 		lock:             lock,
@@ -105,18 +106,18 @@ func (q *queue) Reset() {
 	q.closed = false
 	q.mode = FullSync
 
-	q.headerHead = common.Hash{}
+	q.headerHead = types2.Hash{}
 	q.headerPendPool = make(map[string]*fetchRequest)
 
-	q.blockTaskPool = make(map[common.Hash]*dagmessage.SequencerHeader)
+	q.blockTaskPool = make(map[types2.Hash]*dagmessage.SequencerHeader)
 	q.blockTaskQueue.Reset()
 	q.blockPendPool = make(map[string]*fetchRequest)
-	q.blockDonePool = make(map[common.Hash]struct{})
+	q.blockDonePool = make(map[types2.Hash]struct{})
 
-	q.receiptTaskPool = make(map[common.Hash]*dagmessage.SequencerHeader)
+	q.receiptTaskPool = make(map[types2.Hash]*dagmessage.SequencerHeader)
 	q.receiptTaskQueue.Reset()
 	q.receiptPendPool = make(map[string]*fetchRequest)
-	q.receiptDonePool = make(map[common.Hash]struct{})
+	q.receiptDonePool = make(map[types2.Hash]struct{})
 
 	q.resultCache = make([]*fetchResult, blockCacheItems)
 	q.resultOffset = 0
@@ -215,7 +216,7 @@ func (q *queue) ShouldThrottleReceipts() bool {
 // resultSlots calculates the number of results slots available for requests
 // whilst adhering to both the item and the memory limit too of the results
 // cache.
-func (q *queue) resultSlots(pendPool map[string]*fetchRequest, donePool map[common.Hash]struct{}) int {
+func (q *queue) resultSlots(pendPool map[string]*fetchRequest, donePool map[types2.Hash]struct{}) int {
 	// Calculate the maximum length capped by the memory limit
 	limit := len(q.resultCache)
 	if common.StorageSize(len(q.resultCache))*q.resultSize > common.StorageSize(blockCacheMemory) {
@@ -446,8 +447,8 @@ func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool
 // Note, this method expects the queue lock to be already held for writing. The
 // reason the lock is not obtained in here is because the parameters already need
 // to access the queue, so they already need a lock anyway.
-func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common.Hash]*dagmessage.SequencerHeader, taskQueue *prque.Prque,
-	pendPool map[string]*fetchRequest, donePool map[common.Hash]struct{}, isNoop func(*dagmessage.SequencerHeader) bool) (*fetchRequest, bool, error) {
+func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[types2.Hash]*dagmessage.SequencerHeader, taskQueue *prque.Prque,
+	pendPool map[string]*fetchRequest, donePool map[types2.Hash]struct{}, isNoop func(*dagmessage.SequencerHeader) bool) (*fetchRequest, bool, error) {
 	// Short circuit if the pool has been depleted, or if the peer's already
 	// downloading something (sanity check not to corrupt state)
 	if taskQueue.Empty() {
@@ -747,8 +748,8 @@ func (q *queue) DeliverBodies(id string, txLists []types.Txis, sequencers []*typ
 // Note, this method expects the queue lock to be already held for writing. The
 // reason the lock is not obtained in here is because the parameters already need
 // to access the queue, so they already need a lock anyway.
-func (q *queue) deliver(id string, taskPool map[common.Hash]*dagmessage.SequencerHeader, taskQueue *prque.Prque,
-	pendPool map[string]*fetchRequest, donePool map[common.Hash]struct{}, reqTimer metrics.Timer,
+func (q *queue) deliver(id string, taskPool map[types2.Hash]*dagmessage.SequencerHeader, taskQueue *prque.Prque,
+	pendPool map[string]*fetchRequest, donePool map[types2.Hash]struct{}, reqTimer metrics.Timer,
 	results int, reconstruct func(header *dagmessage.SequencerHeader, index int, result *fetchResult) error) (int, error) {
 
 	// Short circuit if the data was never requested

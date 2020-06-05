@@ -17,6 +17,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/kyber/v3"
 	"github.com/sirupsen/logrus"
@@ -122,7 +123,7 @@ func SignatureValues(sig []byte) (r, s, v *big.Int, err error) {
 	return r, s, v, nil
 }
 
-func PublicKeyFromSignature(sighash common.Hash, signature *Signature) (pubKey PublicKey, err error) {
+func PublicKeyFromSignature(sighash types.Hash, signature *Signature) (pubKey PublicKey, err error) {
 	// only some signature types can be used to recover pubkey
 	R, S, Vb, err := SignatureValues(signature.SignatureBytes)
 	if err != nil {

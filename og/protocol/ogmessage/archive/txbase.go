@@ -1,7 +1,7 @@
 package archive
 
 import (
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/hexutil"
 )
 
@@ -43,8 +43,8 @@ func (t TxBaseType) String() string {
 //msgp:tuple TxBaseJson
 type TxBaseJson struct {
 	Type         TxBaseType    `json:"type"`
-	Hash         common.Hash   `json:"hash"`
-	ParentsHash  common.Hashes `json:"parents_hash"`
+	Hash         types.Hash    `json:"hash"`
+	ParentsHash  types.Hashes  `json:"parents_hash"`
 	AccountNonce uint64        `json:"account_nonce"`
 	Height       uint64        `json:"height"`
 	PublicKey    PublicKey     `json:"public_key"`

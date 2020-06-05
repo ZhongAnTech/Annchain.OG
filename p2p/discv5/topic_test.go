@@ -18,7 +18,7 @@ package discv5
 
 import (
 	"encoding/binary"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"testing"
 	"time"
 
@@ -31,7 +31,7 @@ func TestTopicRadius(t *testing.T) {
 	rad := newTopicRadius(topic)
 	targetRad := (^uint64(0)) / 100
 
-	waitFn := func(addr common.Hash) time.Duration {
+	waitFn := func(addr types.Hash) time.Duration {
 		prefix := binary.BigEndian.Uint64(addr.Bytes[0:8])
 		dist := prefix ^ rad.topicHashPrefix
 		relDist := float64(dist) / float64(targetRad)

@@ -17,7 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/metrics"
 	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/og/types"
@@ -100,7 +100,7 @@ type Downloader struct {
 	dropPeer peerDropFn // Drops a peer for misbehaving
 
 	// Status
-	synchroniseMock func(id string, hash common.Hash) error // Replacement for synchronise during testing
+	synchroniseMock func(id string, hash types2.Hash) error // Replacement for synchronise during testing
 	synchronising   int32
 	notified        int32
 	committed       int32
@@ -133,7 +133,7 @@ type Downloader struct {
 
 type IDag interface {
 	LatestSequencer() *types.Sequencer
-	GetSequencer(hash common.Hash, id uint64) *types.Sequencer
+	GetSequencer(hash types2.Hash, id uint64) *types.Sequencer
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -209,7 +209,7 @@ func (d *Downloader) UnregisterPeer(id string) error {
 
 // Synchronise tries to sync up our local block chain with a remote peer, both
 // adding various sanity checks as well as wrapping it with various log entries.
-func (d *Downloader) Synchronise(id string, head common.Hash, seqId uint64, mode SyncMode) error {
+func (d *Downloader) Synchronise(id string, head types2.Hash, seqId uint64, mode SyncMode) error {
 	err := d.synchronise(id, head, seqId, mode)
 	switch err {
 	case nil:
@@ -235,7 +235,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, seqId uint64, mode
 // synchronise will select the peer and use it for synchronising. If an empty string is given
 // it will use the best peer possible and synchronize if its TD is higher than our own. If any of the
 // checks fail an error will be returned. This method is synchronous
-func (d *Downloader) synchronise(id string, hash common.Hash, seqId uint64, mode SyncMode) error {
+func (d *Downloader) synchronise(id string, hash types2.Hash, seqId uint64, mode SyncMode) error {
 	// Mock out the synchronisation if testing
 	if d.synchroniseMock != nil {
 		return d.synchroniseMock(id, hash)
@@ -297,7 +297,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, seqId uint64, mode
 
 // syncWithPeer starts a block synchronization based on the hash chain from the
 // specified peer and head hash.
-func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, seqId uint64) (err error) {
+func (d *Downloader) syncWithPeer(p *peerConnection, hash types2.Hash, seqId uint64) (err error) {
 
 	if p.version < 1 {
 		return errTooOld
@@ -513,7 +513,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 	goroutine.New(function)
 
 	// Wait for the remote response to the head fetch
-	number, hash := uint64(0), common.Hash{}
+	number, hash := uint64(0), types2.Hash{}
 
 	ttl := d.requestTTL()
 	timeout := time.After(ttl)

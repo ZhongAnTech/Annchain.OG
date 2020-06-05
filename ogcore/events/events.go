@@ -1,7 +1,7 @@
 package events
 
 import (
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/communication"
@@ -93,7 +93,7 @@ func (m *NewTxiDependencyFulfilledEvent) GetEventType() eventbus.EventType {
 }
 
 type NeedSyncTxEvent struct {
-	Hash            common.Hash
+	Hash            types2.Hash
 	SpecifiedSource *communication.OgPeer
 	//ParentHash      common.Hash
 	//ChildHash       common.Hash
@@ -116,7 +116,7 @@ func (m *HeightSyncRequestReceivedEvent) GetEventType() eventbus.EventType {
 }
 
 type BatchSyncRequestReceivedEvent struct {
-	Hashes    common.Hashes
+	Hashes    types2.Hashes
 	RequestId uint32
 	Peer      *communication.OgPeer
 }
@@ -163,7 +163,7 @@ func (m *NewTxReceivedInPoolEvent) GetEventType() eventbus.EventType {
 }
 
 type SequencerBatchConfirmedEvent struct {
-	Elders map[common.Hash]types.Txi
+	Elders map[types2.Hash]types.Txi
 }
 
 func (m *SequencerBatchConfirmedEvent) GetEventType() eventbus.EventType {

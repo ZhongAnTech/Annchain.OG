@@ -15,6 +15,7 @@ package archive
 
 import (
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/protocol/dagmessage"
@@ -48,7 +49,7 @@ type RawSequencer struct {
 	TxBase
 	BlsJointSig    []byte
 	BlsJointPubKey []byte
-	StateRoot      common.Hash
+	StateRoot      types2.Hash
 }
 
 //msgp:tuple RawSequencers

@@ -22,7 +22,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"math/big"
 	"math/rand"
 	"net"
@@ -360,7 +360,7 @@ func recoverNodeID(hash, sig []byte) (id NodeID, err error) {
 // distcmp compares the distances a->target and b->target.
 // Returns -1 if a is closer to target, 1 if b is closer to target
 // and 0 if they are equal.
-func distcmp(target, a, b common.Hash) int {
+func distcmp(target, a, b types.Hash) int {
 	for i := range target.Bytes {
 		da := a.Bytes[i] ^ target.Bytes[i]
 		db := b.Bytes[i] ^ target.Bytes[i]
@@ -410,7 +410,7 @@ var lzcount = [256]int{
 }
 
 // logdist returns the logarithmic distance between a and b, log2(a ^ b).
-func logdist(a, b common.Hash) int {
+func logdist(a, b types.Hash) int {
 	lz := 0
 	for i := range a.Bytes {
 		x := a.Bytes[i] ^ b.Bytes[i]
@@ -425,7 +425,7 @@ func logdist(a, b common.Hash) int {
 }
 
 // hashAtDistance returns a random hash such that logdist(a, b) == n
-func hashAtDistance(a common.Hash, n int) (b common.Hash) {
+func hashAtDistance(a types.Hash, n int) (b types.Hash) {
 	if n == 0 {
 		return a
 	}

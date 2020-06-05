@@ -15,6 +15,7 @@ package txmaker
 
 import (
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
 
@@ -51,8 +52,8 @@ func Init() *OGTxCreator {
 		TipGenerator:       &dummyTxPoolRandomTx{},
 		Miner:              &miner.PoWMiner{},
 		MaxConnectingTries: 100,
-		MaxTxHash:          common.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-		MaxMinedHash:       common.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxTxHash:          types2.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxMinedHash:       types2.HexToHash("0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
 		GraphVerifier:      &AllOkVerifier{},
 	}
 	return &txc
@@ -116,13 +117,13 @@ func TestSequencerCreator(t *testing.T) {
 func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType) types.Txi {
 
 	tx := &types.Tx{TxBase: types.TxBase{
-		ParentsHash: common.Hashes{},
+		ParentsHash: types2.Hashes{},
 		Type:        types.TxBaseTypeTx,
-		Hash:        common.HexToHash(selfHash),
+		Hash:        types2.HexToHash(selfHash),
 	},
 	}
 	for _, h := range parentsHash {
-		tx.ParentsHash = append(tx.ParentsHash, common.HexToHash(h))
+		tx.ParentsHash = append(tx.ParentsHash, types2.HexToHash(h))
 	}
 	return tx
 }
@@ -136,8 +137,8 @@ func TestBuildDag(t *testing.T) {
 		TipGenerator:       pool,
 		Miner:              &miner.PoWMiner{},
 		MaxConnectingTries: 10,
-		MaxTxHash:          common.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-		MaxMinedHash:       common.HexToHash("0x000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxTxHash:          types2.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+		MaxMinedHash:       types2.HexToHash("0x000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
 		GraphVerifier:      &AllOkVerifier{},
 	}
 
@@ -227,7 +228,7 @@ func TestNewFIFOTIpGenerator(t *testing.T) {
 
 func TestSlice(t *testing.T) {
 	var parents types.Txis
-	parentHashes := make(common.Hashes, len(parents))
+	parentHashes := make(types2.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetHash()
 	}

@@ -2,6 +2,7 @@ package testLogger
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/sirupsen/logrus"
 	"testing"
@@ -35,7 +36,7 @@ func TestLogger(t *testing.T) {
 }
 
 type Foo struct {
-	Hash common.Hash
+	Hash types.Hash
 	Add  common.Address
 	Name string
 	Id   uint64
@@ -61,8 +62,8 @@ var globalInt uint64
 func randomFoo() *Foo {
 	globalInt++
 	return &Foo{
-		Hash: common.RandomHash(),
-		Add:  common.RandomAddress(),
+		Hash: types.RandomHash(),
+		Add:  types.RandomAddress(),
 		Name: "test",
 		Id:   globalInt,
 	}

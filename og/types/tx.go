@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/common/crypto"
@@ -12,8 +13,8 @@ import (
 
 type Tx struct {
 	// graph structure info
-	Hash        common.Hash
-	ParentsHash common.Hashes
+	Hash        types.Hash
+	ParentsHash types.Hashes
 	MineNonce   uint64
 
 	// tx info
@@ -39,7 +40,7 @@ func (t *Tx) SetMineNonce(v uint64) {
 	t.MineNonce = v
 }
 
-func (t *Tx) SetParents(hashes common.Hashes) {
+func (t *Tx) SetParents(hashes types.Hashes) {
 	t.ParentsHash = hashes
 }
 
@@ -59,7 +60,7 @@ func (t *Tx) SetSender(addr common.Address) {
 	t.From = addr
 }
 
-func (t *Tx) SetHash(h common.Hash) {
+func (t *Tx) SetHash(h types.Hash) {
 	t.Hash = h
 }
 
@@ -112,11 +113,11 @@ func (t *Tx) GetWeight() uint64 {
 	return t.Weight
 }
 
-func (t *Tx) GetHash() common.Hash {
+func (t *Tx) GetHash() types.Hash {
 	return t.Hash
 }
 
-func (t *Tx) GetParents() common.Hashes {
+func (t *Tx) GetParents() types.Hashes {
 	return t.ParentsHash
 }
 

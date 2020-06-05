@@ -14,7 +14,6 @@
 package performance
 
 import (
-	"fmt"
 	"runtime"
 	"time"
 )
@@ -44,7 +43,6 @@ func (p *PerformanceMonitor) Start() {
 		//runtime.SetBlockProfileRate(1)
 
 		for !p.quit {
-			fmt.Println("reporting")
 			for key, value := range p.CollectData() {
 				for _, reporter := range p.Reporters {
 					reporter.Report(key, value)

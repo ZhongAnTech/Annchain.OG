@@ -15,6 +15,7 @@ package archive
 
 import (
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
@@ -25,16 +26,16 @@ import (
 )
 
 func TestSequencer(t *testing.T) {
-	addr := common.RandomAddress()
+	addr := types2.RandomAddress()
 	from := common.HexToAddress("0x1")
-	seq1 := Sequencer{TxBase: TxBase{ParentsHash: common.Hashes{common.HexToHash("0x0")}}, Issuer: &addr}
-	seq2 := Tx{types.TxBase: TxBase{ParentsHash: common.Hashes{common.HexToHash("0x0")}},
+	seq1 := Sequencer{TxBase: TxBase{ParentsHash: types2.Hashes{types2.HexToHash("0x0")}}, Issuer: &addr}
+	seq2 := Tx{types.TxBase: TxBase{ParentsHash: types2.Hashes{types2.HexToHash("0x0")}},
 		To:    common.HexToAddress("0x1"),
 		From:  &from,
 		Value: math.NewBigInt(0),
 	}
 
-	seq3 := Sequencer{TxBase: TxBase{ParentsHash: common.Hashes{seq1.CalcMinedHash(), seq2.CalcMinedHash()}}}
+	seq3 := Sequencer{TxBase: TxBase{ParentsHash: types2.Hashes{seq1.CalcMinedHash(), seq2.CalcMinedHash()}}}
 
 	fmt.Println(seq1.CalcMinedHash().String())
 	fmt.Println(seq2.CalcMinedHash().String())
@@ -43,7 +44,7 @@ func TestSequencer(t *testing.T) {
 }
 
 func TestSequencerSize(t *testing.T) {
-	addr := common.RandomAddress()
+	addr := types2.RandomAddress()
 	seq := Sequencer{Issuer: &addr}
 	n := 100
 
@@ -58,7 +59,7 @@ func TestSequencerSize(t *testing.T) {
 }
 
 func TestSequencerRawSize(t *testing.T) {
-	addr := common.RandomAddress()
+	addr := types2.RandomAddress()
 	seq := Sequencer{Issuer: &addr}
 	n := 100
 

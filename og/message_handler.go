@@ -16,6 +16,7 @@ package og
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/campaign"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
@@ -41,13 +42,13 @@ type IncomingMessageHandler struct {
 }
 
 type hashAndSourceId struct {
-	hash     common.Hash
+	hash     types2.Hash
 	sourceId string
 }
 
 //msg request cache ,don't send duplicate Message
 type ControlMsgCache struct {
-	cache      map[common.Hash]*controlItem
+	cache      map[types2.Hash]*controlItem
 	mu         sync.RWMutex
 	size       int
 	queue      chan *hashAndSourceId
@@ -71,7 +72,7 @@ func NewIncomingMessageHandler(og *Og, hub *Hub, cacheSize int, expireTime time.
 		Og:  og,
 		Hub: hub,
 		controlMsgCache: &ControlMsgCache{
-			cache:      make(map[common.Hash]*controlItem),
+			cache:      make(map[types2.Hash]*controlItem),
 			size:       cacheSize,
 			ExpireTime: expireTime,
 			queue:      make(chan *hashAndSourceId, 1),
@@ -104,7 +105,7 @@ func (h *IncomingMessageHandler) HandleFetchByHashRequest(syncRequest *p2p_messa
 			message_archive.msgLog.WithField("ourHeight ", ourHeight).WithField("height", height).Warn("our height is smaller")
 			return
 		} else {
-			var filterHashes common.Hashes
+			var filterHashes types2.Hashes
 			if height == ourHeight {
 				filterHashes = h.Og.TxPool.GetHashOrder()
 			} else if height < ourHeight {
@@ -522,11 +523,11 @@ func (c *RequestCache) clean(lseqId uint64) {
 	}
 }
 
-func (c *ControlMsgCache) set(hash common.Hash, sourceId string) {
+func (c *ControlMsgCache) set(hash types2.Hash, sourceId string) {
 	c.queue <- &hashAndSourceId{hash: hash, sourceId: sourceId}
 }
 
-func (c *ControlMsgCache) get(hash common.Hash) *controlItem {
+func (c *ControlMsgCache) get(hash types2.Hash) *controlItem {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if v, ok := c.cache[hash]; ok {
@@ -535,10 +536,10 @@ func (c *ControlMsgCache) get(hash common.Hash) *controlItem {
 	return nil
 }
 
-func (c *ControlMsgCache) getALlKey() common.Hashes {
+func (c *ControlMsgCache) getALlKey() types2.Hashes {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	var hashes common.Hashes
+	var hashes types2.Hashes
 	for k := range c.cache {
 		hashes = append(hashes, k)
 	}
@@ -551,13 +552,13 @@ func (c *ControlMsgCache) Len() int {
 	return len(c.cache)
 }
 
-func (c *ControlMsgCache) remove(hash common.Hash) {
+func (c *ControlMsgCache) remove(hash types2.Hash) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.cache, hash)
 }
 
-func (h *IncomingMessageHandler) RemoveControlMsgFromCache(hash common.Hash) {
+func (h *IncomingMessageHandler) RemoveControlMsgFromCache(hash types2.Hash) {
 	h.controlMsgCache.remove(hash)
 }
 

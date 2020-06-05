@@ -15,7 +15,7 @@ package txcache
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 
@@ -66,7 +66,7 @@ func newTestTxcache(sorted bool) *TxCache {
 
 func newTestTxcacheWithParam(size int, sorted bool, expire int) *TxCache {
 	logrus.SetLevel(logrus.InfoLevel)
-	invalidTx := func(h common.Hash) bool {
+	invalidTx := func(h types2.Hash) bool {
 		return true
 	}
 	//gcache.DebugMode = true

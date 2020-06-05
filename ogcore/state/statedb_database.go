@@ -18,7 +18,7 @@ package state
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"sync"
 
 	"github.com/annchain/OG/ogdb"
@@ -42,19 +42,19 @@ const (
 // Database wraps access to tries and contract code.
 type Database interface {
 	// OpenTrie opens the main account trie.
-	OpenTrie(root common.Hash) (Trie, error)
+	OpenTrie(root types.Hash) (Trie, error)
 
 	// OpenStorageTrie opens the storage trie of an account.
-	OpenStorageTrie(addrHash, root common.Hash) (Trie, error)
+	OpenStorageTrie(addrHash, root types.Hash) (Trie, error)
 
 	// CopyTrie returns an independent copy of the given trie.
 	CopyTrie(Trie) Trie
 
 	// ContractCode retrieves a particular contract's code.
-	ContractCode(addrHash, codeHash common.Hash) ([]byte, error)
+	ContractCode(addrHash, codeHash types.Hash) ([]byte, error)
 
 	// ContractCodeSize retrieves a particular contracts code's size.
-	ContractCodeSize(addrHash, codeHash common.Hash) (int, error)
+	ContractCodeSize(addrHash, codeHash types.Hash) (int, error)
 
 	// TrieDB retrieves the low level trie database used for data storage.
 	TrieDB() *trie.Database
@@ -68,8 +68,8 @@ type Trie interface {
 	// preCommit is a flag for pre confirming sequencer. Because pre confirm uses the
 	// same trie db in real sequencer confirm and the db will be modified during db commit.
 	// To avoid this, add a flag to let pre confirm process not modify trie db anymore.
-	Commit(onleaf trie.LeafCallback, preCommit bool) (common.Hash, error)
-	Hash() common.Hash
+	Commit(onleaf trie.LeafCallback, preCommit bool) (types.Hash, error)
+	Hash() types.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
 	Prove(key []byte, fromLevel uint, proofDb ogdb.Putter) error
@@ -95,7 +95,7 @@ type cachingDB struct {
 }
 
 // OpenTrie opens the main account trie.
-func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
+func (db *cachingDB) OpenTrie(root types.Hash) (Trie, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -124,7 +124,7 @@ func (db *cachingDB) pushTrie(t *trie.SecureTrie) {
 }
 
 // OpenStorageTrie opens the storage trie of an account.
-func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash) (Trie, error) {
+func (db *cachingDB) OpenStorageTrie(addrHash, root types.Hash) (Trie, error) {
 	return trie.NewSecure(root, db.db, 0)
 }
 
@@ -141,7 +141,7 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 }
 
 // ContractCode retrieves a particular contract's code.
-func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error) {
+func (db *cachingDB) ContractCode(addrHash, codeHash types.Hash) ([]byte, error) {
 	code, err := db.db.Node(codeHash)
 	if err == nil {
 		db.codeSizeCache.Add(codeHash, len(code))
@@ -150,7 +150,7 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 }
 
 // ContractCodeSize retrieves a particular contracts code's size.
-func (db *cachingDB) ContractCodeSize(addrHash, codeHash common.Hash) (int, error) {
+func (db *cachingDB) ContractCodeSize(addrHash, codeHash types.Hash) (int, error) {
 	if cached, ok := db.codeSizeCache.Get(codeHash); ok {
 		return cached.(int), nil
 	}
@@ -169,7 +169,7 @@ type cachedTrie struct {
 	db *cachingDB
 }
 
-func (m cachedTrie) Commit(onleaf trie.LeafCallback, preCommit bool) (common.Hash, error) {
+func (m cachedTrie) Commit(onleaf trie.LeafCallback, preCommit bool) (types.Hash, error) {
 	root, err := m.SecureTrie.Commit(onleaf, preCommit)
 	if err == nil {
 		m.db.pushTrie(m.SecureTrie)

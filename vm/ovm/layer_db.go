@@ -1,6 +1,7 @@
 package ovm
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/math"
 	vmtypes "github.com/annchain/OG/vm/types"
 
@@ -15,7 +16,7 @@ import (
 
 var MAX_LAYER = 1024
 var FAST_FAIL = false
-var empty = common.Hash{}
+var empty = types.Hash{}
 
 // LayerStateDB is the cascading storage for contracts.
 // It consists of multiple layers, each of which represents the result of a contract.
@@ -166,7 +167,7 @@ func (l *LayerStateDB) SetNonce(addr common.Address, nonce uint64) {
 	}
 }
 
-func (l *LayerStateDB) GetCodeHash(addr common.Address) common.Hash {
+func (l *LayerStateDB) GetCodeHash(addr common.Address) types.Hash {
 	if so := l.GetStateObject(addr); so != nil {
 		return so.CodeHash
 	} else {
@@ -174,7 +175,7 @@ func (l *LayerStateDB) GetCodeHash(addr common.Address) common.Hash {
 			panic("address not exists")
 		}
 	}
-	return common.Hash{}
+	return types.Hash{}
 }
 
 func (l *LayerStateDB) GetCode(addr common.Address) []byte {
@@ -228,22 +229,22 @@ func (l *LayerStateDB) GetRefund() uint64 {
 	return sum
 }
 
-func (l *LayerStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
+func (l *LayerStateDB) GetCommittedState(addr common.Address, hash types.Hash) types.Hash {
 	// TODO: committed state
 	panic("implement me")
 }
 
-func (l *LayerStateDB) GetState(addr common.Address, key common.Hash) common.Hash {
+func (l *LayerStateDB) GetState(addr common.Address, key types.Hash) types.Hash {
 	for i := len(l.Layers) - 1; i >= 0; i-- {
 		layer := l.Layers[i]
 		if so := layer.GetState(addr, key); so != empty {
 			return so
 		}
 	}
-	return common.Hash{}
+	return types.Hash{}
 }
 
-func (l *LayerStateDB) SetState(addr common.Address, key common.Hash, value common.Hash) {
+func (l *LayerStateDB) SetState(addr common.Address, key types.Hash, value types.Hash) {
 	l.activeLayer.SetState(addr, key, value)
 }
 
@@ -289,11 +290,11 @@ func (l *LayerStateDB) AddLog(log *vmtypes.Log) {
 	l.activeLayer.AddLog(log)
 }
 
-func (l *LayerStateDB) AddPreimage(hash common.Hash, code []byte) {
+func (l *LayerStateDB) AddPreimage(hash types.Hash, code []byte) {
 	l.activeLayer.AddPreimage(hash, code)
 }
 
-func (l *LayerStateDB) ForEachStorage(addr common.Address, f func(common.Hash, common.Hash) bool) {
+func (l *LayerStateDB) ForEachStorage(addr common.Address, f func(types.Hash, types.Hash) bool) {
 	// TODO: foreach storage
 	panic("implement me")
 }

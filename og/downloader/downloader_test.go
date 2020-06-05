@@ -14,6 +14,7 @@
 package downloader
 
 import (
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/protocol/dagmessage"
@@ -46,17 +47,17 @@ type downloadTester struct {
 	genesis *types.Sequencer // Genesis blocks used by the tester and peers
 	peerDb  ogdb.Database    // Database of the peers containing all data
 
-	ownHashes  common.Hashes                               // Hash chain belonging to the tester
-	ownHeaders map[common.Hash]*dagmessage.SequencerHeader // Headers belonging to the tester
-	ownBlocks  map[common.Hash]*types.Sequencer            // Blocks belonging to the tester
-	ownChainTd map[common.Hash]uint64                      // id
+	ownHashes  types2.Hashes                               // Hash chain belonging to the tester
+	ownHeaders map[types2.Hash]*dagmessage.SequencerHeader // Headers belonging to the tester
+	ownBlocks  map[types2.Hash]*types.Sequencer            // Blocks belonging to the tester
+	ownChainTd map[types2.Hash]uint64                      // id
 
-	peerHashes   map[string]common.Hashes                               // Hash chain belonging to different test peers
-	peerHeaders  map[string]map[common.Hash]*dagmessage.SequencerHeader // Headers belonging to different test peers
-	peerBlocks   map[string]map[common.Hash]*types.Sequencer            // Blocks belonging to different test peers
-	peerChainTds map[string]map[common.Hash]*big.Int                    // Total difficulties of the blocks in the peer chains
+	peerHashes   map[string]types2.Hashes                               // Hash chain belonging to different test peers
+	peerHeaders  map[string]map[types2.Hash]*dagmessage.SequencerHeader // Headers belonging to different test peers
+	peerBlocks   map[string]map[types2.Hash]*types.Sequencer            // Blocks belonging to different test peers
+	peerChainTds map[string]map[types2.Hash]*big.Int                    // Total difficulties of the blocks in the peer chains
 
-	peerMissingStates map[string]map[common.Hash]bool // State entries that fast sync should not return
+	peerMissingStates map[string]map[types2.Hash]bool // State entries that fast sync should not return
 
 	lock sync.RWMutex
 }
@@ -68,15 +69,15 @@ func newTester() *downloadTester {
 	tester := &downloadTester{
 		genesis:           genesis,
 		peerDb:            testdb,
-		ownHashes:         common.Hashes{genesis.GetHash()},
-		ownHeaders:        map[common.Hash]*dagmessage.SequencerHeader{genesis.GetHash(): types.NewSequencerHead(genesis.GetHash(), genesis.Number())},
-		ownBlocks:         map[common.Hash]*types.Sequencer{genesis.GetHash(): genesis},
-		ownChainTd:        map[common.Hash]uint64{genesis.GetHash(): genesis.Number()},
-		peerHashes:        make(map[string]common.Hashes),
-		peerHeaders:       make(map[string]map[common.Hash]*dagmessage.SequencerHeader),
-		peerBlocks:        make(map[string]map[common.Hash]*types.Sequencer),
-		peerChainTds:      make(map[string]map[common.Hash]*big.Int),
-		peerMissingStates: make(map[string]map[common.Hash]bool),
+		ownHashes:         types2.Hashes{genesis.GetHash()},
+		ownHeaders:        map[types2.Hash]*dagmessage.SequencerHeader{genesis.GetHash(): types.NewSequencerHead(genesis.GetHash(), genesis.Number())},
+		ownBlocks:         map[types2.Hash]*types.Sequencer{genesis.GetHash(): genesis},
+		ownChainTd:        map[types2.Hash]uint64{genesis.GetHash(): genesis.Number()},
+		peerHashes:        make(map[string]types2.Hashes),
+		peerHeaders:       make(map[string]map[types2.Hash]*dagmessage.SequencerHeader),
+		peerBlocks:        make(map[string]map[types2.Hash]*types.Sequencer),
+		peerChainTds:      make(map[string]map[types2.Hash]*big.Int),
+		peerMissingStates: make(map[string]map[types2.Hash]bool),
 	}
 
 	tester.downloader = New(FullSync, nil, nil, nil)
@@ -85,7 +86,7 @@ func newTester() *downloadTester {
 }
 
 func TestHeaderEuqual(t *testing.T) {
-	testHash, _ := common.HexToHash("0xe6a07ee5c2fb20b07ec81f0b124b9b4428b8a96e99de01a440b5e0c4c25e22e3")
+	testHash, _ := types2.HexToHash("0xe6a07ee5c2fb20b07ec81f0b124b9b4428b8a96e99de01a440b5e0c4c25e22e3")
 	head := types.NewSequencerHead(testHash, 1447)
 	seq := &types.Sequencer{}
 	seq.Height = 1447

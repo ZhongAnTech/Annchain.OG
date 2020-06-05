@@ -16,6 +16,7 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/campaign"
@@ -82,7 +83,7 @@ func (r *RpcController) Query(c *gin.Context) {
 //Transaction  get  transaction
 func (r *RpcController) Transaction(c *gin.Context) {
 	hashtr := c.Query("hash")
-	hash, err := common.HexToHash(hashtr)
+	hash, err := types2.HexToHash(hashtr)
 	cors(c)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
@@ -123,7 +124,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 //Confirm checks if tx has already been confirmed.
 func (r *RpcController) Confirm(c *gin.Context) {
 	hashtr := c.Query("hash")
-	hash, err := common.HexToHash(hashtr)
+	hash, err := types2.HexToHash(hashtr)
 	cors(c)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
@@ -243,7 +244,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 			return
 		}
 	} else {
-		hash, err := common.HexToHash(hashtr)
+		hash, err := types2.HexToHash(hashtr)
 		if err != nil {
 			Response(c, http.StatusBadRequest, fmt.Errorf("hash format error"), nil)
 			return
@@ -398,7 +399,7 @@ func (r *RpcController) QueryReceipt(c *gin.Context) {
 		Response(c, http.StatusBadRequest, fmt.Errorf("hash not hex"), nil)
 		return
 	}
-	hash := common.BytesToHash(hashBytes)
+	hash := types2.BytesToHash(hashBytes)
 	receipt := r.Og.Dag.GetReceipt(hash)
 	if receipt == nil {
 		Response(c, http.StatusNotFound, fmt.Errorf("can't find receipt"), nil)

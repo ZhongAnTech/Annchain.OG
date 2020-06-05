@@ -17,6 +17,7 @@
 package types
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
 	"github.com/annchain/OG/vm/eth/rlp"
@@ -32,7 +33,7 @@ type Log struct {
 	// address of the contract that generated the event
 	Address common.Address `json:"address" gencodec:"required"`
 	// list of topics provided by the contract.
-	Topics common.Hashes `json:"topics" gencodec:"required"`
+	Topics types.Hashes `json:"topics" gencodec:"required"`
 	// supplied by the contract, usually ABI-encoded
 	Data []byte `json:"data" gencodec:"required"`
 
@@ -41,11 +42,11 @@ type Log struct {
 	// block in which the transaction was included
 	BlockNumber uint64 `json:"blockNumber"`
 	// hash of the transaction
-	TxHash common.Hash `json:"transactionHash" gencodec:"required"`
+	TxHash types.Hash `json:"transactionHash" gencodec:"required"`
 	// index of the transaction in the block
 	TxIndex uint `json:"transactionIndex" gencodec:"required"`
 	// hash of the block in which the transaction was included
-	BlockHash common.Hash `json:"blockHash"`
+	BlockHash types.Hash `json:"blockHash"`
 	// index of the log in the block
 	Index uint `json:"logIndex" gencodec:"required"`
 
@@ -63,18 +64,18 @@ type logMarshaling struct {
 
 type rlpLog struct {
 	Address common.Address
-	Topics  common.Hashes
+	Topics  types.Hashes
 	Data    []byte
 }
 
 type rlpStorageLog struct {
 	Address     common.Address
-	Topics      common.Hashes
+	Topics      types.Hashes
 	Data        []byte
 	BlockNumber uint64
-	TxHash      common.Hash
+	TxHash      types.Hash
 	TxIndex     uint
-	BlockHash   common.Hash
+	BlockHash   types.Hash
 	Index       uint
 }
 

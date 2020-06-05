@@ -15,7 +15,7 @@ package archive
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"testing"
 )
 
@@ -25,7 +25,7 @@ func TestNewSequencerHead(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		s := Sequencer{
 			TxBase: TxBase{
-				Hash:   common.RandomHash(),
+				Hash:   types.RandomHash(),
 				Height: uint64(i),
 			},
 		}

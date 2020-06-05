@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -10,7 +11,7 @@ import (
 )
 
 type PreloadDB struct {
-	root common.Hash
+	root types.Hash
 
 	db Database
 	sd *StateDB
@@ -151,10 +152,10 @@ func (pd *PreloadDB) SetNonce(addr common.Address, nonce uint64) {
 	state.SetNonce(nonce)
 }
 
-func (pd *PreloadDB) GetCodeHash(addr common.Address) common.Hash {
+func (pd *PreloadDB) GetCodeHash(addr common.Address) types.Hash {
 	state := pd.getStateObject(addr)
 	if state == nil {
-		return common.Hash{}
+		return types.Hash{}
 	}
 	return state.GetCodeHash()
 }
@@ -189,7 +190,7 @@ func (pd *PreloadDB) AddRefund(uint64)  {}
 func (pd *PreloadDB) SubRefund(uint64)  {}
 func (pd *PreloadDB) GetRefund() uint64 { return 0 }
 
-func (pd *PreloadDB) GetCommittedState(addr common.Address, key common.Hash) common.Hash {
+func (pd *PreloadDB) GetCommittedState(addr common.Address, key types.Hash) types.Hash {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return emptyStateHash
@@ -198,7 +199,7 @@ func (pd *PreloadDB) GetCommittedState(addr common.Address, key common.Hash) com
 }
 
 // GetState retrieves a value from the given account's storage trie.
-func (pd *PreloadDB) GetState(addr common.Address, key common.Hash) common.Hash {
+func (pd *PreloadDB) GetState(addr common.Address, key types.Hash) types.Hash {
 	state := pd.getStateObject(addr)
 	if state == nil {
 		return emptyStateHash
@@ -206,7 +207,7 @@ func (pd *PreloadDB) GetState(addr common.Address, key common.Hash) common.Hash 
 	return state.GetState(pd.db, key)
 }
 
-func (pd *PreloadDB) SetState(addr common.Address, key, value common.Hash) {
+func (pd *PreloadDB) SetState(addr common.Address, key, value types.Hash) {
 	state := pd.getOrCreateStateObject(addr)
 	if state == nil {
 		return
@@ -214,10 +215,10 @@ func (pd *PreloadDB) SetState(addr common.Address, key, value common.Hash) {
 	state.SetState(pd.db, key, value)
 }
 
-func (pd *PreloadDB) Commit() (common.Hash, error) {
+func (pd *PreloadDB) Commit() (types.Hash, error) {
 	trie, err := pd.db.OpenTrie(pd.sd.Root())
 	if err != nil {
-		return common.Hash{}, err
+		return types.Hash{}, err
 	}
 	pd.trie = trie
 
@@ -247,7 +248,7 @@ func (pd *PreloadDB) Commit() (common.Hash, error) {
 		delete(pd.dirtyset, addr)
 	}
 	// commit current trie into triedb.
-	rootHash, err := pd.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	rootHash, err := pd.trie.Commit(func(leaf []byte, parent types.Hash) error {
 		account := NewAccountData()
 		if _, err := account.UnmarshalMsg(leaf); err != nil {
 			return nil
@@ -257,7 +258,7 @@ func (pd *PreloadDB) Commit() (common.Hash, error) {
 			//
 			//pd.db.TrieDB().Reference(account.Root, parent)
 		}
-		codehash := common.BytesToHash(account.CodeHash)
+		codehash := types.BytesToHash(account.CodeHash)
 		if codehash != emptyCodeHash {
 			//pd.db.TrieDB().Reference(codehash, parent)
 		}
@@ -338,10 +339,10 @@ func (pd *PreloadDB) Snapshot() int {
 	return 0
 }
 
-func (pd *PreloadDB) AddLog(l *vmtypes.Log)           {}
-func (pd *PreloadDB) AddPreimage(common.Hash, []byte) {}
+func (pd *PreloadDB) AddLog(l *vmtypes.Log)          {}
+func (pd *PreloadDB) AddPreimage(types.Hash, []byte) {}
 
-func (pd *PreloadDB) ForEachStorage(common.Address, func(common.Hash, common.Hash) bool) {}
+func (pd *PreloadDB) ForEachStorage(common.Address, func(types.Hash, types.Hash) bool) {}
 
 // for debug.
 func (pd *PreloadDB) String() string {

@@ -3,6 +3,7 @@ package ogcore_test
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -20,10 +21,10 @@ import (
 )
 
 type dummyDag struct {
-	dmap map[common.Hash]types.Txi
+	dmap map[types2.Hash]types.Txi
 }
 
-func (d *dummyDag) IsTxExists(hash common.Hash) bool {
+func (d *dummyDag) IsTxExists(hash types2.Hash) bool {
 	_, ok := d.dmap[hash]
 	return ok
 }
@@ -56,7 +57,7 @@ func (d *dummyDag) GetHeightTxs(height uint64, offset int, limit int) []types.Tx
 	}
 }
 
-func (d *dummyDag) IsLocalHash(hash common.Hash) bool {
+func (d *dummyDag) IsLocalHash(hash types2.Hash) bool {
 	_, ok := d.dmap[hash]
 	return ok
 }
@@ -73,7 +74,7 @@ func (d *dummyDag) GetSequencerByHeight(id uint64) *types.Sequencer {
 	return nil
 }
 
-func (d *dummyDag) GetSequencerByHash(hash common.Hash) *types.Sequencer {
+func (d *dummyDag) GetSequencerByHash(hash types2.Hash) *types.Sequencer {
 	return nil
 }
 
@@ -97,30 +98,30 @@ func (d *dummyDag) LatestSequencer() *types.Sequencer {
 	return d.Genesis()
 }
 
-func (d *dummyDag) GetSequencer(hash common.Hash, id uint64) *types.Sequencer {
+func (d *dummyDag) GetSequencer(hash types2.Hash, id uint64) *types.Sequencer {
 	return nil
 }
 
 func (d *dummyDag) Genesis() *types.Sequencer {
-	genesisHash, err := common.HexToHash("0x00")
+	genesisHash, err := types2.HexToHash("0x00")
 	utilfuncs.PanicIfError(err, "latest sequencer")
 	return d.dmap[genesisHash].(*types.Sequencer)
 }
 
 func (d *dummyDag) InitDefault() {
-	d.dmap = make(map[common.Hash]types.Txi)
+	d.dmap = make(map[types2.Hash]types.Txi)
 	//tx := sampleSequencer("0x00", []string{}, 0)
 	//tx.Weight = 1
 	//d.dmap[tx.GetHash()] = tx
 }
 
-func (d *dummyDag) GetTx(hash common.Hash) types.Txi {
+func (d *dummyDag) GetTx(hash types2.Hash) types.Txi {
 	if v, ok := d.dmap[hash]; ok {
 		return v
 	}
 	return nil
 }
-func (d *dummyDag) GetTxis(hashes common.Hashes) types.Txis {
+func (d *dummyDag) GetTxis(hashes types2.Hashes) types.Txis {
 	var results []types.Txi
 	for _, hash := range hashes {
 		v := d.GetTx(hash)
@@ -133,10 +134,10 @@ func (d *dummyDag) GetTxis(hashes common.Hashes) types.Txis {
 }
 
 func sampleSequencer(selfHash string, parentsHash []string, nonce uint64) *types.Sequencer {
-	myHash, err := common.HexToHash(selfHash)
+	myHash, err := types2.HexToHash(selfHash)
 	utilfuncs.PanicIfError(err, "sample sequencer my hash")
 
-	parents, err := common.HexStringsToHashes(parentsHash)
+	parents, err := types2.HexStringsToHashes(parentsHash)
 	utilfuncs.PanicIfError(err, "sample sequencer parent hashes")
 	seq := &types.Sequencer{
 		Hash:         myHash,
@@ -147,19 +148,19 @@ func sampleSequencer(selfHash string, parentsHash []string, nonce uint64) *types
 		Issuer:       common.Address{},
 		Signature:    nil,
 		PublicKey:    nil,
-		StateRoot:    common.Hash{},
+		StateRoot:    types2.Hash{},
 		Weight:       0,
 	}
 	return seq
 }
 
 func sampleTx(selfHash string, parentsHash []string, nonce uint64) *types.Tx {
-	myHash, err := common.HexToHash(selfHash)
+	myHash, err := types2.HexToHash(selfHash)
 	utilfuncs.PanicIfError(err, "sample tx my hash")
 
-	var parents common.Hashes
+	var parents types2.Hashes
 	if parentsHash != nil {
-		parents, err = common.HexStringsToHashes(parentsHash)
+		parents, err = types2.HexStringsToHashes(parentsHash)
 		utilfuncs.PanicIfError(err, "sample tx parent hashes")
 	}
 
@@ -174,7 +175,7 @@ func sampleTx(selfHash string, parentsHash []string, nonce uint64) *types.Tx {
 
 type dummySyncer struct {
 	EventBus            eventbus.EventBus
-	dmap                map[common.Hash]*types.Tx
+	dmap                map[types2.Hash]*types.Tx
 	acquireTxDedupCache gcache.Cache
 }
 
@@ -183,7 +184,7 @@ func (t *dummySyncer) Name() string {
 }
 
 func (d *dummySyncer) InitDefault() {
-	d.dmap = make(map[common.Hash]*types.Tx)
+	d.dmap = make(map[types2.Hash]*types.Tx)
 }
 
 func (d *dummySyncer) HandleEvent(ev eventbus.Event) {
@@ -207,7 +208,7 @@ func (d *dummySyncer) ClearQueue() {
 	}
 }
 
-func (d *dummySyncer) SyncHashList(seqHash common.Hash) {
+func (d *dummySyncer) SyncHashList(seqHash types2.Hash) {
 	return
 }
 
@@ -216,11 +217,11 @@ func (d *dummySyncer) Know(tx *types.Tx) {
 	d.dmap[tx.GetHash()] = tx
 }
 
-func (d *dummySyncer) IsCachedHash(hash common.Hash) bool {
+func (d *dummySyncer) IsCachedHash(hash types2.Hash) bool {
 	return false
 }
 
-func (d *dummySyncer) Enqueue(hash *common.Hash, childHash common.Hash, b bool) {
+func (d *dummySyncer) Enqueue(hash *types2.Hash, childHash types2.Hash, b bool) {
 	//if _, err := d.acquireTxDedupCache.Get(*hash); err == nil {
 	//	logrus.WithField("Hash", hash).Debugf("duplicate sync task")
 	//	return
@@ -238,7 +239,7 @@ func (d *dummySyncer) Enqueue(hash *common.Hash, childHash common.Hash, b bool) 
 }
 
 type dummyTxPool struct {
-	dmap map[common.Hash]types.Txi
+	dmap map[types2.Hash]types.Txi
 }
 
 func (d *dummyTxPool) GetLatestNonce(addr common.Address) (uint64, error) {
@@ -262,12 +263,12 @@ func (d *dummyTxPool) GetByNonce(addr common.Address, nonce uint64) types.Txi {
 }
 
 func (d *dummyTxPool) InitDefault() {
-	d.dmap = make(map[common.Hash]types.Txi)
+	d.dmap = make(map[types2.Hash]types.Txi)
 	tx := sampleTx("0x01", []string{"0x00"}, 0)
 	d.dmap[tx.GetHash()] = tx
 }
 
-func (d *dummyTxPool) Get(hash common.Hash) types.Txi {
+func (d *dummyTxPool) Get(hash types2.Hash) types.Txi {
 	if v, ok := d.dmap[hash]; ok {
 		return v
 	}
@@ -279,7 +280,7 @@ func (d *dummyTxPool) AddRemoteTx(tx types.Txi, b bool) error {
 	return nil
 }
 
-func (d *dummyTxPool) IsLocalHash(hash common.Hash) bool {
+func (d *dummyTxPool) IsLocalHash(hash types2.Hash) bool {
 	return false
 }
 

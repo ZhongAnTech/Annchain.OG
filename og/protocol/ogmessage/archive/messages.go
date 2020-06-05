@@ -2,7 +2,7 @@ package archive
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/types/msg"
@@ -66,7 +66,7 @@ func (z *MessagePong) FromBinary([]byte) error {
 
 //msgp:tuple MessageSyncRequest
 type MessageSyncRequest struct {
-	Hashes        *common.Hashes
+	Hashes        *types.Hashes
 	HashTerminats *HashTerminats
 	Filter        *BloomFilter
 	Height        *uint64
@@ -249,8 +249,8 @@ func (m *MessageNewTxs) String() string {
 
 //msgp:tuple MessageTxsRequest
 type MessageTxsRequest struct {
-	Hashes    *common.Hashes
-	SeqHash   *common.Hash
+	Hashes    *types.Hashes
+	SeqHash   *types.Hash
 	Id        *uint64
 	RequestId uint32 //avoid msg drop
 }
@@ -362,7 +362,7 @@ func (m *MessageHeaderRequest) String() string {
 
 //msgp:tuple MessageSequencerHeader
 type MessageSequencerHeader struct {
-	Hash   *common.Hash
+	Hash   *types.Hash
 	Number *uint64
 }
 
@@ -430,7 +430,7 @@ func (m *MessageHeaderResponse) String() string {
 
 //msgp:tuple MessageBodiesRequest
 type MessageBodiesRequest struct {
-	SeqHashes common.Hashes
+	SeqHashes types.Hashes
 	RequestId uint32 //avoid msg drop
 }
 
@@ -498,7 +498,7 @@ func (m *MessageBodiesResponse) String() string {
 
 //msgp:tuple MessageControl
 type MessageControl struct {
-	Hash *common.Hash
+	Hash *types.Hash
 }
 
 func (m *MessageControl) GetType() msg.BinaryMessageType {
@@ -534,7 +534,7 @@ func (m *MessageControl) String() string {
 
 //msgp:tuple MessageGetMsg
 type MessageGetMsg struct {
-	Hash *common.Hash
+	Hash *types.Hash
 }
 
 func (m *MessageGetMsg) GetType() msg.BinaryMessageType {

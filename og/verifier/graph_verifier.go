@@ -1,7 +1,7 @@
 package verifier
 
 import (
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"
@@ -31,7 +31,7 @@ func (v *GraphVerifier) Name() string {
 
 // getTxFromTempSource tries to get tx from anywhere but dag itself.
 // return nil if not found in either txpool or buffer
-func (v *GraphVerifier) getTxFromTempSource(hash common.Hash) (txi types.Txi) {
+func (v *GraphVerifier) getTxFromTempSource(hash types2.Hash) (txi types.Txi) {
 	// Re-think. Do we really need to check buffer?
 
 	//if v.Buffer != nil {
@@ -50,7 +50,7 @@ func (v *GraphVerifier) getTxFromTempSource(hash common.Hash) (txi types.Txi) {
 	return
 }
 
-func (v *GraphVerifier) getTxFromAnywhere(hash common.Hash) (txi types.Txi, archived bool) {
+func (v *GraphVerifier) getTxFromAnywhere(hash types2.Hash) (txi types.Txi, archived bool) {
 	txi = v.getTxFromTempSource(hash)
 	if txi != nil {
 		archived = false
@@ -73,8 +73,8 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 		ok = true
 		return
 	}
-	seeked := map[common.Hash]bool{}
-	seekingHashes := common.Hashes{}
+	seeked := map[types2.Hash]bool{}
+	seekingHashes := types2.Hashes{}
 	for _, parent := range currentTx.GetParents() {
 		seekingHashes = append(seekingHashes, parent)
 	}
@@ -145,8 +145,8 @@ func (v *GraphVerifier) getMyPreviousTx(currentTx types.Txi) (previousTx types.T
 
 // get the nearest previous sequencer from txpool
 func (v *GraphVerifier) getPreviousSequencer(currentSeq *types.Sequencer) (previousSeq *types.Sequencer, ok bool) {
-	seeked := map[common.Hash]bool{}
-	seekingHashes := common.Hashes{}
+	seeked := map[types2.Hash]bool{}
+	seekingHashes := types2.Hashes{}
 	// seekingHashes := list.New()
 	seekingHashes = append(seekingHashes, currentSeq.GetHash())
 	// seekingHashes.PushBack(currentSeq.GetHash())

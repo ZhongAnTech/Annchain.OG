@@ -2,6 +2,7 @@ package txmaker
 
 import (
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
@@ -29,8 +30,8 @@ func (P *dummyTxPoolRandomTx) GetByNonce(addr common.Address, nonce uint64) type
 }
 
 type dummyTxPoolMiniTx struct {
-	poolMap map[common.Hash]types.Txi
-	tipsMap map[common.Hash]types.Txi
+	poolMap map[types2.Hash]types.Txi
+	tipsMap map[types2.Hash]types.Txi
 }
 
 func (d *dummyTxPoolMiniTx) IsBadSeq(seq *types.Sequencer) error {
@@ -38,8 +39,8 @@ func (d *dummyTxPoolMiniTx) IsBadSeq(seq *types.Sequencer) error {
 }
 
 func (d *dummyTxPoolMiniTx) Init() {
-	d.poolMap = make(map[common.Hash]types.Txi)
-	d.tipsMap = make(map[common.Hash]types.Txi)
+	d.poolMap = make(map[types2.Hash]types.Txi)
+	d.tipsMap = make(map[types2.Hash]types.Txi)
 }
 
 func (P *dummyTxPoolMiniTx) GetByNonce(addr common.Address, nonce uint64) types.Txi {
@@ -49,7 +50,7 @@ func (P *dummyTxPoolMiniTx) GetByNonce(addr common.Address, nonce uint64) types.
 func (p *dummyTxPoolMiniTx) GetRandomTips(n int) (v []types.Txi) {
 	indices := math.GenerateRandomIndices(n, len(p.tipsMap))
 	// slice of keys
-	var keys common.Hashes
+	var keys types2.Hashes
 	for k := range p.tipsMap {
 		keys = append(keys, k)
 	}
@@ -73,10 +74,10 @@ func (p *dummyTxPoolMiniTx) Add(v types.Txi) {
 }
 
 type dummyTxPoolParents struct {
-	poolMap map[common.Hash]types.Txi
+	poolMap map[types2.Hash]types.Txi
 }
 
-func (p *dummyTxPoolParents) IsLocalHash(h common.Hash) bool {
+func (p *dummyTxPoolParents) IsLocalHash(h types2.Hash) bool {
 	return false
 }
 
@@ -97,10 +98,10 @@ func (p *dummyTxPoolParents) RegisterOnNewTxReceived(c chan types.Txi, s string,
 }
 
 func (p *dummyTxPoolParents) Init() {
-	p.poolMap = make(map[common.Hash]types.Txi)
+	p.poolMap = make(map[types2.Hash]types.Txi)
 }
 
-func (p *dummyTxPoolParents) Get(hash common.Hash) types.Txi {
+func (p *dummyTxPoolParents) Get(hash types2.Hash) types.Txi {
 	return p.poolMap[hash]
 }
 

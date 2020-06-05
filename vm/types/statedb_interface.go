@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 )
@@ -17,7 +18,7 @@ type StateDB interface {
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
 
-	GetCodeHash(common.Address) common.Hash
+	GetCodeHash(common.Address) types.Hash
 	GetCode(common.Address) []byte
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
@@ -30,10 +31,10 @@ type StateDB interface {
 	// GetRefund returns the current value of the refund counter.
 	GetRefund() uint64
 
-	GetCommittedState(common.Address, common.Hash) common.Hash
+	GetCommittedState(common.Address, types.Hash) types.Hash
 	// GetState retrieves a value from the given account's storage trie.
-	GetState(common.Address, common.Hash) common.Hash
-	SetState(common.Address, common.Hash, common.Hash)
+	GetState(common.Address, types.Hash) types.Hash
+	SetState(common.Address, types.Hash, types.Hash)
 
 	// Suicide marks the given account as suicided.
 	// This clears the account balance.
@@ -56,9 +57,9 @@ type StateDB interface {
 	Snapshot() int
 
 	AddLog(*Log)
-	AddPreimage(common.Hash, []byte)
+	AddPreimage(types.Hash, []byte)
 
-	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
+	ForEachStorage(common.Address, func(types.Hash, types.Hash) bool)
 	// for debug.
 	String() string
 
@@ -78,7 +79,7 @@ type StateDBDebug interface {
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
 
-	GetCodeHash(common.Address) common.Hash
+	GetCodeHash(common.Address) types.Hash
 	GetCode(common.Address) []byte
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
@@ -91,10 +92,10 @@ type StateDBDebug interface {
 	// GetRefund returns the current value of the refund counter.
 	GetRefund() uint64
 
-	GetCommittedState(common.Address, common.Hash) common.Hash
+	GetCommittedState(common.Address, types.Hash) types.Hash
 	// GetState retrieves a value from the given account's storage trie.
-	GetState(common.Address, common.Hash) common.Hash
-	SetState(common.Address, common.Hash, common.Hash)
+	GetState(common.Address, types.Hash) types.Hash
+	SetState(common.Address, types.Hash, types.Hash)
 
 	// Suicide marks the given account as suicided.
 	// This clears the account balance.
@@ -117,9 +118,9 @@ type StateDBDebug interface {
 	Snapshot() int
 
 	AddLog(*Log)
-	AddPreimage(common.Hash, []byte)
+	AddPreimage(types.Hash, []byte)
 
-	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
+	ForEachStorage(common.Address, func(types.Hash, types.Hash) bool)
 	// for debug.
 	String() string
 

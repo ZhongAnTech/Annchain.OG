@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/arefactor/common/io"
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
@@ -189,7 +189,7 @@ func GetOldDb() (ogdb.Database, error) {
 	}
 }
 
-func (og *Og) GetSequencerByHash(hash common.Hash) *types.Sequencer {
+func (og *Og) GetSequencerByHash(hash types2.Hash) *types.Sequencer {
 	txi := og.Dag.GetTx(hash)
 	switch tx := txi.(type) {
 	case *types.Sequencer:

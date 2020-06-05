@@ -16,7 +16,7 @@ package message_archive
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
@@ -139,10 +139,10 @@ func (s SequencerProposal) Equal(o bft.Proposal) bool {
 	return s.GetHash() == v.GetHash()
 }
 
-func (s SequencerProposal) GetId() *common.Hash {
+func (s SequencerProposal) GetId() *types2.Hash {
 	//should copy ?
-	var hash common.Hash
-	hash.MustSetBytes(s.GetHash().ToBytes(), common.PaddingNone)
+	var hash types2.Hash
+	hash.MustSetBytes(s.GetHash().ToBytes(), types2.PaddingNone)
 	return &hash
 }
 

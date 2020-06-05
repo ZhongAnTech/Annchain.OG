@@ -14,8 +14,13 @@
 
 package main
 
-import "github.com/annchain/OG/arefactor/app/cmd"
+import (
+	"github.com/annchain/OG/arefactor/app/cmd"
+	"math/rand"
+	"time"
+)
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	cmd.Execute()
 }

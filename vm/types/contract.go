@@ -17,6 +17,7 @@
 package types
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/crypto"
 
 	common2 "github.com/annchain/OG/common"
@@ -32,11 +33,11 @@ import (
 
 type CodeAndHash struct {
 	Code []byte
-	hash common2.Hash
+	hash types.Hash
 }
 
-func (c *CodeAndHash) Hash() common2.Hash {
-	if c.hash == (common2.Hash{}) {
+func (c *CodeAndHash) Hash() types.Hash {
+	if c.hash == (types.Hash{}) {
 		c.hash = crypto.Keccak256Hash(c.Code)
 	}
 	return c.hash
@@ -69,11 +70,11 @@ type Contract struct {
 	caller        ContractRef
 	self          ContractRef
 
-	jumpdests map[common2.Hash]common.Bitvec // Aggregated result of JUMPDEST analysis.
-	analysis  common.Bitvec                  // Locally cached result of JUMPDEST analysis
+	jumpdests map[types.Hash]common.Bitvec // Aggregated result of JUMPDEST analysis.
+	analysis  common.Bitvec                // Locally cached result of JUMPDEST analysis
 
 	Code     []byte
-	CodeHash common2.Hash
+	CodeHash types.Hash
 	CodeAddr *common2.Address
 	Input    []byte
 
@@ -89,7 +90,7 @@ func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uin
 		// Reuse JUMPDEST analysis from parent context if available.
 		c.jumpdests = parent.jumpdests
 	} else {
-		c.jumpdests = make(map[common2.Hash]common.Bitvec)
+		c.jumpdests = make(map[types.Hash]common.Bitvec)
 	}
 
 	// Gas should be a pointer so it can safely be reduced through the run
@@ -113,7 +114,7 @@ func (c *Contract) ValidJumpdest(dest *big.Int) bool {
 		return false
 	}
 	// Do we have a contract hash already?
-	if c.CodeHash != (common2.Hash{}) {
+	if c.CodeHash != (types.Hash{}) {
 		// Does parent context have the analysis?
 		analysis, exist := c.jumpdests[c.CodeHash]
 		if !exist {
@@ -189,7 +190,7 @@ func (c *Contract) Value() *big.Int {
 
 // SetCallCode sets the code of the contract and address of the backing data
 // object
-func (c *Contract) SetCallCode(addr *common2.Address, hash common2.Hash, code []byte) {
+func (c *Contract) SetCallCode(addr *common2.Address, hash types.Hash, code []byte) {
 	logrus.WithFields(logrus.Fields{
 		"addr":  addr.Hex(),
 		"hash":  hash.Hex(),

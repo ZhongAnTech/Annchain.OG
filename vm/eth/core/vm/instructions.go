@@ -18,6 +18,7 @@ package vm
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	common2 "github.com/annchain/OG/common"
 	"math/big"
 
@@ -390,7 +391,7 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract,
 	interpreter.hasher.Write(data)
 	hasherBufBytes := interpreter.hasherBuf.ToBytes()
 	interpreter.hasher.Read(hasherBufBytes)
-	interpreter.hasherBuf = common2.BytesToHash(hasherBufBytes)
+	interpreter.hasherBuf = types.BytesToHash(hasherBufBytes)
 
 	evm := interpreter.vmContext
 	if interpreter.Cfg.EnablePreimageRecording {
@@ -626,15 +627,15 @@ func opMstore8(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 
 func opSload(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	loc := stack.peek()
-	val := interpreter.vmContext.StateDB.GetState(contract.Address(), common2.BigToHash(loc))
+	val := interpreter.vmContext.StateDB.GetState(contract.Address(), types.BigToHash(loc))
 	loc.SetBytes(val.ToBytes())
 	return nil, nil
 }
 
 func opSstore(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-	loc := common2.BigToHash(stack.pop())
+	loc := types.BigToHash(stack.pop())
 	val := stack.pop()
-	interpreter.vmContext.StateDB.SetState(contract.Address(), loc, common2.BigToHash(val))
+	interpreter.vmContext.StateDB.SetState(contract.Address(), loc, types.BigToHash(val))
 
 	interpreter.intPool.put(val)
 	return nil, nil
@@ -889,10 +890,10 @@ func opSuicide(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contra
 // make log instruction function
 func makeLog(size int) executionFunc {
 	return func(pc *uint64, interpreter *EVMInterpreter, contract *vmtypes.Contract, memory *Memory, stack *Stack) ([]byte, error) {
-		topics := make(common2.Hashes, size)
+		topics := make(types.Hashes, size)
 		mStart, mSize := stack.pop(), stack.pop()
 		for i := 0; i < size; i++ {
-			topics[i] = common2.BigToHash(stack.pop())
+			topics[i] = types.BigToHash(stack.pop())
 		}
 
 		d := memory.Get(mStart.Int64(), mSize.Int64())

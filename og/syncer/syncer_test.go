@@ -15,7 +15,7 @@ package syncer
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/types/archive"
 	"github.com/annchain/OG/types"
@@ -27,13 +27,13 @@ import (
 
 func newTestIncrementalSyncer() *IncrementalSyncer {
 
-	isKnownHash := func(h common.Hash) bool {
+	isKnownHash := func(h types2.Hash) bool {
 		return false
 	}
 	newTxEnable := func() bool {
 		return true
 	}
-	hashOrder := func() common.Hashes {
+	hashOrder := func() types2.Hashes {
 		return nil
 	}
 	heighter := func() uint64 {

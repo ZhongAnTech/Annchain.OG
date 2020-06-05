@@ -17,8 +17,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/message_archive"
+	"github.com/annchain/OG/types/p2p_message"
 	"math/big"
 
 	"github.com/annchain/OG/common/crypto"
@@ -76,7 +77,7 @@ type Hub struct {
 	Fetcher            *fetcher.Fetcher
 
 	NodeInfo             func() *p2p.NodeInfo
-	IsReceivedHash       func(hash common.Hash) bool
+	IsReceivedHash       func(hash types.Hash) bool
 	broadCastMode        uint8
 	encryptionPrivKey    *crypto.PrivateKey
 	encryptionPubKey     *crypto.PublicKey
@@ -102,8 +103,8 @@ func (h *Hub) GetBenchmarks() map[string]interface{} {
 }
 
 type PeerProvider interface {
-	BestPeerInfo() (peerId string, hash common.Hash, seqId uint64, err error)
-	GetPeerHead(peerId string) (hash common.Hash, seqId uint64, err error)
+	BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err error)
+	GetPeerHead(peerId string) (hash types.Hash, seqId uint64, err error)
 }
 
 type EncryptionLayer interface {
@@ -485,7 +486,7 @@ func (h *Hub) loopReceive() {
 }
 
 //MulticastToSource  multicast msg to source , for example , send tx request to the peer which Hash the tx
-func (h *Hub) MulticastToSource(messageType message_archive.BinaryMessageType, msg p2p_message.Message, sourceMsgHash *common.Hash) {
+func (h *Hub) MulticastToSource(messageType message_archive.BinaryMessageType, msg p2p_message.Message, sourceMsgHash *types.Hash) {
 	msgOut := &message_archive.types{MessageType: messageType, Message: msg, SendingType: message_archive.SendingTypeMulticastToSource, SourceHash: sourceMsgHash}
 	err := msgOut.Marshal()
 	if err != nil {
@@ -627,7 +628,7 @@ func (h *Hub) SendBytesToPeer(peerId string, messageType message_archive.BinaryM
 // SetPeerHead is just a hack to set the latest seq number known of the peer
 // This value ought not to be stored in peer, but an outside map.
 // This has nothing related to p2p.
-func (h *Hub) SetPeerHead(peerId string, hash common.Hash, number uint64) error {
+func (h *Hub) SetPeerHead(peerId string, hash types.Hash, number uint64) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -636,7 +637,7 @@ func (h *Hub) SetPeerHead(peerId string, hash common.Hash, number uint64) error 
 	return nil
 }
 
-func (h *Hub) BestPeerInfo() (peerId string, hash common.Hash, seqId uint64, err error) {
+func (h *Hub) BestPeerInfo() (peerId string, hash types.Hash, seqId uint64, err error) {
 	p := h.peers.BestPeer()
 	if p != nil {
 		peerId = p.id
@@ -647,7 +648,7 @@ func (h *Hub) BestPeerInfo() (peerId string, hash common.Hash, seqId uint64, err
 	return
 }
 
-func (h *Hub) GetPeerHead(peerId string) (hash common.Hash, seqId uint64, err error) {
+func (h *Hub) GetPeerHead(peerId string) (hash types.Hash, seqId uint64, err error) {
 	p := h.peers.Peer(peerId)
 	if p != nil {
 		hash, seqId = p.Head()
@@ -681,7 +682,7 @@ func (h *Hub) broadcastMessage(msg *message_archive.types) {
 func (h *Hub) broadcastMessageWithLink(msg *message_archive.types) {
 	var peers []*peer
 	// choose all  peer and then send.
-	var hash common.Hash
+	var hash types.Hash
 	hash = *msg.Hash
 	c := p2p_message.MessageControl{Hash: &hash}
 	var pMsg = &message_archive.types{MessageType: message_archive.MessageTypeControl, Message: &c}
@@ -802,7 +803,7 @@ func (h *Hub) cacheMessage(m *message_archive.types) (exists bool) {
 }
 
 //getMsgFromCache
-func (h *Hub) getMsgFromCache(m message_archive.BinaryMessageType, hash common.Hash) []string {
+func (h *Hub) getMsgFromCache(m message_archive.BinaryMessageType, hash types.Hash) []string {
 	key := message_archive.NewMsgKey(m, hash)
 	if a, err := h.messageCache.GetIFPresent(key); err == nil {
 		var peers []string
@@ -854,10 +855,10 @@ func (h *Hub) PeersInfo() []*PeerInfo {
 // NodeInfo represents a short summary of the OG sub-protocol metadata
 // known about the host peer.
 type NodeStatus struct {
-	Network    uint64      `json:"network"`    // OG network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
-	Difficulty *big.Int    `json:"difficulty"` // Total difficulty of the host's blockchain
-	Genesis    common.Hash `json:"genesis"`    // SHA3 Hash of the host's genesis block
-	Head       common.Hash `json:"head"`       // SHA3 Hash of the host's best owned block
+	Network    uint64     `json:"network"`    // OG network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Difficulty *big.Int   `json:"difficulty"` // Total difficulty of the host's blockchain
+	Genesis    types.Hash `json:"genesis"`    // SHA3 Hash of the host's genesis block
+	Head       types.Hash `json:"head"`       // SHA3 Hash of the host's best owned block
 }
 
 // NodeInfo retrieves some protocol metadata about the running host node.

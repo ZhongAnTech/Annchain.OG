@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/types"
 
@@ -36,15 +37,15 @@ type TipGenerator interface {
 }
 
 type StateRootProvider interface {
-	PreConfirm(seq *types.Sequencer) (hash common.Hash, err error)
+	PreConfirm(seq *types.Sequencer) (hash types2.Hash, err error)
 }
 
 // OGTxCreator creates tx and do the signing and mining for OG.
 type OGTxCreator struct {
 	Miner              *miner.PoWMiner
 	TipGenerator       TipGenerator      // usually tx_pool
-	MaxTxHash          common.Hash       // The difficultiy of TxHash
-	MaxMinedHash       common.Hash       // The difficultiy of MinedHash
+	MaxTxHash          types2.Hash       // The difficultiy of TxHash
+	MaxMinedHash       types2.Hash       // The difficultiy of MinedHash
 	MaxConnectingTries int               // Max number of times to find a pair of parents. If exceeded, try another nonce.
 	DebugNodeId        int               // Only for debug. This value indicates tx sender and is temporarily saved to tx.height
 	GraphVerifier      protocol.Verifier // To verify the graph structure
@@ -65,7 +66,7 @@ func (t *OGTxCreator) Stop() {
 
 func (m *OGTxCreator) newUnsignedTx(req UnsignedTxBuildRequest) *types.Tx {
 	tx := types.Tx{
-		Hash: common.Hash{},
+		Hash: types2.Hash{},
 		//ParentsHash:  nil,
 		//MineNonce:    0,
 		AccountNonce: req.AccountNonce,
@@ -214,7 +215,7 @@ func (m *OGTxCreator) validateGraphStructure(parents []types.Txi) (ok bool) {
 }
 
 func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *crypto.PrivateKey) (txRet types.Txi, ok bool) {
-	parentHashes := make(common.Hashes, len(parents))
+	parentHashes := make(types2.Hashes, len(parents))
 	for i, parent := range parents {
 		parentHashes[i] = parent.GetHash()
 	}
@@ -395,7 +396,7 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 			time.Sleep(time.Second * 1)
 			continue
 		}
-		parentHashes := make(common.Hashes, len(parents))
+		parentHashes := make(types2.Hashes, len(parents))
 		for i, parent := range parents {
 			parentHashes[i] = parent.GetHash()
 		}

@@ -2,6 +2,7 @@ package ovm
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
@@ -70,11 +71,11 @@ func (m *MemoryStateDB) SetNonce(addr common.Address, nonce uint64) {
 	}
 }
 
-func (m *MemoryStateDB) GetCodeHash(addr common.Address) common.Hash {
+func (m *MemoryStateDB) GetCodeHash(addr common.Address) types.Hash {
 	if v, ok := m.soLedger[addr]; ok {
 		return v.CodeHash
 	}
-	return common.Hash{}
+	return types.Hash{}
 }
 
 func (m *MemoryStateDB) GetCode(addr common.Address) []byte {
@@ -114,20 +115,20 @@ func (m *MemoryStateDB) GetRefund() uint64 {
 	return m.refund
 }
 
-func (m *MemoryStateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
+func (m *MemoryStateDB) GetCommittedState(addr common.Address, hash types.Hash) types.Hash {
 	panic("implement me")
 }
 
-func (m *MemoryStateDB) GetState(addr common.Address, key common.Hash) common.Hash {
+func (m *MemoryStateDB) GetState(addr common.Address, key types.Hash) types.Hash {
 	if kv, ok := m.kvLedger[addr]; ok {
 		if v, ok := kv[key]; ok {
 			return v
 		}
 	}
-	return common.Hash{}
+	return types.Hash{}
 }
 
-func (m *MemoryStateDB) SetState(addr common.Address, key common.Hash, value common.Hash) {
+func (m *MemoryStateDB) SetState(addr common.Address, key types.Hash, value types.Hash) {
 	if _, ok := m.kvLedger[addr]; !ok {
 		m.kvLedger[addr] = vmtypes.NewStorage()
 	}
@@ -164,12 +165,12 @@ func (m *MemoryStateDB) AddLog(*vmtypes.Log) {
 	return
 }
 
-func (m *MemoryStateDB) AddPreimage(hash common.Hash, preImage []byte) {
+func (m *MemoryStateDB) AddPreimage(hash types.Hash, preImage []byte) {
 	// Any usage?
 	return
 }
 
-func (m *MemoryStateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
+func (m *MemoryStateDB) ForEachStorage(addr common.Address, cb func(key, value types.Hash) bool) {
 	panic("implement me")
 }
 
@@ -182,7 +183,7 @@ func (m *MemoryStateDB) String() string {
 	}
 	for k, v := range m.kvLedger {
 		b.WriteString(fmt.Sprintf("%s: -->\n", k.String()))
-		var keys common.Hashes
+		var keys types.Hashes
 		for sk := range v {
 			keys = append(keys, sk)
 		}

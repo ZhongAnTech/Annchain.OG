@@ -2,6 +2,7 @@ package message
 
 import (
 	"fmt"
+	"strconv"
 )
 
 //go:generate msgp
@@ -80,6 +81,17 @@ const (
 	MessageTypeNewArchive
 	MessageTypeNewActionTx
 )
+
+func (o OgMessageType) String() string {
+	switch o {
+	case OgMessageTypePing:
+		return "OgMessageTypePing"
+	case OgMessageTypePong:
+		return "OgMessageTypePong"
+	default:
+		return "Unknown Message " + strconv.Itoa(int(o))
+	}
+}
 
 //msgp OgMessagePing
 type OgMessagePing struct {

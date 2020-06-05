@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 )
 
@@ -21,9 +22,9 @@ type Txi interface {
 	SetHeight(uint64)
 	GetWeight() uint64
 	SetWeight(weight uint64)
-	GetHash() common.Hash
-	GetParents() common.Hashes // GetParents returns the common.Hash of txs that it directly proves.
-	SetParents(hashes common.Hashes)
+	GetHash() types.Hash
+	GetParents() types.Hashes // GetParents returns the common.Hash of txs that it directly proves.
+	SetParents(hashes types.Hashes)
 	String() string
 
 	CalculateWeight(parents Txis) uint64
@@ -33,7 +34,7 @@ type Txi interface {
 
 	SetMineNonce(uint64)
 
-	SetHash(h common.Hash)
+	SetHash(h types.Hash)
 	SetValid(b bool)
 	Valid() bool
 
@@ -52,7 +53,7 @@ type Txi interface {
 }
 
 type Hashable interface {
-	CalcTxHash() common.Hash // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
+	CalcTxHash() types.Hash // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
 }
 
 type Signable interface {

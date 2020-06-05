@@ -1,15 +1,15 @@
 package archive
 
 import (
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 )
 
 func (m *MessageSyncResponse) Txis() Txis {
 	return m.RawTxs.Txis()
 }
 
-func (m *MessageSyncResponse) Hashes() common.Hashes {
-	var hashes common.Hashes
+func (m *MessageSyncResponse) Hashes() types.Hashes {
+	var hashes types.Hashes
 	if m.RawTxs != nil {
 		for _, tx := range *m.RawTxs {
 			if tx == nil {
@@ -22,7 +22,7 @@ func (m *MessageSyncResponse) Hashes() common.Hashes {
 	return hashes
 }
 
-func (m *MessageNewTx) GetHash() *common.Hash {
+func (m *MessageNewTx) GetHash() *types.Hash {
 	if m == nil {
 		return nil
 	}
@@ -38,7 +38,7 @@ func (m *MessageNewTx) String() string {
 	return m.RawTx.String()
 }
 
-func (m *MessageNewSequencer) GetHash() *common.Hash {
+func (m *MessageNewSequencer) GetHash() *types.Hash {
 	if m == nil {
 		return nil
 	}
@@ -61,8 +61,8 @@ func (m *MessageNewTxs) Txis() Txis {
 	return m.RawTxs.Txis()
 }
 
-func (m *MessageNewTxs) Hashes() common.Hashes {
-	var hashes common.Hashes
+func (m *MessageNewTxs) Hashes() types.Hashes {
+	var hashes types.Hashes
 	if m.RawTxs == nil || len(*m.RawTxs) == 0 {
 		return nil
 	}
@@ -75,8 +75,8 @@ func (m *MessageNewTxs) Hashes() common.Hashes {
 	return hashes
 }
 
-func (m *MessageTxsResponse) Hashes() common.Hashes {
-	var hashes common.Hashes
+func (m *MessageTxsResponse) Hashes() types.Hashes {
+	var hashes types.Hashes
 	if m.RawTxs == nil || len(*m.RawTxs) == 0 {
 		return nil
 	}

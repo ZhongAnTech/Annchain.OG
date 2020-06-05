@@ -1,7 +1,7 @@
 package pool
 
 import (
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/ffchan"
@@ -101,8 +101,8 @@ func (o *TxBuffer) HandlerDescription(ev eventbus.EventType) string {
 func (b *TxBuffer) DumpUnsolved() {
 	ever := false
 	for k, v := range b.dependencyCache.GetALL(true) {
-		for k1 := range v.(map[common.Hash]types.Txi) {
-			b.Logger.Warnf("not fulfilled: %s <- %s", k.(common.Hash), k1)
+		for k1 := range v.(map[types2.Hash]types.Txi) {
+			b.Logger.Warnf("not fulfilled: %s <- %s", k.(types2.Hash), k1)
 			ever = true
 		}
 	}
@@ -167,7 +167,7 @@ func (b *TxBuffer) handleTx(tx types.Txi) {
 
 // isKnownHash tests if the tx is ever heard of, either in local or in buffer.
 // if tx is known, do not broadcast anymore
-func (b *TxBuffer) IsKnownHash(hash common.Hash) bool {
+func (b *TxBuffer) IsKnownHash(hash types2.Hash) bool {
 	return b.isBufferedHash(hash) || b.PoolHashLocator.IsLocalHash(hash)
 }
 
@@ -249,13 +249,13 @@ func (b *TxBuffer) buildDependencies(tx types.Txi) bool {
 	}
 	return allFetched
 }
-func (b *TxBuffer) isLocalHash(hash common.Hash) bool {
+func (b *TxBuffer) isLocalHash(hash types2.Hash) bool {
 	return b.PoolHashLocator.IsLocalHash(hash) || b.LedgerHashLocator.IsLocalHash(hash)
 }
 
 // updateDependencyMap will update dependency community currently known.
 // e.g., If there is already (c <- b), adding (c <- a) will result in (c <- [a,b]).
-func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
+func (b *TxBuffer) updateDependencyMap(parentHash types2.Hash, self types.Txi) {
 	if self == nil {
 		b.Logger.WithFields(logrus.Fields{
 			"parent": parentHash,
@@ -273,19 +273,19 @@ func (b *TxBuffer) updateDependencyMap(parentHash common.Hash, self types.Txi) {
 
 	if err != nil {
 		// key not present, need to build an inner map
-		v = map[common.Hash]types.Txi{self.GetHash(): self}
+		v = map[types2.Hash]types.Txi{self.GetHash(): self}
 	}
-	v.(map[common.Hash]types.Txi)[self.GetHash()] = self
+	v.(map[types2.Hash]types.Txi)[self.GetHash()] = self
 	b.dependencyCache.Set(parentHash, v)
 
 	b.affmu.Unlock()
 }
 
 // isCachedHash tests if the tx is in the buffer
-func (b *TxBuffer) isBufferedHash(hash common.Hash) bool {
+func (b *TxBuffer) isBufferedHash(hash types2.Hash) bool {
 	return b.GetFromBuffer(hash) != nil
 }
-func (b *TxBuffer) GetFromBuffer(hash common.Hash) types.Txi {
+func (b *TxBuffer) GetFromBuffer(hash types2.Hash) types.Txi {
 	a, err := b.knownCache.GetIFPresent(hash)
 	if err == nil {
 		return a.(types.Txi)
@@ -293,7 +293,7 @@ func (b *TxBuffer) GetFromBuffer(hash common.Hash) types.Txi {
 	return nil
 }
 
-func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) types.Txi {
+func (b *TxBuffer) GetFromAllKnownSource(hash types2.Hash) types.Txi {
 	if tx := b.GetFromBuffer(hash); tx != nil {
 		return tx
 	} else if tx := b.GetFromProviders(hash); tx != nil {
@@ -302,7 +302,7 @@ func (b *TxBuffer) GetFromAllKnownSource(hash common.Hash) types.Txi {
 	return nil
 }
 
-func (b *TxBuffer) GetFromProviders(hash common.Hash) types.Txi {
+func (b *TxBuffer) GetFromProviders(hash types2.Hash) types.Txi {
 	if poolTx := b.PoolHashLocator.Get(hash); poolTx != nil {
 		return poolTx
 	} else if dagTx := b.LedgerHashLocator.GetTx(hash); dagTx != nil {
@@ -363,7 +363,7 @@ func (b *TxBuffer) resolve(tx types.Txi, firstTime bool) {
 		return
 	}
 	// try resolve the remainings
-	for _, v := range vs.(map[common.Hash]types.Txi) {
+	for _, v := range vs.(map[types2.Hash]types.Txi) {
 		if v.GetHash() == tx.GetHash() {
 			// self already resolved
 			continue

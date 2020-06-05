@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 )
@@ -9,8 +10,8 @@ import (
 
 //msgp:tuple LedgerContentTx
 type LedgerContentTx struct {
-	Hash         common.Hash
-	ParentsHash  []common.Hash
+	Hash         types.Hash
+	ParentsHash  []types.Hash
 	MineNonce    uint64
 	AccountNonce uint64
 	From         common.Address
@@ -42,14 +43,14 @@ func (z *LedgerContentTx) FromBytes(bts []byte) error {
 
 //msgp:tuple LedgerContentSequencer
 type LedgerContentSequencer struct {
-	Hash         common.Hash
-	ParentsHash  []common.Hash
+	Hash         types.Hash
+	ParentsHash  []types.Hash
 	MineNonce    uint64
 	AccountNonce uint64
 	Issuer       common.Address
 	PublicKey    []byte
 	Signature    []byte
-	StateRoot    common.Hash
+	StateRoot    types.Hash
 	Height       uint64
 	Weight       uint64
 }

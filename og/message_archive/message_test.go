@@ -2,7 +2,7 @@ package message_archive
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/types"
@@ -15,7 +15,7 @@ func TestMarshal(t *testing.T) {
 		types.Sequencer{
 			TxBase: types.TxBase{
 				Type:         0,
-				Hash:         common.Hash{},
+				Hash:         types2.Hash{},
 				ParentsHash:  nil,
 				AccountNonce: 0,
 				Height:       0,
@@ -28,7 +28,7 @@ func TestMarshal(t *testing.T) {
 			Issuer:         nil,
 			BlsJointSig:    nil,
 			BlsJointPubKey: nil,
-			StateRoot:      common.Hash{},
+			StateRoot:      types2.Hash{},
 			Proposing:      false,
 		},
 	}

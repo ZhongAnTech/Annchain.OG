@@ -1,6 +1,7 @@
 package pool
 
 import (
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
@@ -8,32 +9,32 @@ import (
 )
 
 type ILedger interface {
-	GetTx(hash common.Hash) types.Txi
+	GetTx(hash types2.Hash) types.Txi
 	GetTxByNonce(addr common.Address, nonce uint64) types.Txi
 	GetSequencerByHeight(id uint64) *types.Sequencer
 	GetTxisByNumber(id uint64) types.Txis
 	LatestSequencer() *types.Sequencer
-	GetSequencer(hash common.Hash, id uint64) *types.Sequencer
+	GetSequencer(hash types2.Hash, id uint64) *types.Sequencer
 	Genesis() *types.Sequencer
 	GetHeight() uint64
-	GetSequencerByHash(hash common.Hash) *types.Sequencer
+	GetSequencerByHash(hash types2.Hash) *types.Sequencer
 	GetBalance(addr common.Address, tokenID int32) *math.BigInt
 	GetLatestNonce(addr common.Address) (uint64, error)
 
-	IsTxExists(hash common.Hash) bool
+	IsTxExists(hash types2.Hash) bool
 	IsAddressExists(addr common.Address) bool
 
 	Push(batch *ledger.ConfirmBatch) error
 }
 
 type PoolHashLocator interface {
-	IsLocalHash(hash common.Hash) bool
-	Get(hash common.Hash) types.Txi
+	IsLocalHash(hash types2.Hash) bool
+	Get(hash types2.Hash) types.Txi
 }
 
 type LedgerHashLocator interface {
-	IsLocalHash(hash common.Hash) bool
-	GetTx(hash common.Hash) types.Txi
+	IsLocalHash(hash types2.Hash) bool
+	GetTx(hash types2.Hash) types.Txi
 }
 
 type LocalGraphInfoProvider interface {

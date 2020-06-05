@@ -15,6 +15,7 @@ package miner
 
 import (
 	"github.com/annchain/OG/account"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -35,10 +36,10 @@ func TestPoW(t *testing.T) {
 	acc := account.RandomAccount()
 
 	tx := &types.Tx{
-		Hash: common.Hash{},
-		ParentsHash: common.Hashes{
-			common.HexToHashNoError("0x0003"),
-			common.HexToHashNoError("0x0004"),
+		Hash: types2.Hash{},
+		ParentsHash: types2.Hashes{
+			types2.HexToHashNoError("0x0003"),
+			types2.HexToHashNoError("0x0004"),
 		},
 		MineNonce:    0,
 		AccountNonce: 100,
@@ -54,7 +55,7 @@ func TestPoW(t *testing.T) {
 	}
 	responseChan := make(chan uint64)
 	start := time.Now()
-	go miner.Mine(tx, common.HexToHashNoError("0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)
+	go miner.Mine(tx, types2.HexToHashNoError("0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"), 0, responseChan)
 
 	c, ok := <-responseChan
 	logrus.Infof("time: %d ms", time.Since(start).Nanoseconds()/1000000)

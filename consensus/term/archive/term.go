@@ -14,6 +14,7 @@
 package archive
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/consensus/campaign"
@@ -271,7 +272,7 @@ type Senator struct {
 	pk           []byte
 	blspk        []byte
 	Id           int
-	CampaignHash common.Hash
+	CampaignHash types.Hash
 	// TODO:
 	// more variables?
 }

@@ -18,7 +18,7 @@ package discv5
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"math/big"
 	"math/rand"
 	"net"
@@ -229,7 +229,7 @@ func TestNodeID_pubkeyBad(t *testing.T) {
 }
 
 func TestNodeID_distcmp(t *testing.T) {
-	distcmpBig := func(target, a, b common.Hash) int {
+	distcmpBig := func(target, a, b types.Hash) int {
 		tbig := new(big.Int).SetBytes(target.Bytes[:])
 		abig := new(big.Int).SetBytes(a.Bytes[:])
 		bbig := new(big.Int).SetBytes(b.Bytes[:])
@@ -242,17 +242,17 @@ func TestNodeID_distcmp(t *testing.T) {
 
 // the random tests is likely to miss the case where they're equal.
 func TestNodeID_distcmpEqual(t *testing.T) {
-	base := common.Hash{}
-	x := common.Hash{}
-	base.Bytes = common.HashBytes{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
-	x.Bytes = common.HashBytes{15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0}
+	base := types.Hash{}
+	x := types.Hash{}
+	base.Bytes = types.HashBytes{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	x.Bytes = types.HashBytes{15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0}
 	if distcmp(base, x, x) != 0 {
 		t.Errorf("distcmp(base, x, x) != 0")
 	}
 }
 
 func TestNodeID_logdist(t *testing.T) {
-	logdistBig := func(a, b common.Hash) int {
+	logdistBig := func(a, b types.Hash) int {
 		abig, bbig := new(big.Int).SetBytes(a.Bytes[:]), new(big.Int).SetBytes(b.Bytes[:])
 		return new(big.Int).Xor(abig, bbig).BitLen()
 	}
@@ -263,8 +263,8 @@ func TestNodeID_logdist(t *testing.T) {
 
 // the random tests is likely to miss the case where they're equal.
 func TestNodeID_logdistEqual(t *testing.T) {
-	x := common.Hash{}
-	h := common.HashBytes{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	x := types.Hash{}
+	h := types.HashBytes{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	x.Bytes = h
 	if logdist(x, x) != 0 {
 		t.Errorf("logdist(x, x) != 0")
@@ -276,8 +276,8 @@ func TestNodeID_hashAtDistance(t *testing.T) {
 	// very helpful when the test fails.
 	cfg := quickcfg()
 	for i := 0; i < cfg.MaxCount; i++ {
-		a := gen(common.Hash{}, cfg.Rand).(common.Hash)
-		dist := cfg.Rand.Intn(len(common.Hash{}.Bytes) * 8)
+		a := gen(types.Hash{}, cfg.Rand).(types.Hash)
+		dist := cfg.Rand.Intn(len(types.Hash{}.Bytes) * 8)
 		result := hashAtDistance(a, dist)
 		actualdist := logdist(result, a)
 

@@ -50,7 +50,7 @@ func (n *SampleNode) Setup() {
 	// event registration
 	// bouncer io
 	cpBouncer.RegisterSubscriberNewOutgoingMessageEvent(cpTransport)
-	cpTransport.RegisterSubscriberNewIncomingMessageEventSubscriber(cpBouncer)
+	cpTransport.AddSubscriberNewIncomingMessageEvent(cpBouncer)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpBouncer)

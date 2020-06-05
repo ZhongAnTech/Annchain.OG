@@ -1,7 +1,7 @@
 package interfaces
 
 import (
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/model"
 )
@@ -13,7 +13,7 @@ type OgStatusProvider interface {
 
 type LedgerTxProvider interface {
 	GetHeightTxs(height uint64, offset int, limit int) []types.Txi
-	GetTxis(hashes common.Hashes) types.Txis
+	GetTxis(hashes types2.Hashes) types.Txis
 }
 
 type Syncer interface {
@@ -24,9 +24,9 @@ type Syncer interface {
 }
 
 type Hasher interface {
-	CalcHash(tx types.Txi) (hash common.Hash)
+	CalcHash(tx types.Txi) (hash types2.Hash)
 }
 
 type Miner interface {
-	Mine(tx types.Txi, targetMax common.Hash, start uint64, responseChan chan uint64) bool
+	Mine(tx types.Txi, targetMax types2.Hash, start uint64, responseChan chan uint64) bool
 }

@@ -16,22 +16,23 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"testing"
 )
 
 func TestHash(t *testing.T) {
 
-	var emHash Hash
-	var nHash Hash
-	nHash = HexToHash("0xc770f1dccb00c0b845d36d3baee2590defee2d6894f853eb63a60270612271a3")
-	mHash := HexToHash("0xc770f1dccb00c0b845d36d3baee2590defee2d6894f853eb63a60270612271a3")
+	var emHash types.Hash
+	var nHash types.Hash
+	nHash = types.HexToHash("0xc770f1dccb00c0b845d36d3baee2590defee2d6894f853eb63a60270612271a3")
+	mHash := types.HexToHash("0xc770f1dccb00c0b845d36d3baee2590defee2d6894f853eb63a60270612271a3")
 	if !emHash.Empty() {
 		t.Fatalf("fail")
 	}
 	if nHash.Empty() {
 		t.Fatalf("fail")
 	}
-	hashes := Hashes{nHash, emHash}
+	hashes := types.Hashes{nHash, emHash}
 	fmt.Println(hashes.String())
 	pHash := &nHash
 	p2hash := &mHash
@@ -44,13 +45,13 @@ func TestHash(t *testing.T) {
 }
 
 func TestHexToHash(t *testing.T) {
-	h := randomHash()
+	h := types.randomHash()
 	d, err := json.Marshal(&h)
 	fmt.Println(string(d), err)
 }
 
 func TestHash_Empty(t *testing.T) {
-	var h Hash
+	var h types.Hash
 	fmt.Println(h)
 	if h.Empty() {
 		fmt.Println("empty")

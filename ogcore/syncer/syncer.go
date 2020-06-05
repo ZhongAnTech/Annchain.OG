@@ -1,7 +1,7 @@
 package syncer
 
 import (
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/ogcore/communication"
@@ -93,7 +93,7 @@ func (s *Syncer2) loop() {
 			if v.SpecifiedSource == nil {
 				// send this request to all peers
 				s.PeerOutgoing.Broadcast(&message.OgMessageBatchSyncRequest{
-					Hashes: common.Hashes{
+					Hashes: types.Hashes{
 						v.Hash,
 					},
 					RequestId: 0,
@@ -101,10 +101,10 @@ func (s *Syncer2) loop() {
 			} else {
 				// send this request to one peer
 				s.PeerOutgoing.Unicast(&message.OgMessageBatchSyncRequest{
-					Hashes: common.Hashes{
+					Hashes: types.Hashes{
 						v.Hash,
 					},
-					RequestId:   0,
+					RequestId: 0,
 				}, v.SpecifiedSource)
 			}
 		case <-s.quit:

@@ -5,8 +5,8 @@ import (
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_event"
-	"github.com/annchain/OG/ffchan"
 	"github.com/sirupsen/logrus"
+	"math/rand"
 )
 
 var Protocol = "og/1.0.0"
@@ -24,79 +24,103 @@ type DefaultCommunityManager struct {
 	peers             []string
 	knownPeersAddress []string
 
-	myNewIncomingMessageEventChannel chan *transport_event.WireMessage
+	myNewIncomingMessageEventChannel chan *transport_event.IncomingLetter
 	newOutgoingMessageSubscribers    []transport_event.NewOutgoingMessageEventSubscriber
 
 	quit chan bool
 }
 
-func (c *DefaultCommunityManager) InitDefault() {
-	c.quit = make(chan bool)
-	c.myNewIncomingMessageEventChannel = make(chan *transport_event.WireMessage)
-	c.newOutgoingMessageSubscribers = []transport_event.NewOutgoingMessageEventSubscriber{}
+func (d *DefaultCommunityManager) InitDefault() {
+	d.quit = make(chan bool)
+	d.myNewIncomingMessageEventChannel = make(chan *transport_event.IncomingLetter)
+	d.newOutgoingMessageSubscribers = []transport_event.NewOutgoingMessageEventSubscriber{}
 }
 
-func (c *DefaultCommunityManager) RegisterSubscriberNewOutgoingMessageEvent(sub transport_event.NewOutgoingMessageEventSubscriber) {
-	c.newOutgoingMessageSubscribers = append(c.newOutgoingMessageSubscribers, sub)
+func (d *DefaultCommunityManager) AddSubscriberNewOutgoingMessageEvent(sub transport_event.NewOutgoingMessageEventSubscriber) {
+	d.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
 }
 
-func (c *DefaultCommunityManager) GetNewIncomingMessageEventChannel() chan *transport_event.WireMessage {
-	return c.myNewIncomingMessageEventChannel
+func (d *DefaultCommunityManager) GetNewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
+	return d.myNewIncomingMessageEventChannel
 }
 
-func (c *DefaultCommunityManager) Start() {
-	go c.loop()
+func (d *DefaultCommunityManager) Start() {
+	go d.loop()
 }
 
-func (c *DefaultCommunityManager) Stop() {
-	close(c.quit)
+func (d *DefaultCommunityManager) Stop() {
+	close(d.quit)
 }
 
-func (c *DefaultCommunityManager) Name() string {
+func (d *DefaultCommunityManager) Name() string {
 	return "DefaultCommunityManager"
 }
 
-func (c *DefaultCommunityManager) loop() {
+func (d *DefaultCommunityManager) loop() {
 	// maintain the peer list
 	// very simple implementation: just let nodes connected each other
-	for _, peerAddress := range c.knownPeersAddress {
-		c.PhysicalCommunicator.SuggestConnection(peerAddress)
+	for _, peerAddress := range d.knownPeersAddress {
+		d.PhysicalCommunicator.SuggestConnection(peerAddress)
 	}
-	select {
-	case <-c.quit:
-		return
-	case msg := <-c.myNewIncomingMessageEventChannel:
-		switch message.OgMessageType(msg.MsgType) {
-		case message.OgMessageTypePing:
-			c.handleMsgPing(msg)
+	for {
+		select {
+		case <-d.quit:
+			return
+		case incomingLetter := <-d.myNewIncomingMessageEventChannel:
+			logrus.WithField("c", "DefaultCommunityManager").
+				WithField("from", incomingLetter.From).
+				WithField("type", message.OgMessageType(incomingLetter.Msg.MsgType)).
+				Trace("received message")
+			switch message.OgMessageType(incomingLetter.Msg.MsgType) {
+			case message.OgMessageTypePing:
+				d.handleMsgPing(incomingLetter)
+			}
 		}
 	}
 }
 
-func (c *DefaultCommunityManager) StaticSetup() {
-	knownPeersAddress, err := transport_event.LoadKnownPeers(c.KnownPeerListFilePath)
+func (d *DefaultCommunityManager) SendPing(peer string) {
+	ping := &message.OgMessagePing{
+		Protocol: Protocol,
+	}
+
+	if peer == "" {
+		peer = d.peers[rand.Intn(len(d.peers))]
+	}
+
+	oreq := &transport_event.OutgoingLetter{
+		Msg:            ping,
+		SendType:       transport_event.SendTypeUnicast,
+		CloseAfterSent: false,
+		EndReceivers:   []string{peer},
+	}
+	d.notifyNewOutgoingMessageSubscribers(oreq)
+}
+
+func (d *DefaultCommunityManager) StaticSetup() {
+	knownPeersAddress, err := transport_event.LoadKnownPeers(d.KnownPeerListFilePath)
 	if err != nil {
 		logrus.WithError(err).Fatal("you need provide at least one known address to connect to the address network. Place them in config/peers.lst")
 	}
-	c.knownPeersAddress = knownPeersAddress
+	d.knownPeersAddress = knownPeersAddress
 
 	// load init peers from disk
-	for _, address := range c.knownPeersAddress {
-		nodeId, err := c.PhysicalCommunicator.GetPeerId(address)
+	for _, address := range d.knownPeersAddress {
+		nodeId, err := d.PhysicalCommunicator.GetPeerId(address)
 		utilfuncs.PanicIfError(err, "parse node address")
-		c.peers = append(c.peers, nodeId)
+		d.peers = append(d.peers, nodeId)
 	}
 }
 
-func (c *DefaultCommunityManager) handleMsgPing(msg *transport_event.WireMessage) {
+func (d *DefaultCommunityManager) handleMsgPing(letter *transport_event.IncomingLetter) {
 	m := &message.OgMessagePing{}
-	_, err := m.UnmarshalMsg(msg.ContentBytes)
+	_, err := m.UnmarshalMsg(letter.Msg.ContentBytes)
 	if err != nil {
 		logrus.WithField("type", "OgMessagePing").WithError(err).Warn("bad message")
 	}
 	// TODO: adapt multiple protocols
 	closeFlag := false
-	if m.Protocol != Protocol {
+	if m.Protocol == Protocol {
 		closeFlag = true
 	}
 
@@ -104,15 +128,18 @@ func (c *DefaultCommunityManager) handleMsgPing(msg *transport_event.WireMessage
 		Protocol: Protocol,
 	}
 
-	oreq := &transport_event.OutgoingRequest{
+	oreq := &transport_event.OutgoingLetter{
 		Msg:            resp,
-		SendType:       transport_event.SendTypeBroadcast,
+		SendType:       transport_event.SendTypeUnicast,
 		CloseAfterSent: closeFlag,
-		EndReceivers:   nil,
+		EndReceivers:   []string{letter.From},
 	}
+	d.notifyNewOutgoingMessageSubscribers(oreq)
+}
 
-	for _, subscriber := range c.newOutgoingMessageSubscribers {
-		ffchan.NewTimeoutSenderShort(subscriber.GetNewOutgoingMessageEventChannel(), oreq, "send pong")
+func (d *DefaultCommunityManager) notifyNewOutgoingMessageSubscribers(req *transport_event.OutgoingLetter) {
+	for _, subscriber := range d.newOutgoingMessageSubscribers {
+		//goffchan.NewTimeoutSenderShort(subscriber.GetNewOutgoingMessageEventChannel(), req, "outgoing")
+		subscriber.GetNewOutgoingMessageEventChannel() <- req
 	}
-
 }

@@ -17,7 +17,7 @@ package bft
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"strings"
 	"time"
 
@@ -291,7 +291,7 @@ func (p *DefaultBftPartner) Broadcast(messageType BftMessageType, hr HeightRound
 		HeightRound: hr,
 		SourceId:    uint16(p.Id),
 	}
-	var idv *common.Hash
+	var idv *types.Hash
 	if content != nil {
 		cIdv := content.GetId()
 		if cIdv != nil {
@@ -553,7 +553,7 @@ func (p *DefaultBftPartner) valid(proposal Proposal) bool {
 }
 
 // count votes and commits from others.
-func (p *DefaultBftPartner) count(messageType BftMessageType, height uint64, validRound int, valueIdMatchType ValueIdMatchType, valueId *common.Hash) int {
+func (p *DefaultBftPartner) count(messageType BftMessageType, height uint64, validRound int, valueIdMatchType ValueIdMatchType, valueId *types.Hash) int {
 	counter := 0
 
 	state, ok := p.BftStatus.States[HeightRound{

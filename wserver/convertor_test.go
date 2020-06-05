@@ -15,6 +15,7 @@ package wserver
 
 import (
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/types"
 	"testing"
@@ -23,8 +24,8 @@ import (
 func TestConvertor(t *testing.T) {
 	tx := types.Tx{
 		TxBase: types.TxBase{
-			Hash:        common.BytesToHash([]byte{1, 2, 3, 4, 5}),
-			ParentsHash: common.Hashes{common.BytesToHash([]byte{1, 1, 2, 2, 3, 3})},
+			Hash:        types2.BytesToHash([]byte{1, 2, 3, 4, 5}),
+			ParentsHash: types2.Hashes{types2.BytesToHash([]byte{1, 1, 2, 2, 3, 3})},
 		},
 		From:  common.HexToAddress("0x12345"),
 		To:    common.HexToAddress("0x56789"),

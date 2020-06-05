@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/transport_event"
-	"github.com/annchain/OG/ffchan"
+	"github.com/latifrons/goffchan"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -17,7 +17,6 @@ import (
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/sirupsen/logrus"
-	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -38,12 +37,12 @@ type PhysicalCommunicator struct {
 	ProtocolId      string
 	NetworkReporter *performance.SoccerdashReporter
 
-	node                          host.Host                             // p2p host to receive new streams
-	activePeers                   map[peer.ID]*Neighbour                // active peers that will be reconnect if error
-	tryingPeers                   map[peer.ID]bool                      // peers that is trying to connect.
-	incomingChannel               chan *transport_event.WireMessage     // incoming message channel
-	outgoingChannel               chan *transport_event.OutgoingRequest // universal outgoing channel to collect send requests
-	ioEventChannel                chan *IoEvent                         // receive event when peer disconnects
+	node                          host.Host                            // p2p host to receive new streams
+	activePeers                   map[peer.ID]*Neighbour               // active peers that will be reconnect if error
+	tryingPeers                   map[peer.ID]bool                     // peers that is trying to connect.
+	incomingChannel               chan *transport_event.IncomingLetter // incoming message channel
+	outgoingChannel               chan *transport_event.OutgoingLetter // universal outgoing channel to collect send requests
+	ioEventChannel                chan *IoEvent                        // receive event when peer disconnects
 	newIncomingMessageSubscribers []transport_event.NewIncomingMessageEventSubscriber
 
 	initWait sync.WaitGroup
@@ -51,11 +50,11 @@ type PhysicalCommunicator struct {
 	mu       sync.RWMutex
 }
 
-func (c *PhysicalCommunicator) GetNewOutgoingMessageEventChannel() chan *transport_event.OutgoingRequest {
+func (c *PhysicalCommunicator) GetNewOutgoingMessageEventChannel() chan *transport_event.OutgoingLetter {
 	return c.outgoingChannel
 }
 
-func (c *PhysicalCommunicator) RegisterSubscriberNewIncomingMessageEventSubscriber(sub transport_event.NewIncomingMessageEventSubscriber) {
+func (c *PhysicalCommunicator) AddSubscriberNewIncomingMessageEvent(sub transport_event.NewIncomingMessageEventSubscriber) {
 	c.newIncomingMessageSubscribers = append(c.newIncomingMessageSubscribers, sub)
 }
 
@@ -66,8 +65,8 @@ func (c *PhysicalCommunicator) Name() string {
 func (c *PhysicalCommunicator) InitDefault() {
 	c.activePeers = make(map[peer.ID]*Neighbour)
 	c.tryingPeers = make(map[peer.ID]bool)
-	c.outgoingChannel = make(chan *transport_event.OutgoingRequest)
-	c.incomingChannel = make(chan *transport_event.WireMessage)
+	c.outgoingChannel = make(chan *transport_event.OutgoingLetter)
+	c.incomingChannel = make(chan *transport_event.IncomingLetter)
 	c.ioEventChannel = make(chan *IoEvent)
 	c.initWait.Add(1)
 	c.newIncomingMessageSubscribers = []transport_event.NewIncomingMessageEventSubscriber{}
@@ -85,14 +84,14 @@ func (c *PhysicalCommunicator) consumeQueue() {
 	c.initWait.Wait()
 	for {
 		select {
-		case req := <-c.outgoingChannel:
-			logrus.WithField("req", req).Trace("physical communicator got a request from outgoing channel")
-			go c.handleRequest(req)
-		case msg := <-c.incomingChannel:
-			c.NetworkReporter.Report("receive", msg)
+		case outgoingLetter := <-c.outgoingChannel:
+			logrus.WithField("outgoingLetter", outgoingLetter).Trace("physical communicator got a request from outgoing channel")
+			go c.handleOutgoing(outgoingLetter)
+		case incomingLetter := <-c.incomingChannel:
+			c.NetworkReporter.Report("receive", incomingLetter)
 			for _, sub := range c.newIncomingMessageSubscribers {
 				//sub.GetNewIncomingMessageEventChannel() <- message
-				<-ffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), msg, "receive message").C
+				<-goffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), incomingLetter, "receive message "+sub.Name()).C
 				//sub.GetNewIncomingMessageEventChannel() <- message
 			}
 		case <-c.quit:
@@ -108,10 +107,6 @@ func (c *PhysicalCommunicator) Stop() {
 	if err := c.node.Close(); err != nil {
 		panic(err)
 	}
-}
-
-func (c *PhysicalCommunicator) GetIncomingChannel() chan *transport_event.WireMessage {
-	return c.incomingChannel
 }
 
 func (c *PhysicalCommunicator) makeHost(priv core.PrivKey) (host.Host, error) {
@@ -138,7 +133,7 @@ func (c *PhysicalCommunicator) printHostInfo(basicHost host.Host) {
 
 	addr := basicHost.Addrs()[0]
 	fullAddr := addr.Encapsulate(hostAddr)
-	log.Printf("I am %s\n", fullAddr)
+	logrus.WithField("addr", fullAddr).Info("my address")
 }
 
 func (c *PhysicalCommunicator) Listen() {
@@ -189,12 +184,14 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 
 	neighbour := &Neighbour{
 		Id:              peerId,
+		PrettyId:        peerId.String(),
 		Stream:          s,
 		IoEventChannel:  c.ioEventChannel,
 		IncomingChannel: c.incomingChannel,
 	}
 	neighbour.InitDefault()
 	c.activePeers[peerId] = neighbour
+	logrus.WithField("peerId", peerId).Debug("peer becomes active")
 
 	go neighbour.StartRead()
 	go neighbour.StartWrite()
@@ -292,19 +289,19 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) (peerIds string
 	return
 }
 
-func (c *PhysicalCommunicator) Enqueue(req *transport_event.OutgoingRequest) {
+func (c *PhysicalCommunicator) Enqueue(req *transport_event.OutgoingLetter) {
 	logrus.WithField("req", req).Info("Sending message")
 	c.initWait.Wait()
-	<-ffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
+	<-goffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
 	//c.outgoingChannel <- req
 }
 
 // we use direct connection currently so let's build a connection if not exists.
-func (c *PhysicalCommunicator) handleRequest(req *transport_event.OutgoingRequest) {
-	logrus.Trace("handling send request")
+func (c *PhysicalCommunicator) handleOutgoing(req *transport_event.OutgoingLetter) {
+	logrus.Trace("physical is handling send request")
 	if req.SendType == transport_event.SendTypeBroadcast {
 		for _, neighbour := range c.activePeers {
-			go neighbour.Send(req.Msg)
+			go neighbour.Send(req)
 		}
 		return
 	}
@@ -314,7 +311,6 @@ func (c *PhysicalCommunicator) handleRequest(req *transport_event.OutgoingReques
 		if err != nil {
 			logrus.WithError(err).WithField("peerIdEncoded", peerIdEncoded).Warn("decoding peer")
 		}
-		logrus.WithField("peerId", peerId).Trace("handling sending requets")
 		// get active neighbour
 		neighbour, ok := c.activePeers[peerId]
 		if !ok {
@@ -324,7 +320,7 @@ func (c *PhysicalCommunicator) handleRequest(req *transport_event.OutgoingReques
 		}
 		logrus.WithField("peerId", peerId).Trace("go send")
 		c.NetworkReporter.Report("send", req)
-		go neighbour.Send(req.Msg)
+		go neighbour.Send(req)
 	}
 }
 
@@ -344,9 +340,9 @@ func (c *PhysicalCommunicator) pickOneAndConnect() {
 	peerId := peerIds[rand.Intn(len(peerIds))]
 
 	// start a stream
-	logrus.WithField("address", c.node.Peerstore().PeerInfo(peerId).String()).
-		//WithField("peerId", peerId).
-		Trace("connecting peer")
+	//logrus.WithField("address", c.node.Peerstore().PeerInfo(peerId).String()).
+	//WithField("peerId", peerId).
+	//Trace("connecting peer")
 
 	s, err := c.node.NewStream(context.Background(), peerId, protocol.ID(c.ProtocolId))
 	if err != nil {

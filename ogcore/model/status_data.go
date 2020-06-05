@@ -2,15 +2,15 @@ package model
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 )
 
 // OgStatusData is the network packet for the status message.
 type OgStatusData struct {
 	ProtocolVersion uint32
 	NetworkId       uint64
-	CurrentBlock    common.Hash
-	GenesisBlock    common.Hash
+	CurrentBlock    types.Hash
+	GenesisBlock    types.Hash
 	CurrentHeight   uint64
 }
 

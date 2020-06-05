@@ -1,6 +1,7 @@
 package verifier
 
 import (
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/dummy"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
@@ -25,7 +26,7 @@ func buildSeq(from common.Address, accountNonce uint64, id uint64) *types.Sequen
 }
 
 func setParents(tx types.Txi, parents []types.Txi) {
-	tx.GetBase().ParentsHash = common.Hashes{}
+	tx.GetBase().ParentsHash = types2.Hashes{}
 	for _, parent := range parents {
 		tx.GetBase().ParentsHash = append(tx.GetBase().ParentsHash, parent.GetHash())
 	}

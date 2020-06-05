@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/vm/eth/core/vm"
@@ -198,8 +199,8 @@ func EncodeParams(params []interface{}) []byte {
 		case common.Address:
 			bsv := obj.(common.Address).Bytes
 			bs = bsv[:]
-		case common.Hash:
-			bsv := obj.(common.Hash).Bytes
+		case types.Hash:
+			bsv := obj.(types.Hash).Bytes
 			bs = bsv[:]
 		case string:
 			bs = make([]byte, 4)

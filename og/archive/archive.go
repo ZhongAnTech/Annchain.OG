@@ -16,6 +16,7 @@ package archive
 import (
 	"encoding/json"
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/consensus/campaign"
@@ -137,18 +138,18 @@ func (c *Archive) RawTxi() archive.RawTxi {
 
 func RandomArchive() *Archive {
 	return &Archive{TxBase: types.TxBase{
-		Hash:        common.RandomHash(),
+		Hash:        types2.RandomHash(),
 		Height:      uint64(rand.Int63n(1000)),
-		ParentsHash: common.Hashes{common.RandomHash(), common.RandomHash()},
+		ParentsHash: types2.Hashes{types2.RandomHash(), types2.RandomHash()},
 		Type:        types.TxBaseTypeArchive,
 		//AccountNonce: uint64(rand.Int63n(50000)),
 		Weight: uint64(rand.Int31n(2000)),
 	},
-		Data: common.RandomHash().ToBytes(),
+		Data: types2.RandomHash().ToBytes(),
 	}
 }
 
-func (t *Archive) CalcTxHash() (hash common.Hash) {
+func (t *Archive) CalcTxHash() (hash types2.Hash) {
 	w := byteutil.NewBinaryWriter()
 
 	for _, ancestor := range t.ParentsHash {
@@ -157,7 +158,7 @@ func (t *Archive) CalcTxHash() (hash common.Hash) {
 	// do not use Height to calculate tx hash.
 	w.Write(t.Weight, t.Data, t.CalcMinedHash().Bytes)
 	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
+	hash.MustSetBytes(result[0:], types2.PaddingNone)
 	return
 }
 

@@ -15,6 +15,7 @@ package ledger
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 )
 
@@ -31,13 +32,13 @@ const (
 
 //msgp:tuple Receipt
 type Receipt struct {
-	TxHash          common.Hash
+	TxHash          types.Hash
 	Status          ReceiptStatus
 	ProcessResult   interface{}
 	ContractAddress common.Address
 }
 
-func NewReceipt(hash common.Hash, status ReceiptStatus, pResult interface{}, addr common.Address) *Receipt {
+func NewReceipt(hash types.Hash, status ReceiptStatus, pResult interface{}, addr common.Address) *Receipt {
 	return &Receipt{
 		TxHash:          hash,
 		Status:          status,

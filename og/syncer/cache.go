@@ -2,26 +2,26 @@ package syncer
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"strings"
 	"sync"
 )
 
 type SequencerCache struct {
 	mu       sync.RWMutex
-	proposal map[common.Hash][]string
-	hashes   common.Hashes
+	proposal map[types.Hash][]string
+	hashes   types.Hashes
 	size     int
 }
 
 func NewSequencerCache(size int) *SequencerCache {
 	return &SequencerCache{
-		proposal: make(map[common.Hash][]string),
+		proposal: make(map[types.Hash][]string),
 		size:     size,
 	}
 }
 
-func (p *SequencerCache) Add(seqHash common.Hash, peerId string) {
+func (p *SequencerCache) Add(seqHash types.Hash, peerId string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	var peers []string
@@ -42,7 +42,7 @@ func (p *SequencerCache) Add(seqHash common.Hash, peerId string) {
 	p.hashes = append(p.hashes, seqHash)
 }
 
-func (p *SequencerCache) GetPeer(seqHash common.Hash) string {
+func (p *SequencerCache) GetPeer(seqHash types.Hash) string {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	peers := p.proposal[seqHash]

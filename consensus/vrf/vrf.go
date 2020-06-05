@@ -16,7 +16,7 @@ package vrf
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/poc/vrf"
 	"github.com/sirupsen/logrus"
 )
@@ -54,7 +54,7 @@ func (as *Vrf) GenerateVrf() *VrfInfo {
 
 //msgp:tuple VrfData
 type VrfData struct {
-	SeqHash common.Hash
+	SeqHash types.Hash
 	Height  uint64
 	TxNum   int
 }

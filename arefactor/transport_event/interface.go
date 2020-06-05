@@ -1,9 +1,11 @@
 package transport_event
 
 type NewIncomingMessageEventSubscriber interface {
-	GetNewIncomingMessageEventChannel() chan *WireMessage
+	Name() string
+	GetNewIncomingMessageEventChannel() chan *IncomingLetter
 }
 
 type NewOutgoingMessageEventSubscriber interface {
-	GetNewOutgoingMessageEventChannel() chan *OutgoingRequest
+	Name() string
+	GetNewOutgoingMessageEventChannel() chan *OutgoingLetter
 }

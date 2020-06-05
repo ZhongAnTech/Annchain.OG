@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"testing"
 )
@@ -9,7 +10,7 @@ import (
 func TestSampleSequencer(t *testing.T) {
 	s := &Sequencer{
 		//Hash:           common.Hash{},
-		ParentsHash:  common.Hashes{common.HexToHash("0xCCDD"), common.HexToHash("0xEEFF")},
+		ParentsHash:  types.Hashes{types.HexToHash("0xCCDD"), types.HexToHash("0xEEFF")},
 		Height:       12,
 		MineNonce:    23,
 		Weight:       4,
@@ -17,7 +18,7 @@ func TestSampleSequencer(t *testing.T) {
 		Issuer:       common.HexToAddress("0x33"),
 		//Signature:    nil,
 		//PublicKey: nil,
-		StateRoot: common.Hash{},
+		StateRoot: types.Hash{},
 		//Proposing:      false,
 	}
 	fmt.Println(s)

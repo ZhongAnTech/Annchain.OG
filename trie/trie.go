@@ -20,8 +20,7 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/annchain/OG/common"
-
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/metrics"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +28,7 @@ import (
 
 var (
 	// emptyRoot is the known root hash of an empty trie.
-	emptyRoot = common.HexToHashNoError("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+	emptyRoot = types.HexToHashNoError("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 
 	// emptyState is the known hash of an empty state trie entry.
 	emptyState = crypto.Keccak256Hash(nil)
@@ -57,7 +56,7 @@ func CacheUnloads() int64 {
 // LeafCallback is a callback type invoked when a trie operation reaches a leaf
 // node. It's used by state sync and commit to allow handling external references
 // between account and storage tries.
-type LeafCallback func(leaf []byte, parent common.Hash) error
+type LeafCallback func(leaf []byte, parent types.Hash) error
 
 // Trie is a Merkle Patricia Trie.
 // The zero value is an empty trie with no database.
@@ -67,7 +66,7 @@ type LeafCallback func(leaf []byte, parent common.Hash) error
 type Trie struct {
 	db           *Database
 	root         Node
-	originalRoot common.Hash
+	originalRoot types.Hash
 
 	// Cache generation values.
 	// cachegen increases by one with each commit operation.
@@ -93,7 +92,7 @@ func (t *Trie) newFlag() nodeFlag {
 // trie is initially empty and does not require a database. Otherwise,
 // New will panic if db is nil and returns a MissingNodeError if root does
 // not exist in the database. Accessing the trie loads nodes from db on demand.
-func New(root common.Hash, db *Database) (*Trie, error) {
+func New(root types.Hash, db *Database) (*Trie, error) {
 	if db == nil {
 		panic("trie.New called without a database")
 	}
@@ -101,7 +100,7 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 		db:           db,
 		originalRoot: root,
 	}
-	if root != (common.Hash{}) && root != emptyRoot {
+	if root != (types.Hash{}) && root != emptyRoot {
 		rootnode, err := trie.resolveHash(root.ToBytes(), nil)
 		if err != nil {
 			return nil, err
@@ -441,7 +440,7 @@ func (t *Trie) resolve(n Node, prefix []byte) (Node, error) {
 func (t *Trie) resolveHash(n HashNode, prefix []byte) (Node, error) {
 	cacheMissCounter.Inc(1)
 
-	hash := common.BytesToHash(n)
+	hash := types.BytesToHash(n)
 
 	enc, err := t.db.Node(hash)
 	if err != nil || enc == nil {
@@ -456,25 +455,25 @@ func (t *Trie) Root() []byte { return t.Hash().ToBytes() }
 
 // Hash returns the root hash of the trie. It does not write to the
 // database and can be used even if the trie doesn't have one.
-func (t *Trie) Hash() common.Hash {
+func (t *Trie) Hash() types.Hash {
 	hash, cached, _ := t.hashRoot(nil, nil, false)
 	t.root = cached
-	return common.BytesToHash(hash.(HashNode))
+	return types.BytesToHash(hash.(HashNode))
 }
 
 // Commit writes all nodes to the trie's memory database, tracking the internal
 // and external (for account tries) references.
-func (t *Trie) Commit(onleaf LeafCallback, preCommit bool) (root common.Hash, err error) {
+func (t *Trie) Commit(onleaf LeafCallback, preCommit bool) (root types.Hash, err error) {
 	if t.db == nil {
 		panic("commit called on trie with nil database")
 	}
 	hash, cached, err := t.hashRoot(t.db, onleaf, preCommit)
 	if err != nil {
-		return common.Hash{}, err
+		return types.Hash{}, err
 	}
 	t.root = cached
 	t.cachegen++
-	return common.BytesToHash(hash.(HashNode)), nil
+	return types.BytesToHash(hash.(HashNode)), nil
 }
 
 func (t *Trie) hashRoot(db *Database, onleaf LeafCallback, preHash bool) (Node, Node, error) {

@@ -28,7 +28,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/sirupsen/logrus"
 	mrand "math/rand"
 	"net"
@@ -48,7 +48,7 @@ const (
 
 	// We keep buckets for the upper 1/15 of distances because
 	// it's very unlikely we'll ever encounter a node that's closer.
-	hashBits          = len(common.Hash{}.Bytes) * 8
+	hashBits          = len(types.Hash{}.Bytes) * 8
 	nBuckets          = hashBits / 15       // Number of buckets
 	bucketMinDistance = hashBits - nBuckets // Log distance of closest bucket
 

@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogcore/state"
@@ -14,7 +15,7 @@ func TestPreloadDBWorkFlows(t *testing.T) {
 
 	db := ogdb.NewMemDatabase()
 
-	initRoot := common.Hash{}
+	initRoot := types.Hash{}
 	stdb, err := state.NewStateDB(state.DefaultStateDBConfig(), state.NewDatabase(db), initRoot)
 	if err != nil {
 		t.Errorf("create StateDB error: %v", err)

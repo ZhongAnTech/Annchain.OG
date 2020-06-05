@@ -17,6 +17,7 @@
 package state
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 )
@@ -129,7 +130,7 @@ type (
 	}
 	storageChange struct {
 		account       *common.Address
-		key, prevalue common.Hash
+		key, prevalue types.Hash
 	}
 	codeChange struct {
 		account            *common.Address
@@ -141,10 +142,10 @@ type (
 		prev uint64
 	}
 	addLogChange struct {
-		txhash common.Hash
+		txhash types.Hash
 	}
 	addPreimageChange struct {
-		hash common.Hash
+		hash types.Hash
 	}
 	touchChange struct {
 		account   *common.Address
@@ -261,7 +262,7 @@ func (ch nonceChange) TokenDirtied() int32 {
 func (ch codeChange) Revert(s *StateDB) {
 	stobj := s.getStateObject(*ch.account)
 	if stobj != nil {
-		stobj.setCode(common.BytesToHash(ch.prevhash), ch.prevcode)
+		stobj.setCode(types.BytesToHash(ch.prevhash), ch.prevcode)
 	}
 }
 

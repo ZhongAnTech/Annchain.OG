@@ -18,7 +18,7 @@ import (
 	"github.com/annchain/OG/account"
 	archive2 "github.com/annchain/OG/archive"
 	"github.com/annchain/OG/arefactor/common/io"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/og/message_archive"
 	"github.com/annchain/OG/og/txmaker"
@@ -171,14 +171,14 @@ func NewNode() *Node {
 	}
 
 	txFormatVerifier := &verifier.TxFormatVerifier{
-		MaxTxHash:    common.HexToHash(viper.GetString("max_tx_hash")),
-		MaxMinedHash: common.HexToHash(viper.GetString("max_mined_hash")),
+		MaxTxHash:    types.HexToHash(viper.GetString("max_tx_hash")),
+		MaxMinedHash: types.HexToHash(viper.GetString("max_mined_hash")),
 	}
-	if txFormatVerifier.MaxMinedHash == common.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
+	if txFormatVerifier.MaxMinedHash == types.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
 		txFormatVerifier.NoVerifyMineHash = true
 		logrus.Info("no verify mined hash")
 	}
-	if txFormatVerifier.MaxTxHash == common.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
+	if txFormatVerifier.MaxTxHash == types.HexToHash("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF") {
 		txFormatVerifier.NoVerifyMaxTxHash = true
 		logrus.Info("no verify max tx hash")
 	}

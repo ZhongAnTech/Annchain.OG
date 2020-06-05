@@ -17,6 +17,7 @@
 package trie
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"hash"
 	"sync"
 
@@ -205,18 +206,18 @@ func (h *hasher) store(n Node, db *Database, force bool, preHash bool) (Node, er
 	if db != nil && !preHash {
 		// We are pooling the trie nodes into an intermediate memory cache
 		db.lock.Lock()
-		hash := common.BytesToHash(hash)
+		hash := types.BytesToHash(hash)
 		db.insert(hash, h.tmp)
 		// Track all direct parent->child node references
 		switch n := n.(type) {
 		case *ShortNode:
 			if child, ok := n.Val.(HashNode); ok {
-				db.reference(common.BytesToHash(child), hash)
+				db.reference(types.BytesToHash(child), hash)
 			}
 		case *FullNode:
 			for i := 0; i < 16; i++ {
 				if child, ok := n.Children[i].(HashNode); ok {
-					db.reference(common.BytesToHash(child), hash)
+					db.reference(types.BytesToHash(child), hash)
 				}
 			}
 		}

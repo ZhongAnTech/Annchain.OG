@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	tkType "github.com/annchain/OG/types/token"
 	"sync"
@@ -19,7 +20,7 @@ var (
 	emptyStateRoot = crypto.Keccak256Hash(nil)
 
 	// emptyStateHash is the known hash of an empty state trie.
-	emptyStateHash = common.Hash{}
+	emptyStateHash = types.Hash{}
 
 	// emptyCode is the known hash of the empty EVM bytecode.
 	emptyCode = crypto.Keccak256Hash(nil)
@@ -52,7 +53,7 @@ type StateDB struct {
 	// db is for trie accessing.
 	db   Database
 	trie Trie
-	root common.Hash
+	root types.Hash
 
 	refund uint64
 	// journal records every action which will change statedb's data
@@ -77,7 +78,7 @@ type StateDB struct {
 	mu sync.RWMutex
 }
 
-func NewStateDB(conf StateDBConfig, db Database, root common.Hash) (*StateDB, error) {
+func NewStateDB(conf StateDBConfig, db Database, root types.Hash) (*StateDB, error) {
 	tr, err := db.OpenTrie(root)
 	if err != nil {
 		return nil, err
@@ -116,7 +117,7 @@ func (sd *StateDB) Database() Database {
 	return sd.db
 }
 
-func (sd *StateDB) Root() common.Hash {
+func (sd *StateDB) Root() types.Hash {
 	return sd.root
 }
 
@@ -328,10 +329,10 @@ func (sd *StateDB) GetRefund() uint64 {
 	return sd.refund
 }
 
-func (sd *StateDB) GetCodeHash(addr common.Address) common.Hash {
+func (sd *StateDB) GetCodeHash(addr common.Address) types.Hash {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
-		return common.Hash{}
+		return types.Hash{}
 	}
 	return stobj.GetCodeHash()
 }
@@ -357,7 +358,7 @@ func (sd *StateDB) GetCodeSize(addr common.Address) int {
 	return l
 }
 
-func (sd *StateDB) GetState(addr common.Address, key common.Hash) common.Hash {
+func (sd *StateDB) GetState(addr common.Address, key types.Hash) types.Hash {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return emptyStateHash
@@ -365,7 +366,7 @@ func (sd *StateDB) GetState(addr common.Address, key common.Hash) common.Hash {
 	return stobj.GetState(sd.db, key)
 }
 
-func (sd *StateDB) GetCommittedState(addr common.Address, key common.Hash) common.Hash {
+func (sd *StateDB) GetCommittedState(addr common.Address, key types.Hash) types.Hash {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return emptyStateHash
@@ -437,7 +438,7 @@ func (sd *StateDB) SetCode(addr common.Address, code []byte) {
 	stobj.SetCode(crypto.Keccak256Hash(code), code)
 }
 
-func (sd *StateDB) SetState(addr common.Address, key, value common.Hash) {
+func (sd *StateDB) SetState(addr common.Address, key, value types.Hash) {
 	stobj := sd.getOrCreateStateObject(addr)
 	if stobj == nil {
 		return
@@ -562,24 +563,24 @@ func (sd *StateDB) AddLog(l *vmtypes.Log) {
 	// Not implemented yet
 }
 
-func (sd *StateDB) AddPreimage(h common.Hash, b []byte) {
+func (sd *StateDB) AddPreimage(h types.Hash, b []byte) {
 	// TODO
 	// Not implemented yet
 }
 
-func (sd *StateDB) ForEachStorage(addr common.Address, f func(key, value common.Hash) bool) {
+func (sd *StateDB) ForEachStorage(addr common.Address, f func(key, value types.Hash) bool) {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return
 	}
 	it := trie.NewIterator(stobj.openTrie(sd.db).NodeIterator(nil))
 	for it.Next() {
-		key := common.BytesToHash(sd.trie.GetKey(it.Key))
+		key := types.BytesToHash(sd.trie.GetKey(it.Key))
 		if value, dirty := stobj.dirtyStorage[key]; dirty {
 			f(key, value)
 			continue
 		}
-		f(key, common.BytesToHash(it.Value))
+		f(key, types.BytesToHash(it.Value))
 	}
 }
 
@@ -618,7 +619,7 @@ func (sd *StateDB) loadTokenObject(tokenID int32) (*TokenObject, error) {
 }
 
 // Commit tries to save dirty data to memory trie db.
-func (sd *StateDB) Commit() (common.Hash, error) {
+func (sd *StateDB) Commit() (types.Hash, error) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
@@ -628,7 +629,7 @@ func (sd *StateDB) Commit() (common.Hash, error) {
 // commit tries to save dirty data to memory trie db.
 //
 // Note that commit doesn't hold any StateDB locks.
-func (sd *StateDB) commit() (common.Hash, error) {
+func (sd *StateDB) commit() (types.Hash, error) {
 	// update dirtyset according to journal
 	for addr := range sd.journal.dirties {
 		sd.dirtyset[addr] = struct{}{}
@@ -677,7 +678,7 @@ func (sd *StateDB) commit() (common.Hash, error) {
 	}
 
 	// commit current trie into triedb.
-	rootHash, err := sd.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	rootHash, err := sd.trie.Commit(func(leaf []byte, parent types.Hash) error {
 		account := NewAccountData()
 		if _, err := account.UnmarshalMsg(leaf); err != nil {
 			return nil
@@ -686,7 +687,7 @@ func (sd *StateDB) commit() (common.Hash, error) {
 		if account.Root != emptyStateRoot {
 			sd.db.TrieDB().Reference(account.Root, parent)
 		}
-		codehash := common.BytesToHash(account.CodeHash)
+		codehash := types.BytesToHash(account.CodeHash)
 		if codehash != emptyCodeHash {
 			sd.db.TrieDB().Reference(codehash, parent)
 		}

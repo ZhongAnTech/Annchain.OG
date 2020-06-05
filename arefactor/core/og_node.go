@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/annchain/OG/arefactor/og"
+	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/common/io"
 	"github.com/sirupsen/logrus"
@@ -13,8 +14,6 @@ import (
 type OgNode struct {
 	components              []Component
 	transportIdentityHolder *transport.DefaultTransportIdentityHolder
-	cpTransport             *transport.PhysicalCommunicator
-	cpOgEngine              *og.OgEngine
 }
 
 // InitDefault only set necessary data structures.
@@ -30,20 +29,33 @@ func (n *OgNode) Setup() {
 		KeyFile: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "network.key")),
 	}
 
+	// low level transport (libp2p)
 	cpTransport := getTransport(n.transportIdentityHolder)
 	cpPerformanceMonitor := getPerformanceMonitor()
 
-	// og engine
-
-	ledger := &og.DefaultLedger{}
-	ledger.StaticSetup()
-
+	// peer relationship management
 	cpCommunityManager := &og.DefaultCommunityManager{
 		PhysicalCommunicator:  cpTransport,
 		KnownPeerListFilePath: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "peers.lst")),
 	}
+	cpCommunityManager.InitDefault()
 	cpCommunityManager.StaticSetup()
 
+	cpController := &rpc.RpcController{
+		CpDefaultCommunityManager: cpCommunityManager,
+	}
+	// rpc
+	cpRpc := &rpc.RpcServer{
+		Controller: cpController,
+		Port:       viper.GetInt("rpc.port"),
+	}
+	cpRpc.InitDefault()
+
+	// ledger implementation
+	ledger := &og.DefaultLedger{}
+	ledger.StaticSetup()
+
+	// OG engine
 	cpOgEngine := &og.OgEngine{
 		Ledger:           ledger,
 		CommunityManager: cpCommunityManager,
@@ -56,18 +68,20 @@ func (n *OgNode) Setup() {
 	n.components = append(n.components, cpPerformanceMonitor)
 	n.components = append(n.components, cpCommunityManager)
 	n.components = append(n.components, cpOgEngine)
+	n.components = append(n.components, cpRpc)
 
 	// event registration
-	// bouncer io
-	cpOgEngine.RegisterSubscriberNewOutgoingMessageEvent(cpTransport)
-	cpCommunityManager.RegisterSubscriberNewOutgoingMessageEvent(cpTransport)
-	cpTransport.RegisterSubscriberNewIncomingMessageEventSubscriber(cpOgEngine)
+
+	// message sender
+	cpOgEngine.AddSubscriberNewOutgoingMessageEvent(cpTransport)
+	cpCommunityManager.AddSubscriberNewOutgoingMessageEvent(cpTransport)
+
+	// message receivers
+	cpTransport.AddSubscriberNewIncomingMessageEvent(cpOgEngine)
+	cpTransport.AddSubscriberNewIncomingMessageEvent(cpCommunityManager)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpOgEngine)
-
-	n.cpTransport = cpTransport
-	n.cpOgEngine = cpOgEngine
 }
 
 func (n *OgNode) Start() {

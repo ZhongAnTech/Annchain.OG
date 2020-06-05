@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"github.com/annchain/OG/arefactor/og/types"
 	"testing"
 
 	"github.com/annchain/OG/common"
@@ -28,7 +29,7 @@ import (
 func makeTestTrie() (*Database, *Trie, map[string][]byte) {
 	// Create an empty trie
 	triedb := NewDatabase(ogdb.NewMemDatabase())
-	trie, _ := New(common.Hash{}, triedb)
+	trie, _ := New(types.Hash{}, triedb)
 
 	// Fill it with some arbitrary data
 	content := make(map[string][]byte)
@@ -59,11 +60,11 @@ func makeTestTrie() (*Database, *Trie, map[string][]byte) {
 // content map.
 func checkTrieContents(t *testing.T, db *Database, root []byte, content map[string][]byte) {
 	// Check root availability and trie contents
-	trie, err := New(common.BytesToHash(root), db)
+	trie, err := New(types.BytesToHash(root), db)
 	if err != nil {
 		t.Fatalf("failed to create trie at %x: %v", root, err)
 	}
-	if err := checkTrieConsistency(db, common.BytesToHash(root)); err != nil {
+	if err := checkTrieConsistency(db, types.BytesToHash(root)); err != nil {
 		t.Fatalf("inconsistent trie at %x: %v", root, err)
 	}
 	for key, val := range content {
@@ -74,7 +75,7 @@ func checkTrieContents(t *testing.T, db *Database, root []byte, content map[stri
 }
 
 // checkTrieConsistency checks that all nodes in a trie are indeed present.
-func checkTrieConsistency(db *Database, root common.Hash) error {
+func checkTrieConsistency(db *Database, root types.Hash) error {
 	// Create and iterate a trie rooted in a subnode
 	trie, err := New(root, db)
 	if err != nil {
@@ -90,7 +91,7 @@ func checkTrieConsistency(db *Database, root common.Hash) error {
 func TestEmptySync(t *testing.T) {
 	dbA := NewDatabase(ogdb.NewMemDatabase())
 	dbB := NewDatabase(ogdb.NewMemDatabase())
-	emptyA, _ := New(common.Hash{}, dbA)
+	emptyA, _ := New(types.Hash{}, dbA)
 	emptyB, _ := New(emptyRoot, dbB)
 
 	for i, trie := range []*Trie{emptyA, emptyB} {
@@ -114,7 +115,7 @@ func testIterativeSync(t *testing.T, batch int) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	queue := append(common.Hashes{}, sched.Missing(batch)...)
+	queue := append(types.Hashes{}, sched.Missing(batch)...)
 	for len(queue) > 0 {
 		results := make([]SyncResult, len(queue))
 		for i, hash := range queue {
@@ -147,7 +148,7 @@ func TestIterativeDelayedSync(t *testing.T) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	queue := append(common.Hashes{}, sched.Missing(10000)...)
+	queue := append(types.Hashes{}, sched.Missing(10000)...)
 	for len(queue) > 0 {
 		// Sync only half of the scheduled nodes
 		results := make([]SyncResult, len(queue)/2+1)
@@ -185,7 +186,7 @@ func testIterativeRandomSync(t *testing.T, batch int) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	queue := make(map[common.Hash]struct{})
+	queue := make(map[types.Hash]struct{})
 	for _, hash := range sched.Missing(batch) {
 		queue[hash] = struct{}{}
 	}
@@ -206,7 +207,7 @@ func testIterativeRandomSync(t *testing.T, batch int) {
 		if index, err := sched.Commit(diskdb); err != nil {
 			t.Fatalf("failed to commit data #%d: %v", index, err)
 		}
-		queue = make(map[common.Hash]struct{})
+		queue = make(map[types.Hash]struct{})
 		for _, hash := range sched.Missing(batch) {
 			queue[hash] = struct{}{}
 		}
@@ -226,7 +227,7 @@ func TestIterativeRandomDelayedSync(t *testing.T) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	queue := make(map[common.Hash]struct{})
+	queue := make(map[types.Hash]struct{})
 	for _, hash := range sched.Missing(10000) {
 		queue[hash] = struct{}{}
 	}
@@ -273,8 +274,8 @@ func TestDuplicateAvoidanceSync(t *testing.T) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	queue := append(common.Hashes{}, sched.Missing(0)...)
-	requested := make(map[common.Hash]struct{})
+	queue := append(types.Hashes{}, sched.Missing(0)...)
+	requested := make(map[types.Hash]struct{})
 
 	for len(queue) > 0 {
 		results := make([]SyncResult, len(queue))
@@ -313,8 +314,8 @@ func TestIncompleteSync(t *testing.T) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil)
 
-	added := common.Hashes{}
-	queue := append(common.Hashes{}, sched.Missing(1)...)
+	added := types.Hashes{}
+	queue := append(types.Hashes{}, sched.Missing(1)...)
 	for len(queue) > 0 {
 		// Fetch a batch of trie nodes
 		results := make([]SyncResult, len(queue))

@@ -14,7 +14,7 @@
 package txcache
 
 import (
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/types"
 
 	"github.com/annchain/gcache"
@@ -91,10 +91,10 @@ func newCacheItemSortFunction() gcache.SortKeysFunction {
 	return sortByGetEachItem
 }
 
-func NewTxCache(maxSize int, expire int, invalidTx func(h common.Hash) bool, sorted bool) *TxCache {
+func NewTxCache(maxSize int, expire int, invalidTx func(h types2.Hash) bool, sorted bool) *TxCache {
 
 	expireFunction := func(key interface{}) bool {
-		hash := key.(common.Hash)
+		hash := key.(types2.Hash)
 		return invalidTx(hash)
 	}
 	sortFunc := newCacheItemSortFunction()
@@ -112,18 +112,18 @@ func NewTxCache(maxSize int, expire int, invalidTx func(h common.Hash) bool, sor
 
 }
 
-func (t *TxCache) GetHashOrder() common.Hashes {
+func (t *TxCache) GetHashOrder() types2.Hashes {
 	v := t.cache.OrderedKeys()
-	var hashes common.Hashes
+	var hashes types2.Hashes
 	for _, k := range v {
-		hash := k.(common.Hash)
+		hash := k.(types2.Hash)
 		hashes = append(hashes, hash)
 	}
 	return hashes
 }
 
 //Get get an item
-func (t *TxCache) Get(h common.Hash) types.Txi {
+func (t *TxCache) Get(h types2.Hash) types.Txi {
 	v, err := t.cache.GetIFPresent(h)
 	if err == nil {
 		return v.(types.Txi)
@@ -131,7 +131,7 @@ func (t *TxCache) Get(h common.Hash) types.Txi {
 	return nil
 }
 
-func (t *TxCache) Has(h common.Hash) bool {
+func (t *TxCache) Has(h types2.Hash) bool {
 	_, err := t.cache.GetIFPresent(h)
 	if err == nil {
 		return true
@@ -156,7 +156,7 @@ func (t *TxCache) DeQueue() types.Txi {
 }
 
 // Remove tx from txCache
-func (t *TxCache) Remove(h common.Hash) bool {
+func (t *TxCache) Remove(h types2.Hash) bool {
 	return t.cache.Remove(h)
 }
 

@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"strings"
 )
 
@@ -23,8 +23,8 @@ import (
 
 type TxBase struct {
 	//	Type         TxBaseType
-	Hash        common.Hash
-	ParentsHash common.Hashes
+	Hash        types.Hash
+	ParentsHash types.Hashes
 	//	AccountNonce uint64
 	Height uint64
 	//	PublicKey    crypto.PublicKey //

@@ -16,6 +16,7 @@ package rpc
 //go:generate msgp
 import (
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 
@@ -173,7 +174,7 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		txrequsets NewTxsRequests
 		sig        crypto.Signature
 		pub        crypto.PublicKey
-		hashes     common.Hashes
+		hashes     types2.Hashes
 	)
 
 	if status.ArchiveMode {

@@ -17,7 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/message_archive"
 	"github.com/annchain/OG/types/msg"
@@ -64,7 +64,7 @@ type peer struct {
 	version  int         // Protocol Version negotiated
 	forkDrop *time.Timer // Timed connection dropper if forks aren't validated in time
 
-	head      common.Hash
+	head      types.Hash
 	seqId     uint64
 	lock      sync.RWMutex
 	knownMsg  mapset.Set           // Set of transaction hashes known to be known by this peer
@@ -158,7 +158,7 @@ func (p *peer) Info() *PeerInfo {
 
 // Head retrieves a copy of the current head Hash and total difficulty of the
 // peer.
-func (p *peer) Head() (hash common.Hash, seqId uint64) {
+func (p *peer) Head() (hash types.Hash, seqId uint64) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -167,7 +167,7 @@ func (p *peer) Head() (hash common.Hash, seqId uint64) {
 }
 
 // SetHead updates the head Hash and total difficulty of the peer.
-func (p *peer) SetHead(hash common.Hash, seqId uint64) {
+func (p *peer) SetHead(hash types.Hash, seqId uint64) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -177,7 +177,7 @@ func (p *peer) SetHead(hash common.Hash, seqId uint64) {
 
 // MarkMessage marks a Message as known for the peer, ensuring that it
 // will never be propagated to this particular peer.
-func (p *peer) MarkMessage(m message_archive.BinaryMessageType, hash common.Hash) {
+func (p *peer) MarkMessage(m message_archive.BinaryMessageType, hash types.Hash) {
 	// If we reached the memory allowance, drop a previously known transaction Hash
 	for p.knownMsg.Cardinality() >= maxknownMsg {
 		p.knownMsg.Pop()
@@ -244,15 +244,15 @@ func (p *peer) SendNodeData(data []byte) error {
 
 // RequestNodeData fetches a batch of arbitrary Data from a node's known state
 // Data, corresponding to the specified hashes.
-func (p *peer) RequestNodeData(hashes common.Hashes) error {
+func (p *peer) RequestNodeData(hashes types.Hashes) error {
 	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of state Data")
-	hashsStruct := common.Hashes(hashes)
+	hashsStruct := types.Hashes(hashes)
 	b, _ := hashsStruct.MarshalMsg(nil)
 	return p.sendRawMessage(message_archive.GetNodeDataMsg, b)
 }
 
 // RequestReceipts fetches a batch of transaction receipts from a remote node.
-func (p *peer) RequestReceipts(hashes common.Hashes) error {
+func (p *peer) RequestReceipts(hashes types.Hashes) error {
 	msgLog.WithField("count", len(hashes)).Debug("Fetching batch of receipts")
 	b, _ := hashes.MarshalMsg(nil)
 	return p.sendRawMessage(message_archive.GetReceiptsMsg, b)
@@ -260,7 +260,7 @@ func (p *peer) RequestReceipts(hashes common.Hashes) error {
 
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the Hash of an origin block.
-func (p *peer) RequestTxsByHash(seqHash common.Hash, seqId uint64) error {
+func (p *peer) RequestTxsByHash(seqHash types.Hash, seqId uint64) error {
 	hash := seqHash
 	msg := &p2p_message.MessageTxsRequest{
 		SeqHash:   &hash,
@@ -270,7 +270,7 @@ func (p *peer) RequestTxsByHash(seqHash common.Hash, seqId uint64) error {
 	return p.sendRequest(message_archive.MessageTypeTxsRequest, msg)
 }
 
-func (p *peer) RequestTxs(hashs common.Hashes) error {
+func (p *peer) RequestTxs(hashs types.Hashes) error {
 	msg := &p2p_message.MessageTxsRequest{
 		Hashes:    &hashs,
 		RequestId: message_archive.MsgCounter.Get(),
@@ -287,7 +287,7 @@ func (p *peer) RequestTxsById(seqId uint64) error {
 	return p.sendRequest(message_archive.MessageTypeTxsRequest, msg)
 }
 
-func (p *peer) RequestBodies(seqHashs common.Hashes) error {
+func (p *peer) RequestBodies(seqHashs types.Hashes) error {
 	msg := &p2p_message.MessageBodiesRequest{
 		SeqHashes: seqHashs,
 		RequestId: message_archive.MsgCounter.Get(),
@@ -295,7 +295,7 @@ func (p *peer) RequestBodies(seqHashs common.Hashes) error {
 	return p.sendRequest(message_archive.MessageTypeBodiesRequest, msg)
 }
 
-func (h *Hub) RequestOneHeader(peerId string, hash common.Hash) error {
+func (h *Hub) RequestOneHeader(peerId string, hash types.Hash) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -303,7 +303,7 @@ func (h *Hub) RequestOneHeader(peerId string, hash common.Hash) error {
 	return p.RequestOneHeader(hash)
 }
 
-func (h *Hub) RequestBodies(peerId string, hashs common.Hashes) error {
+func (h *Hub) RequestBodies(peerId string, hashs types.Hashes) error {
 	p := h.peers.Peer(peerId)
 	if p == nil {
 		return fmt.Errorf("peer not found")
@@ -311,7 +311,7 @@ func (h *Hub) RequestBodies(peerId string, hashs common.Hashes) error {
 	return p.RequestBodies(hashs)
 }
 
-func (p *peer) RequestOneHeader(hash common.Hash) error {
+func (p *peer) RequestOneHeader(hash types.Hash) error {
 	tmpHash := hash
 	msg := &p2p_message.MessageHeaderRequest{
 		Origin: p2p_message.HashOrNumber{
@@ -340,7 +340,7 @@ func (p *peer) RequestHeadersByNumber(origin uint64, amount int, skip int, rever
 	return p.sendRequest(message_archive.MessageTypeHeaderRequest, msg)
 }
 
-func (p *peer) RequestHeadersByHash(hash common.Hash, amount int, skip int, reverse bool) error {
+func (p *peer) RequestHeadersByHash(hash types.Hash, amount int, skip int, reverse bool) error {
 	tmpHash := hash
 	msg := &p2p_message.MessageHeaderRequest{
 		Origin: p2p_message.HashOrNumber{
@@ -505,7 +505,7 @@ func (ps *peerSet) GetRandomPeers(n int) []*peer {
 
 // PeersWithoutTx retrieves a list of peers that do not have a given transaction
 // in their set of known hashes.
-func (ps *peerSet) PeersWithoutMsg(hash common.Hash, m message_archive.BinaryMessageType) []*peer {
+func (ps *peerSet) PeersWithoutMsg(hash types.Hash, m message_archive.BinaryMessageType) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -560,7 +560,7 @@ func (ps *peerSet) Close() {
 
 // Handshake executes the og protocol handshake, negotiating Version number,
 // network IDs, head and genesis blocks.
-func (p *peer) Handshake(network uint64, head common.Hash, seqId uint64, genesis common.Hash) error {
+func (p *peer) Handshake(network uint64, head types.Hash, seqId uint64, genesis types.Hash) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
 	var status message_archive.StatusData // safe to read after two values have been received from errc

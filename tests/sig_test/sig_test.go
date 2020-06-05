@@ -15,6 +15,7 @@ package sig_test
 
 import (
 	"fmt"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
@@ -32,7 +33,7 @@ func TestSig(t *testing.T) {
 		TxBase: types.TxBase{
 			Type:         types.TxBaseTypeTx,
 			AccountNonce: 3,
-			Hash:         common.HexToHash("0x49b51d4098087629f3489624951d3f81e3dfb87b8fcf3d0dae0474c7134908ab"),
+			Hash:         types2.HexToHash("0x49b51d4098087629f3489624951d3f81e3dfb87b8fcf3d0dae0474c7134908ab"),
 			PublicKey:    pk.KeyBytes,
 		},
 		From:  common.HexToAddress("0x49fdaab0af739e16c9e1c9bf1715a6503edf4cab"),

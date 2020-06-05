@@ -1,7 +1,7 @@
 package pool
 
 import (
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/gcache"
 	"github.com/sirupsen/logrus"
@@ -39,7 +39,7 @@ func (k *KnownTxiCache) Put(txi types.Txi) {
 	}
 }
 
-func (k *KnownTxiCache) Get(hash common.Hash) (txi types.Txi, err error) {
+func (k *KnownTxiCache) Get(hash types2.Hash) (txi types.Txi, err error) {
 	if k.txiCache == nil {
 		panic("not initialized")
 	}
@@ -53,7 +53,7 @@ func (k *KnownTxiCache) Get(hash common.Hash) (txi types.Txi, err error) {
 }
 
 func (k *KnownTxiCache) load(hash interface{}) (txi interface{}, err error) {
-	hasht := hash.(common.Hash)
+	hasht := hash.(types2.Hash)
 	for _, locator := range k.AdditionalHashLocators {
 		txi = locator.GetTx(hasht)
 		if txi == nil {

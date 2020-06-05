@@ -15,6 +15,7 @@ package archive
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"math/rand"
 	"strings"
@@ -61,7 +62,7 @@ func SampleTx() *Tx {
 	from := common.HexToAddress("0x99")
 	return &Tx{TxBase: TxBase{
 		Height:       12,
-		ParentsHash:  common.Hashes{common.HexToHash("0xCCDD"), common.HexToHash("0xEEFF")},
+		ParentsHash:  types.Hashes{types.HexToHash("0xCCDD"), types.HexToHash("0xEEFF")},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: 234,
 	},
@@ -72,17 +73,17 @@ func SampleTx() *Tx {
 }
 
 func RandomTx() *Tx {
-	from := common.RandomAddress()
+	from := types.RandomAddress()
 	return &Tx{TxBase: TxBase{
-		Hash:         common.RandomHash(),
+		Hash:         types.RandomHash(),
 		Height:       uint64(rand.Int63n(1000)),
-		ParentsHash:  common.Hashes{common.RandomHash(), common.RandomHash()},
+		ParentsHash:  types.Hashes{types.RandomHash(), types.RandomHash()},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: uint64(rand.Int63n(50000)),
 		Weight:       uint64(rand.Int31n(2000)),
 	},
 		From:  &from,
-		To:    common.RandomAddress(),
+		To:    types.RandomAddress(),
 		Value: math.NewBigInt(rand.Int63()),
 	}
 }

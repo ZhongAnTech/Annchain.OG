@@ -16,7 +16,7 @@ package og
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/og/downloader"
@@ -138,7 +138,7 @@ func newTestPeer(name string, version int, h *Hub, shake bool) (*testPeer, <-cha
 
 // handshake simulates a trivial handshake that expects the same state from the
 // remote side as we are simulating locally.
-func (p *testPeer) handshake(t *testing.T, seqId uint64, head common.Hash, genesis common.Hash) {
+func (p *testPeer) handshake(t *testing.T, seqId uint64, head types.Hash, genesis types.Hash) {
 	msg := &og.StatusData{
 		ProtocolVersion: uint32(p.version),
 		NetworkId:       testNetworkId,
@@ -162,7 +162,7 @@ func (p *testPeer) close() {
 }
 
 func TestDatasize(t *testing.T) {
-	var r common.Hash
+	var r types.Hash
 	data, _ := r.MarshalMsg(nil)
 	if len(data) == r.Msgsize() {
 		t.Fatal("msg size not equal", "len Data", len(data), "msgSize", r.Msgsize())

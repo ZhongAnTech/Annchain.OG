@@ -15,7 +15,7 @@ package syncer
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/types/archive"
 	"sync"
 	"time"
@@ -91,7 +91,7 @@ func (b *BloomFilterFireStatus) check() bool {
 
 //sendBloomFilter , avoid sending bloom filter frequently ,wait until got response of bloom filter or timeout
 
-func (m *IncrementalSyncer) sendBloomFilter(childhash common.Hash) {
+func (m *IncrementalSyncer) sendBloomFilter(childhash types.Hash) {
 	if !m.bloomFilterStatus.Check() {
 		log.Debug("bloom filter request is pending")
 		return

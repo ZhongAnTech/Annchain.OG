@@ -15,6 +15,7 @@ package og
 
 import (
 	"github.com/annchain/OG/arefactor/common/goroutine"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
@@ -61,7 +62,7 @@ func (d *DataLoader) GenerateGenesis() *types.Sequencer {
 		Issuer: &from,
 		TxBase: types.TxBase{
 			Type:         types.TxBaseTypeSequencer,
-			Hash:         common.HexToHash("0x00"),
+			Hash:         types2.HexToHash("0x00"),
 			Height:       0,
 			AccountNonce: 0,
 		},

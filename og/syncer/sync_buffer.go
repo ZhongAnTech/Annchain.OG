@@ -16,7 +16,7 @@ package syncer
 import (
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/pool"
 
@@ -31,8 +31,8 @@ import (
 var MaxBufferSiza = 4096 * 16
 
 type SyncBuffer struct {
-	Txs        map[common.Hash]types.Txi
-	TxsList    common.Hashes
+	Txs        map[types2.Hash]types.Txi
+	TxsList    types2.Hashes
 	Seq        *types.Sequencer
 	mu         sync.RWMutex
 	txPool     pool.ITxPool
@@ -63,7 +63,7 @@ func (s *SyncBuffer) Name() string {
 
 func NewSyncBuffer(config SyncBufferConfig) *SyncBuffer {
 	s := &SyncBuffer{
-		Txs:       make(map[common.Hash]types.Txi),
+		Txs:       make(map[types2.Hash]types.Txi),
 		txPool:    config.TxPool,
 		dag:       config.Dag,
 		Verifiers: config.Verifiers,
@@ -142,17 +142,17 @@ func (s *SyncBuffer) Count() int {
 	return len(s.Txs)
 }
 
-func (s *SyncBuffer) Get(hash common.Hash) types.Txi {
+func (s *SyncBuffer) Get(hash types2.Hash) types.Txi {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.Txs[hash]
 
 }
 
-func (s *SyncBuffer) GetAllKeys() common.Hashes {
+func (s *SyncBuffer) GetAllKeys() types2.Hashes {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	var keys common.Hashes
+	var keys types2.Hashes
 	for k := range s.Txs {
 		keys = append(keys, k)
 	}
@@ -236,13 +236,13 @@ out:
 func (s *SyncBuffer) verifyElders(seq types.Txi) error {
 
 	allKeys := s.GetAllKeys()
-	keysMap := make(map[common.Hash]int)
+	keysMap := make(map[types2.Hash]int)
 	for _, k := range allKeys {
 		keysMap[k] = 1
 	}
 
-	inSeekingPool := map[common.Hash]int{}
-	seekingPool := common.Hashes{}
+	inSeekingPool := map[types2.Hash]int{}
+	seekingPool := types2.Hashes{}
 	for _, parentHash := range seq.GetParents() {
 		seekingPool = append(seekingPool, parentHash)
 		// seekingPool.PushBack(parentHash)

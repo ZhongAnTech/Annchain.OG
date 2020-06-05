@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -15,7 +15,7 @@ import (
 func TestSend(t *testing.T) {
 	var ar [][]byte
 	for i := 0; i < 100000; i++ {
-		ar = append(ar, common.RandomHash().ToBytes())
+		ar = append(ar, types.RandomHash().ToBytes())
 	}
 	transport := &http.Transport{
 		MaxIdleConnsPerHost: 15,

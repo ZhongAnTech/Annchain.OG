@@ -2,16 +2,16 @@ package syncer
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"testing"
 )
 
 func TestSequencerCache_Add(t *testing.T) {
 	p := NewSequencerCache(7)
 	fmt.Println(p)
-	var hashes common.Hashes
+	var hashes types.Hashes
 	for i := 0; i < 10; i++ {
-		hash := common.RandomHash()
+		hash := types.RandomHash()
 		hashes = append(hashes, hash)
 		p.Add(hash, fmt.Sprintf("%d", i))
 	}

@@ -17,6 +17,7 @@
 package ovm
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"math/big"
 	"sync/atomic"
@@ -347,7 +348,7 @@ func (ovm *OVM) create(caller vmtypes.ContractRef, codeAndHash *vmtypes.CodeAndH
 
 	// Ensure there's no existing contract already at the designated address
 	contractHash := ctx.StateDB.GetCodeHash(address)
-	if ctx.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
+	if ctx.StateDB.GetNonce(address) != 0 || (contractHash != (types.Hash{}) && contractHash != emptyCodeHash) {
 		return nil, common.Address{}, 0, vmtypes.ErrContractAddressCollision
 	}
 	// Create a new account on the state
@@ -424,6 +425,6 @@ func (ovm *OVM) Create(caller vmtypes.ContractRef, code []byte, gas uint64, valu
 // instead of the usual sender-and-Nonce-hash as the address where the contract is initialized at.
 func (ovm *OVM) Create2(caller vmtypes.ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int, txCall bool) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
 	codeAndHash := &vmtypes.CodeAndHash{Code: code}
-	contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt).Bytes, codeAndHash.Hash().ToBytes())
+	contractAddr = crypto.CreateAddress2(caller.Address(), types.BigToHash(salt).Bytes, codeAndHash.Hash().ToBytes())
 	return ovm.create(caller, codeAndHash, gas, endowment, contractAddr, txCall)
 }

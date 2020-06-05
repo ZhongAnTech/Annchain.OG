@@ -16,7 +16,7 @@ package bft
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/tinylib/msgp/msgp"
@@ -116,7 +116,7 @@ func (m *BftMessageProposal) PublicKey() []byte {
 //msgp:tuple BftMessagePreVote
 type BftMessagePreVote struct {
 	BftBasicInfo
-	Idv *common.Hash // ID of the proposal, usually be the hash of the proposal
+	Idv *types.Hash // ID of the proposal, usually be the hash of the proposal
 }
 
 func (z *BftMessagePreVote) GetType() BftMessageType {
@@ -130,7 +130,7 @@ func (z *BftMessagePreVote) PublicKey() []byte {
 //msgp:tuple BftMessagePreCommit
 type BftMessagePreCommit struct {
 	BftBasicInfo
-	Idv          *common.Hash // ID of the proposal, usually be the hash of the proposal
+	Idv          *types.Hash // ID of the proposal, usually be the hash of the proposal
 	BlsSignature hexutil.Bytes
 }
 
@@ -201,7 +201,7 @@ type MsgpEnabled interface {
 type Proposal interface {
 	MsgpEnabled
 	Equal(Proposal) bool
-	GetId() *common.Hash
+	GetId() *types.Hash
 	String() string
 	Copy() Proposal
 }
@@ -226,12 +226,12 @@ func (s StringProposal) Copy() Proposal {
 	return &r
 }
 
-func (s StringProposal) GetId() *common.Hash {
+func (s StringProposal) GetId() *types.Hash {
 	h := sha256.New()
 	h.Write([]byte(s.Content))
 	sum := h.Sum(nil)
-	hash := common.Hash{}
-	hash.MustSetBytes(sum, common.PaddingNone)
+	hash := types.Hash{}
+	hash.MustSetBytes(sum, types.PaddingNone)
 	return &hash
 }
 

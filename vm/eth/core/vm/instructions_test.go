@@ -18,6 +18,7 @@ package vm
 
 import (
 	"bytes"
+	"github.com/annchain/OG/arefactor/og/types"
 	common2 "github.com/annchain/OG/common"
 	"math/big"
 	"testing"
@@ -568,7 +569,7 @@ func TestCreate2Addreses(t *testing.T) {
 	} {
 
 		origin := common2.BytesToAddress(common.FromHex(tt.origin))
-		salt := common2.BytesToHash(common.FromHex(tt.salt))
+		salt := types.BytesToHash(common.FromHex(tt.salt))
 		code := common.FromHex(tt.code)
 		codeHash := crypto.Keccak256(code)
 		address := crypto.CreateAddress2(origin, salt.Bytes, codeHash)

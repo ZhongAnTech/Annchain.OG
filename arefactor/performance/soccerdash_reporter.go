@@ -1,11 +1,15 @@
 package performance
 
-import "github.com/latifrons/soccerdash"
+import (
+	"github.com/latifrons/soccerdash"
+	"github.com/sirupsen/logrus"
+)
 
 type SoccerdashReporter struct {
 	Id         string
 	IpPort     string
 	BufferSize int
+	Logger     *logrus.Logger
 	reporter   *soccerdash.Reporter
 }
 
@@ -14,6 +18,7 @@ func (s *SoccerdashReporter) InitDefault() {
 		Id:            s.Id,
 		TargetAddress: s.IpPort,
 		BufferSize:    s.BufferSize,
+		Logger:        s.Logger,
 	}
 }
 

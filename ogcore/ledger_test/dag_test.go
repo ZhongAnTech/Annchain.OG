@@ -14,6 +14,7 @@
 package ledger_test
 
 import (
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/ledger"
@@ -143,9 +144,9 @@ func TestDagPush(t *testing.T) {
 	var err error
 
 	tx1 := newTestDagTx(0)
-	tx1.ParentsHash = common.Hashes{genesis.GetHash()}
+	tx1.ParentsHash = types2.Hashes{genesis.GetHash()}
 	tx2 := newTestDagTx(1)
-	tx2.ParentsHash = common.Hashes{genesis.GetHash()}
+	tx2.ParentsHash = types2.Hashes{genesis.GetHash()}
 
 	bd := &pool.BatchDetail{TxList: pool.NewTxList(), Neg: make(map[int32]*math.BigInt)}
 	bd.TxList.Put(tx1)
@@ -157,7 +158,7 @@ func TestDagPush(t *testing.T) {
 	batch[tx1.Sender()] = bd
 
 	seq := newTestSeq(1)
-	seq.ParentsHash = common.Hashes{
+	seq.ParentsHash = types2.Hashes{
 		tx1.GetHash(),
 		tx2.GetHash(),
 	}
@@ -188,7 +189,7 @@ func TestDagPush(t *testing.T) {
 		t.Fatalf("latest seq is not set")
 	}
 	// check txs' hashs
-	var hashsP *common.Hashes
+	var hashsP *types2.Hashes
 	hashsP, err = dag.Accessor().ReadIndexedTxHashs(seq.Height)
 	hashs := *hashsP
 	if err != nil {

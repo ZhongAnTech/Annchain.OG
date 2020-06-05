@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"math"
 	"math/rand"
 	"sort"
@@ -148,7 +148,7 @@ type ticketStore struct {
 
 	searchTopicMap        map[Topic]searchTopic
 	nextTopicQueryCleanup mclock.AbsTime
-	queriesSent           map[*Node]map[common.Hash]sentQuery
+	queriesSent           map[*Node]map[types.Hash]sentQuery
 }
 
 type searchTopic struct {
@@ -174,7 +174,7 @@ func newTicketStore() *ticketStore {
 		nodes:          make(map[*Node]*ticket),
 		nodeLastReq:    make(map[*Node]reqInfo),
 		searchTopicMap: make(map[Topic]searchTopic),
-		queriesSent:    make(map[*Node]map[common.Hash]sentQuery),
+		queriesSent:    make(map[*Node]map[types.Hash]sentQuery),
 	}
 }
 
@@ -461,7 +461,7 @@ func (s *ticketStore) removeTicketRef(ref ticketRef) {
 }
 
 type lookupInfo struct {
-	target       common.Hash
+	target       types.Hash
 	topic        Topic
 	radiusLookup bool
 }
@@ -511,7 +511,7 @@ func (s *ticketStore) searchLookupDone(lookup lookupInfo, nodes []*Node, query f
 			if s.canQueryTopic(n, lookup.topic) {
 				hash := query(n, lookup.topic)
 				if hash != nil {
-					s.addTopicQuery(common.BytesToHash(hash), n, lookup)
+					s.addTopicQuery(types.BytesToHash(hash), n, lookup)
 				}
 			}
 			//}
@@ -519,7 +519,7 @@ func (s *ticketStore) searchLookupDone(lookup lookupInfo, nodes []*Node, query f
 	}
 }
 
-func (s *ticketStore) adjustWithTicket(now mclock.AbsTime, targetHash common.Hash, t *ticket) {
+func (s *ticketStore) adjustWithTicket(now mclock.AbsTime, targetHash types.Hash, t *ticket) {
 	for i, topic := range t.topics {
 		if tt, ok := s.radius[topic]; ok {
 			tt.adjustWithTicket(now, targetHash, ticketRef{t, i})
@@ -592,11 +592,11 @@ func (s *ticketStore) canQueryTopic(node *Node, topic Topic) bool {
 	return true
 }
 
-func (s *ticketStore) addTopicQuery(hash common.Hash, node *Node, lookup lookupInfo) {
+func (s *ticketStore) addTopicQuery(hash types.Hash, node *Node, lookup lookupInfo) {
 	now := mclock.Now()
 	qq := s.queriesSent[node]
 	if qq == nil {
-		qq = make(map[common.Hash]sentQuery)
+		qq = make(map[types.Hash]sentQuery)
 		s.queriesSent[node] = qq
 	}
 	qq[hash] = sentQuery{sent: now, lookup: lookup}
@@ -621,7 +621,7 @@ func (s *ticketStore) cleanupTopicQueries(now mclock.AbsTime) {
 	s.nextTopicQueryCleanup = now + mclock.AbsTime(topicQueryTimeout)
 }
 
-func (s *ticketStore) gotTopicNodes(from *Node, hash common.Hash, nodes []RpcNode) (timeout bool) {
+func (s *ticketStore) gotTopicNodes(from *Node, hash types.Hash, nodes []RpcNode) (timeout bool) {
 	now := mclock.Now()
 	//fmt.Println("got", from.addr().String(), hash, len(nodes))
 	qq := s.queriesSent[from]
@@ -679,7 +679,7 @@ type topicRadiusBucket struct {
 	weights    [trCount]float64
 	lastTime   mclock.AbsTime
 	value      float64
-	lookupSent map[common.Hash]mclock.AbsTime
+	lookupSent map[types.Hash]mclock.AbsTime
 }
 
 func (b *topicRadiusBucket) update(now mclock.AbsTime) {
@@ -726,7 +726,7 @@ func newTopicRadius(t Topic) *topicRadius {
 	}
 }
 
-func (r *topicRadius) getBucketIdx(addrHash common.Hash) int {
+func (r *topicRadius) getBucketIdx(addrHash types.Hash) int {
 	prefix := binary.BigEndian.Uint64(addrHash.Bytes[0:8])
 	var log2 float64
 	if prefix != r.topicHashPrefix {
@@ -743,7 +743,7 @@ func (r *topicRadius) getBucketIdx(addrHash common.Hash) int {
 	return bucket
 }
 
-func (r *topicRadius) targetForBucket(bucket int) common.Hash {
+func (r *topicRadius) targetForBucket(bucket int) types.Hash {
 	min := math.Pow(2, 64-float64(bucket+1)/radiusBucketsPerBit)
 	max := math.Pow(2, 64-float64(bucket)/radiusBucketsPerBit)
 	a := uint64(min)
@@ -753,7 +753,7 @@ func (r *topicRadius) targetForBucket(bucket int) common.Hash {
 		xor = ^uint64(0)
 	}
 	prefix := r.topicHashPrefix ^ xor
-	var target common.Hash
+	var target types.Hash
 	binary.BigEndian.PutUint64(target.Bytes[0:8], prefix)
 	globalRandRead(target.Bytes[8:])
 	return target
@@ -775,7 +775,7 @@ func globalRandRead(b []byte) {
 	}
 }
 
-func (r *topicRadius) isInRadius(addrHash common.Hash) bool {
+func (r *topicRadius) isInRadius(addrHash types.Hash) bool {
 	nodePrefix := binary.BigEndian.Uint64(addrHash.Bytes[0:8])
 	dist := nodePrefix ^ r.topicHashPrefix
 	return dist < r.radius
@@ -871,7 +871,7 @@ func (r *topicRadius) recalcRadius() (radius uint64, radiusLookup int) {
 	lookupRight := -1
 	if slopeCross != maxBucket && (minRadBucket <= maxBucket || r.needMoreLookups(maxBucket+lookupWidth, len(r.buckets)-1, maxValue)) {
 		for len(r.buckets) <= maxBucket+lookupWidth {
-			r.buckets = append(r.buckets, topicRadiusBucket{lookupSent: make(map[common.Hash]mclock.AbsTime)})
+			r.buckets = append(r.buckets, topicRadiusBucket{lookupSent: make(map[types.Hash]mclock.AbsTime)})
 		}
 		lookupRight = r.chooseLookupBucket(maxBucket, maxBucket+lookupWidth-1)
 	}
@@ -930,13 +930,13 @@ func (r *topicRadius) nextTarget(forceRegular bool) lookupInfo {
 	}
 
 	prefix := r.topicHashPrefix ^ rnd
-	var target common.Hash
+	var target types.Hash
 	binary.BigEndian.PutUint64(target.Bytes[0:8], prefix)
 	globalRandRead(target.Bytes[8:])
 	return lookupInfo{target: target, topic: r.topic, radiusLookup: false}
 }
 
-func (r *topicRadius) adjustWithTicket(now mclock.AbsTime, targetHash common.Hash, t ticketRef) {
+func (r *topicRadius) adjustWithTicket(now mclock.AbsTime, targetHash types.Hash, t ticketRef) {
 	wait := t.t.regTime[t.idx] - t.t.issueTime
 	inside := float64(wait)/float64(targetWaitTime) - 0.5
 	if inside > 1 {
@@ -948,7 +948,7 @@ func (r *topicRadius) adjustWithTicket(now mclock.AbsTime, targetHash common.Has
 	r.adjust(now, targetHash, t.t.node.sha, inside)
 }
 
-func (r *topicRadius) adjust(now mclock.AbsTime, targetHash, addrHash common.Hash, inside float64) {
+func (r *topicRadius) adjust(now mclock.AbsTime, targetHash, addrHash types.Hash, inside float64) {
 	bucket := r.getBucketIdx(addrHash)
 	//fmt.Println("adjust", bucket, len(r.buckets), inside)
 	if bucket >= len(r.buckets) {

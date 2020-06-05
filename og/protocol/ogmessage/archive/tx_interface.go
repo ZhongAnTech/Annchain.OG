@@ -15,7 +15,7 @@
 package archive
 
 import (
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -27,13 +27,13 @@ type RawTxi interface {
 	GetType() TxBaseType
 	GetHeight() uint64
 	GetWeight() uint64
-	GetHash() common.Hash
+	GetHash() types.Hash
 	GetNonce() uint64
-	Parents() common.Hashes // GetParents returns the hash of txs that it directly proves.
-	SetHash(h common.Hash)
+	Parents() types.Hashes // GetParents returns the hash of txs that it directly proves.
+	SetHash(h types.Hash)
 	String() string
-	CalcTxHash() common.Hash    // TxHash returns a full tx hash (parents sealed by PoW stage 2)
-	CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
+	CalcTxHash() types.Hash    // TxHash returns a full tx hash (parents sealed by PoW stage 2)
+	CalcMinedHash() types.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 	CalculateWeight(parents Txis) uint64
 
 	Txi() Txi

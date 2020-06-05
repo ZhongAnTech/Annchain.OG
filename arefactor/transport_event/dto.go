@@ -2,6 +2,8 @@ package transport_event
 
 import (
 	"fmt"
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/tinylib/msgp/msgp"
 )
 
 type SendType int
@@ -25,15 +27,24 @@ const (
 	SendTypeBroadcast                 // send to all peers in the network
 )
 
-type OutgoingRequest struct {
+type IncomingLetter struct {
+	Msg  *WireMessage
+	From string
+}
+
+func (i IncomingLetter) String() string {
+	return fmt.Sprintf("msgType=%d from=%s bytes=%s", i.Msg.MsgType, i.From, hexutil.Encode(i.Msg.ContentBytes))
+}
+
+type OutgoingLetter struct {
 	Msg            OutgoingMsg
 	SendType       SendType
 	CloseAfterSent bool
 	EndReceivers   []string // may be the relayer
 }
 
-func (o OutgoingRequest) String() string {
-	return fmt.Sprintf("sendtype=%s receivers=%s message=%s", o.SendType, PrettyIds(o.EndReceivers), o.Msg)
+func (o OutgoingLetter) String() string {
+	return fmt.Sprintf("sendtype=%s receivers=%s message=%s close=%t", o.SendType, PrettyIds(o.EndReceivers), o.Msg, o.CloseAfterSent)
 }
 
 type Bytable interface {
@@ -43,6 +54,8 @@ type Bytable interface {
 
 type OutgoingMsg interface {
 	Bytable
+	msgp.Marshaler
+	msgp.Unmarshaler
 	GetType() int
 	String() string
 }

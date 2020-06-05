@@ -2,7 +2,7 @@ package archive
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/bloom"
 	"strings"
@@ -120,8 +120,8 @@ func (h HashTerminats) String() string {
 // hashOrNumber is a combined field for specifying an origin block.
 //msgp:tuple HashOrNumber
 type HashOrNumber struct {
-	Hash   *common.Hash // Block hash from which to retrieve headers (excludes Number)
-	Number *uint64      // Block hash from which to retrieve headers (excludes Hash)
+	Hash   *types.Hash // Block hash from which to retrieve headers (excludes Number)
+	Number *uint64     // Block hash from which to retrieve headers (excludes Hash)
 }
 
 func (m *HashOrNumber) String() string {

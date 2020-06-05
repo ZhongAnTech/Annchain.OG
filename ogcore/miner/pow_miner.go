@@ -14,7 +14,7 @@
 package miner
 
 import (
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/byteutil"
 	"github.com/annchain/OG/og/types"
 	"github.com/sirupsen/logrus"
@@ -26,7 +26,7 @@ import (
 type PoWMiner struct {
 }
 
-func (m *PoWMiner) Mine(tx types.Txi, targetMax common.Hash, start uint64, responseChan chan uint64) bool {
+func (m *PoWMiner) Mine(tx types.Txi, targetMax types2.Hash, start uint64, responseChan chan uint64) bool {
 	switch tx.GetType() {
 	case types.TxBaseTypeTx:
 		return m.MineTx(tx.(*types.Tx), targetMax, start, responseChan)
@@ -37,7 +37,7 @@ func (m *PoWMiner) Mine(tx types.Txi, targetMax common.Hash, start uint64, respo
 	}
 }
 
-func (m *PoWMiner) MineTx(tx *types.Tx, targetMax common.Hash, start uint64, responseChan chan uint64) bool {
+func (m *PoWMiner) MineTx(tx *types.Tx, targetMax types2.Hash, start uint64, responseChan chan uint64) bool {
 	var i uint64
 	for i = start; i <= math.MaxUint64; i++ {
 		tx.SetMineNonce(i)
@@ -51,7 +51,7 @@ func (m *PoWMiner) MineTx(tx *types.Tx, targetMax common.Hash, start uint64, res
 	return false
 }
 
-func (m *PoWMiner) MineSequencer(seq *types.Sequencer, targetMax common.Hash, start uint64, responseChan chan uint64) bool {
+func (m *PoWMiner) MineSequencer(seq *types.Sequencer, targetMax types2.Hash, start uint64, responseChan chan uint64) bool {
 	var i uint64
 	for i = start; i <= math.MaxUint64; i++ {
 		seq.SetMineNonce(i)
@@ -65,7 +65,7 @@ func (m *PoWMiner) MineSequencer(seq *types.Sequencer, targetMax common.Hash, st
 	return false
 }
 
-func (m *PoWMiner) CalcHash(tx types.Txi) (hash common.Hash) {
+func (m *PoWMiner) CalcHash(tx types.Txi) (hash types2.Hash) {
 	switch tx.GetType() {
 	case types.TxBaseTypeTx:
 		return m.CalcHashTx(tx.(*types.Tx))
@@ -76,7 +76,7 @@ func (m *PoWMiner) CalcHash(tx types.Txi) (hash common.Hash) {
 	}
 }
 
-func (m *PoWMiner) CalcHashTx(tx *types.Tx) (hash common.Hash) {
+func (m *PoWMiner) CalcHashTx(tx *types.Tx) (hash types2.Hash) {
 	w := byteutil.NewBinaryWriter()
 
 	for _, ancestor := range tx.ParentsHash {
@@ -88,11 +88,11 @@ func (m *PoWMiner) CalcHashTx(tx *types.Tx) (hash common.Hash) {
 	w.Write(mineHash.Bytes)
 
 	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
+	hash.MustSetBytes(result[0:], types2.PaddingNone)
 	return
 }
 
-func (m *PoWMiner) CalcHashSequencer(seq *types.Sequencer) (hash common.Hash) {
+func (m *PoWMiner) CalcHashSequencer(seq *types.Sequencer) (hash types2.Hash) {
 	// TODO: double check the hash content
 	w := byteutil.NewBinaryWriter()
 
@@ -104,11 +104,11 @@ func (m *PoWMiner) CalcHashSequencer(seq *types.Sequencer) (hash common.Hash) {
 	w.Write(seq.Signature)
 
 	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
+	hash.MustSetBytes(result[0:], types2.PaddingNone)
 	return
 }
 
-func (m *PoWMiner) CalcMinedHash(tx types.Txi) (hash common.Hash) {
+func (m *PoWMiner) CalcMinedHash(tx types.Txi) (hash types2.Hash) {
 	switch tx.GetType() {
 	case types.TxBaseTypeTx:
 		return m.CalcMinedHashTx(tx.(*types.Tx))
@@ -119,18 +119,18 @@ func (m *PoWMiner) CalcMinedHash(tx types.Txi) (hash common.Hash) {
 	}
 }
 
-func (m *PoWMiner) CalcMinedHashTx(tx *types.Tx) (hash common.Hash) {
+func (m *PoWMiner) CalcMinedHashTx(tx *types.Tx) (hash types2.Hash) {
 	w := byteutil.NewBinaryWriter()
 	//if !CanRecoverPubFromSig {
 	w.Write(tx.PublicKey.ToBytes())
 	//}
 	w.Write(tx.Signature.ToBytes(), tx.MineNonce)
 	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
+	hash.MustSetBytes(result[0:], types2.PaddingNone)
 	return
 }
 
-func (m *PoWMiner) CalcMinedHashSequencer(seq *types.Sequencer) (hash common.Hash) {
+func (m *PoWMiner) CalcMinedHashSequencer(seq *types.Sequencer) (hash types2.Hash) {
 	w := byteutil.NewBinaryWriter()
 
 	for _, ancestor := range seq.ParentsHash {
@@ -141,11 +141,11 @@ func (m *PoWMiner) CalcMinedHashSequencer(seq *types.Sequencer) (hash common.Has
 	w.Write(seq.Signature)
 
 	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
+	hash.MustSetBytes(result[0:], types2.PaddingNone)
 	return
 }
 
-func (m *PoWMiner) IsMineHashValid(tx types.Txi, mineHash common.Hash, targetHashMax common.Hash) bool {
+func (m *PoWMiner) IsMineHashValid(tx types.Txi, mineHash types2.Hash, targetHashMax types2.Hash) bool {
 	switch tx.GetType() {
 	case types.TxBaseTypeTx:
 		return m.IsMineHashValidForTx(tx.(*types.Tx), mineHash, targetHashMax)
@@ -156,7 +156,7 @@ func (m *PoWMiner) IsMineHashValid(tx types.Txi, mineHash common.Hash, targetHas
 	}
 }
 
-func (m *PoWMiner) IsMineHashValidForTx(tx *types.Tx, mineHash common.Hash, targetHashMax common.Hash) bool {
+func (m *PoWMiner) IsMineHashValidForTx(tx *types.Tx, mineHash types2.Hash, targetHashMax types2.Hash) bool {
 	hash := m.CalcMinedHashTx(tx)
 	if hash.Cmp(mineHash) != 0 {
 		logrus.WithField("should", hash).WithField("actual", mineHash).Warn("hash is fake")
@@ -169,7 +169,7 @@ func (m *PoWMiner) IsMineHashValidForTx(tx *types.Tx, mineHash common.Hash, targ
 	return true
 }
 
-func (m *PoWMiner) IsMineHashValidForSequencer(tx *types.Sequencer, mineHash common.Hash, targetHashMax common.Hash) bool {
+func (m *PoWMiner) IsMineHashValidForSequencer(tx *types.Sequencer, mineHash types2.Hash, targetHashMax types2.Hash) bool {
 	hash := m.CalcMinedHashSequencer(tx)
 	if hash.Cmp(mineHash) != 0 {
 		logrus.WithField("should", hash).WithField("actual", mineHash).Warn("hash is fake")
@@ -182,7 +182,7 @@ func (m *PoWMiner) IsMineHashValidForSequencer(tx *types.Sequencer, mineHash com
 	return true
 }
 
-func (m *PoWMiner) IsHashValid(tx types.Txi, hash common.Hash, targetHashMax common.Hash) bool {
+func (m *PoWMiner) IsHashValid(tx types.Txi, hash types2.Hash, targetHashMax types2.Hash) bool {
 	switch tx.GetType() {
 	case types.TxBaseTypeTx:
 		return m.IsHashValidForTx(tx.(*types.Tx), hash, targetHashMax)
@@ -193,7 +193,7 @@ func (m *PoWMiner) IsHashValid(tx types.Txi, hash common.Hash, targetHashMax com
 	}
 }
 
-func (m *PoWMiner) IsHashValidForTx(tx *types.Tx, hash common.Hash, targetHashMax common.Hash) bool {
+func (m *PoWMiner) IsHashValidForTx(tx *types.Tx, hash types2.Hash, targetHashMax types2.Hash) bool {
 	calcHash := m.CalcHashTx(tx)
 	if calcHash.Cmp(hash) != 0 {
 		logrus.WithField("should", calcHash).WithField("actual", hash).Warn("hash is fake")
@@ -206,7 +206,7 @@ func (m *PoWMiner) IsHashValidForTx(tx *types.Tx, hash common.Hash, targetHashMa
 	return true
 }
 
-func (m *PoWMiner) IsHashValidForSequencer(tx *types.Sequencer, hash common.Hash, targetHashMax common.Hash) bool {
+func (m *PoWMiner) IsHashValidForSequencer(tx *types.Sequencer, hash types2.Hash, targetHashMax types2.Hash) bool {
 	calcHash := m.CalcHashSequencer(tx)
 	if calcHash.Cmp(hash) != 0 {
 		logrus.WithField("should", calcHash).WithField("actual", hash).Warn("calcHash is fake")
@@ -219,7 +219,7 @@ func (m *PoWMiner) IsHashValidForSequencer(tx *types.Sequencer, hash common.Hash
 	return true
 }
 
-func (m *PoWMiner) IsGood(tx types.Txi, targetMineHashMax common.Hash, targetHashMax common.Hash) bool {
+func (m *PoWMiner) IsGood(tx types.Txi, targetMineHashMax types2.Hash, targetHashMax types2.Hash) bool {
 	switch tx.GetType() {
 	case types.TxBaseTypeTx:
 		return m.IsGoodTx(tx.(*types.Tx), targetMineHashMax, targetHashMax)
@@ -230,10 +230,10 @@ func (m *PoWMiner) IsGood(tx types.Txi, targetMineHashMax common.Hash, targetHas
 	}
 }
 
-func (m *PoWMiner) IsGoodTx(tx *types.Tx, targetMineHashMax common.Hash, targetHashMax common.Hash) bool {
+func (m *PoWMiner) IsGoodTx(tx *types.Tx, targetMineHashMax types2.Hash, targetHashMax types2.Hash) bool {
 	return m.IsMineHashValidForTx(tx, tx.Hash, targetMineHashMax) && m.IsHashValidForTx(tx, tx.Hash, targetHashMax)
 }
 
-func (m *PoWMiner) IsGoodSequencer(seq *types.Sequencer, targetMineHashMax common.Hash, targetHashMax common.Hash) bool {
+func (m *PoWMiner) IsGoodSequencer(seq *types.Sequencer, targetMineHashMax types2.Hash, targetHashMax types2.Hash) bool {
 	return m.IsMineHashValidForSequencer(seq, seq.Hash, targetMineHashMax) && m.IsHashValidForSequencer(seq, seq.Hash, targetHashMax)
 }

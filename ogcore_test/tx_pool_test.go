@@ -14,6 +14,7 @@
 package ogcore_test
 
 import (
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/og/txmaker"
@@ -181,7 +182,7 @@ func TestPoolCommit(t *testing.T) {
 
 	// tx0's parent is genesis
 	tx0 := newTestPoolTx(0)
-	tx0.ParentsHash = common.Hashes{genesis.GetHash()}
+	tx0.ParentsHash = types2.Hashes{genesis.GetHash()}
 	err = poolTest.AddLocalTx(tx0, true)
 	if err != nil {
 		t.Fatalf("add tx0 to poolTest failed: %v", err)
@@ -199,7 +200,7 @@ func TestPoolCommit(t *testing.T) {
 
 	// tx1's parent is tx0
 	tx1 := newTestPoolTx(1)
-	tx1.ParentsHash = common.Hashes{tx0.GetHash()}
+	tx1.ParentsHash = types2.Hashes{tx0.GetHash()}
 	err = poolTest.AddLocalTx(tx1, true)
 	if err != nil {
 		t.Fatalf("add tx1 to poolTest failed: %v", err)
@@ -219,7 +220,7 @@ func TestPoolCommit(t *testing.T) {
 
 	// tx2's parent is genesis which is not in poolTest yet
 	tx2 := newTestPoolTx(2)
-	tx2.ParentsHash = common.Hashes{genesis.GetHash()}
+	tx2.ParentsHash = types2.Hashes{genesis.GetHash()}
 	err = poolTest.AddLocalTx(tx2, true)
 	if err != nil {
 		t.Fatalf("add tx2 to poolTest failed: %v", err)
@@ -258,7 +259,7 @@ func TestPoolConfirm(t *testing.T) {
 
 	// sequencer's parents are normal txs
 	tx0 := newTestPoolTx(0)
-	tx0.ParentsHash = common.Hashes{genesis.GetHash()}
+	tx0.ParentsHash = types2.Hashes{genesis.GetHash()}
 	poolTest.AddLocalTx(tx0, true)
 
 	// TODO
@@ -266,11 +267,11 @@ func TestPoolConfirm(t *testing.T) {
 	// poolTest.AddLocalTx(tx3)
 
 	tx1 := newTestPoolTx(1)
-	tx1.ParentsHash = common.Hashes{genesis.GetHash()}
+	tx1.ParentsHash = types2.Hashes{genesis.GetHash()}
 	poolTest.AddLocalTx(tx1, true)
 
 	seq := newTestSeq(1)
-	seq.ParentsHash = common.Hashes{
+	seq.ParentsHash = types2.Hashes{
 		tx0.GetHash(),
 		tx1.GetHash(),
 	}

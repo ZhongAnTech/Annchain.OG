@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 )
@@ -21,7 +22,7 @@ type StateDBInterface interface {
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
 
-	GetCodeHash(common.Address) common.Hash
+	GetCodeHash(common.Address) types.Hash
 	GetCode(common.Address) []byte
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
@@ -34,10 +35,10 @@ type StateDBInterface interface {
 	// GetRefund returns the current value of the refund counter.
 	GetRefund() uint64
 
-	GetCommittedState(common.Address, common.Hash) common.Hash
+	GetCommittedState(common.Address, types.Hash) types.Hash
 	// GetState retrieves a value from the given account's storage trie.
-	GetState(common.Address, common.Hash) common.Hash
-	SetState(common.Address, common.Hash, common.Hash)
+	GetState(common.Address, types.Hash) types.Hash
+	SetState(common.Address, types.Hash, types.Hash)
 
 	AppendJournal(JournalEntry)
 
@@ -62,9 +63,9 @@ type StateDBInterface interface {
 	Snapshot() int
 
 	//AddLog(*Log)
-	AddPreimage(common.Hash, []byte)
+	AddPreimage(types.Hash, []byte)
 
-	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
+	ForEachStorage(common.Address, func(types.Hash, types.Hash) bool)
 	// for debug.
 	String() string
 }

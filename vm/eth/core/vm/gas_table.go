@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	common2 "github.com/annchain/OG/common"
 	"github.com/annchain/OG/vm/eth/common"
 	"github.com/annchain/OG/vm/eth/common/math"
@@ -120,7 +121,7 @@ func gasReturnDataCopy(gt params.GasTable, ctx *vmtypes.Context, contract *vmtyp
 func gasSStore(gt params.GasTable, ctx *vmtypes.Context, contract *vmtypes.Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var (
 		y, x    = stack.Back(1), stack.Back(0)
-		current = ctx.StateDB.GetState(contract.Address(), common2.BigToHash(x))
+		current = ctx.StateDB.GetState(contract.Address(), types.BigToHash(x))
 	)
 	// This checks for 3 scenario's and calculates gas accordingly:
 	//
@@ -128,9 +129,9 @@ func gasSStore(gt params.GasTable, ctx *vmtypes.Context, contract *vmtypes.Contr
 	// 2. From a non-zero value address to a zero-value address (DELETE)
 	// 3. From a non-zero to a non-zero                         (CHANGE)
 	switch {
-	case current == (common2.Hash{}) && y.Sign() != 0: // 0 => non 0
+	case current == (types.Hash{}) && y.Sign() != 0: // 0 => non 0
 		return params.SstoreSetGas, nil
-	case current != (common2.Hash{}) && y.Sign() == 0: // non 0 => 0
+	case current != (types.Hash{}) && y.Sign() == 0: // non 0 => 0
 		ctx.StateDB.AddRefund(params.SstoreRefundGas)
 		return params.SstoreClearGas, nil
 	default: // non 0 => non 0 (or 0 => 0)
@@ -150,29 +151,29 @@ func gasSStore(gt params.GasTable, ctx *vmtypes.Context, contract *vmtypes.Contr
 	// 	  2.2.2. If original value equals new value (this storage slot is reset)
 	//       2.2.2.1. If original value is 0, add 19800 gas to refund counter.
 	// 	     2.2.2.2. Otherwise, add 4800 gas to refund counter.
-	value := common2.BigToHash(y)
+	value := types.BigToHash(y)
 	if current == value { // noop (1)
 		return params.NetSstoreNoopGas, nil
 	}
-	original := ctx.StateDB.GetCommittedState(contract.Address(), common2.BigToHash(x))
+	original := ctx.StateDB.GetCommittedState(contract.Address(), types.BigToHash(x))
 	if original == current {
-		if original == (common2.Hash{}) { // create slot (2.1.1)
+		if original == (types.Hash{}) { // create slot (2.1.1)
 			return params.NetSstoreInitGas, nil
 		}
-		if value == (common2.Hash{}) { // delete slot (2.1.2b)
+		if value == (types.Hash{}) { // delete slot (2.1.2b)
 			ctx.StateDB.AddRefund(params.NetSstoreClearRefund)
 		}
 		return params.NetSstoreCleanGas, nil // write existing slot (2.1.2)
 	}
-	if original != (common2.Hash{}) {
-		if current == (common2.Hash{}) { // recreate slot (2.2.1.1)
+	if original != (types.Hash{}) {
+		if current == (types.Hash{}) { // recreate slot (2.2.1.1)
 			ctx.StateDB.SubRefund(params.NetSstoreClearRefund)
-		} else if value == (common2.Hash{}) { // delete slot (2.2.1.2)
+		} else if value == (types.Hash{}) { // delete slot (2.2.1.2)
 			ctx.StateDB.AddRefund(params.NetSstoreClearRefund)
 		}
 	}
 	if original == value {
-		if original == (common2.Hash{}) { // reset to original inexistent slot (2.2.2.1)
+		if original == (types.Hash{}) { // reset to original inexistent slot (2.2.2.1)
 			ctx.StateDB.AddRefund(params.NetSstoreResetClearRefund)
 		} else { // reset to original existing slot (2.2.2.2)
 			ctx.StateDB.AddRefund(params.NetSstoreResetRefund)

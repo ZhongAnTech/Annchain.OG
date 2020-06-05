@@ -1,7 +1,7 @@
 package ogcore
 
 import (
-	"github.com/annchain/OG/common"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
 	"github.com/annchain/OG/og/types"
@@ -100,7 +100,7 @@ func (o *OgCore) LoadHeightTxis(height uint64, offset int, count int) []types.Tx
 	return o.LedgerTxProvider.GetHeightTxs(height, offset, count)
 }
 
-func (o *OgCore) LoadTxis(hashes common.Hashes, maxCount int) types.Txis {
+func (o *OgCore) LoadTxis(hashes types2.Hashes, maxCount int) types.Txis {
 	var txis types.Txis
 	for i, hash := range hashes {
 		txi, err := o.KnownTxiCache.Get(hash)

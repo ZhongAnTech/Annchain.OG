@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"math/big"
 )
@@ -12,7 +13,7 @@ type (
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH OVM op code.
-	GetHashFunc func(uint64) common.Hash
+	GetHashFunc func(uint64) types.Hash
 )
 
 // Context provides the OVM with auxiliary information. Once provided

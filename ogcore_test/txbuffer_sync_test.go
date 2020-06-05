@@ -2,6 +2,7 @@ package ogcore_test
 
 import (
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/eventbus"
@@ -71,7 +72,7 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 		txPool.InitDefault()
 
 		genesis := &types.Sequencer{
-			Hash:         common.HexToHashNoError("0x00"),
+			Hash:         types2.HexToHashNoError("0x00"),
 			ParentsHash:  nil,
 			Height:       1,
 			MineNonce:    0,
@@ -79,7 +80,7 @@ func setupSyncBuffer(total int) []*ogcore.OgPartner {
 			Issuer:       common.HexToAddressNoError("0x00"),
 			Signature:    nil,
 			PublicKey:    nil,
-			StateRoot:    common.Hash{},
+			StateRoot:    types2.Hash{},
 			Weight:       1,
 		}
 

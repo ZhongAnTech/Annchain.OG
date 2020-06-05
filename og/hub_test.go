@@ -15,7 +15,7 @@ package og
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/downloader"
 	"github.com/annchain/OG/og/types/archive"
@@ -60,7 +60,7 @@ func TestSh256(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		var m types
 		m.MessageType = archive.MessageTypeBodiesResponse
-		h := common.RandomHash()
+		h := types.RandomHash()
 		m.Data = append(m.Data, h.Bytes[:]...)
 		msg = append(msg, m)
 	}

@@ -118,6 +118,17 @@ func (a *AccountFlowSet) ResetFlow(addr common.Address, originBalance state.Bala
 	a.afs[addr] = NewAccountFlow(originBalance)
 }
 
+func (a *AccountFlowSet) MergeFlow(addr common.Address, af *AccountFlow) {
+	afOld := a.afs[addr]
+	if afOld == nil {
+		a.afs[addr] = afOld
+		return
+	}
+
+	afOld.MergeFlow(af)
+	a.afs[addr] = afOld
+}
+
 func (a *AccountFlowSet) Remove(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -150,6 +161,13 @@ func NewAccountFlow(originBalance state.BalanceSet) *AccountFlow {
 	return &AccountFlow{
 		balances: bls,
 		txlist:   NewTxList(),
+	}
+}
+
+func NewAccountFlowWithFullData(balanceStates map[int32]*BalanceState, txlist *TxList) *AccountFlow {
+	return &AccountFlow{
+		balances: balanceStates,
+		txlist:   txlist,
 	}
 }
 
@@ -242,6 +260,21 @@ func (af *AccountFlow) LatestNonce() (uint64, error) {
 	return keys.Tail(), nil
 }
 
+func (af *AccountFlow) MergeFlow(afToMerge *AccountFlow) {
+	for tokenID, blc := range afToMerge.balances {
+		if af.balances[tokenID] == nil {
+			af.balances[tokenID] = blc
+			continue
+		}
+		blcOld := af.balances[tokenID]
+		blcOld.spent = blcOld.spent.Add(blc.spent)
+		af.balances[tokenID] = blcOld
+	}
+	for _, nonce := range *afToMerge.txlist.keys {
+		af.txlist.Put(afToMerge.GetTx(nonce))
+	}
+}
+
 type BalanceState struct {
 	spent         *math.BigInt
 	originBalance *math.BigInt
@@ -253,6 +286,14 @@ func NewBalanceState(balance *math.BigInt) *BalanceState {
 		originBalance: balance,
 	}
 }
+
+func NewBalanceStateWithFullData(balance *math.BigInt, spent *math.BigInt) *BalanceState {
+	return &BalanceState{
+		spent:         spent,
+		originBalance: balance,
+	}
+}
+
 func (bs *BalanceState) Spent() *math.BigInt {
 	return bs.spent
 }

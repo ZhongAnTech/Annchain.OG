@@ -215,32 +215,70 @@ func (s *txPoolStorage) tryProcessTx(tx types.Txi) TxQuality {
 	return TxQualityIsGood
 }
 
-func (s *txPoolStorage) switchToConfirmBatch(batch *confirmBatch) {
-	txToRejudge := make([]*txEnvelope, 0)
+func (s *txPoolStorage) switchToConfirmBatch(batch *confirmBatch) (txToRejudge []*txEnvelope) {
+	txToRejudge = make([]*txEnvelope, 0)
 	newTxOrder := make([]*txEnvelope, 0)
 	for _, hash := range s.getTxHashesInOrder() {
 		txEnv := s.getTxEnvelope(hash)
-		if txEnv.tx.GetType() == types.TxBaseTypeNormal && batch.existTx(hash) {
-			newTxOrder = append(newTxOrder, txEnv)
-			continue
-		} else if txEnv.tx.GetType() == types.TxBaseTypeSequencer && batch.existSeq(hash) {
+		if txEnv.tx.GetType() != types.TxBaseTypeSequencer {
+			if batch.existTx(hash) {
+				newTxOrder = append(newTxOrder, txEnv)
+				continue
+			} else {
+				txToRejudge = append(txToRejudge, txEnv)
+				continue
+			}
+		}
+		if txEnv.tx.GetType() == types.TxBaseTypeSequencer && batch.existSeq(hash) {
 			newTxOrder = append(newTxOrder, txEnv)
 			continue
 		}
-		txToRejudge = append(txToRejudge, txEnv)
 	}
 	s.removeAll()
 
 	// deal confirmed txs
 	for _, txenv := range newTxOrder {
-		if txenv.tx.GetType() == types.TxBaseTypeNormal {
-			txenv.status = TxStatusPending
-		} else if txenv.tx.GetType() == types.TxBaseTypeSequencer {
+		if txenv.tx.GetType() == types.TxBaseTypeSequencer {
 			txenv.status = TxStatusSeqPreConfirm
+		} else {
+			txenv.status = TxStatusPending
 		}
 		s.txLookup.Add(txenv)
 	}
 
+	// deal account flows
+	batches := make([]*confirmBatch, 0)
+	curBatch := batch
+	for curBatch != nil {
+		batches = append(batches, curBatch)
+		curBatch = curBatch.parent
+	}
+	for i := len(batches) - 1; i >= 0; i-- {
+		curBatch = batches[i]
+
+		for addr, detail := range curBatch.details {
+			balanceStates := make(map[int32]*BalanceState)
+
+			for tokenID, blc := range detail.resultBalance {
+				originBlc := math.NewBigIntFromBigInt(blc.Value)
+				earn := detail.earn[tokenID]
+				if earn != nil {
+					originBlc = originBlc.Sub(earn)
+				}
+				cost := detail.cost[tokenID]
+				if cost != nil {
+					originBlc = originBlc.Add(cost)
+				}
+
+				balanceStates[tokenID] = NewBalanceStateWithFullData(originBlc, math.NewBigIntFromBigInt(cost.Value))
+			}
+
+			accountFLow := NewAccountFlowWithFullData(balanceStates, detail.txList)
+			s.flows.MergeFlow(addr, accountFLow)
+		}
+	}
+
+	return txToRejudge
 }
 
 // ----------------------------------------------------

@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types/tx_types"
 	"math/rand"
@@ -73,16 +72,17 @@ type TxPool struct {
 }
 
 func (pool *TxPool) GetBenchmarks() map[string]interface{} {
+	tipsNum, badNum, pendingNum := pool.storage.txLookup.Stats()
 	return map[string]interface{}{
 		"queue":      len(pool.queue),
 		"event":      len(pool.onNewTxReceived),
-		"txlookup":   len(pool.txLookup.txs),
-		"tips":       len(pool.tips.txs),
-		"badtxs":     len(pool.badtxs.txs),
+		"txlookup":   len(pool.storage.txLookup.txs),
+		"tips":       tipsNum,
+		"badtxs":     badNum,
+		"pendings":   pendingNum,
 		"latest_seq": int(pool.dag.latestSequencer.Number()),
-		"pendings":   len(pool.pendings.txs),
-		"flows":      len(pool.flows.afs),
-		"hashordr":   len(pool.txLookup.order),
+		"flows":      len(pool.storage.flows.afs),
+		"hashordr":   len(pool.storage.getTxHashesInOrder()),
 	}
 }
 
@@ -798,21 +798,23 @@ func (pool *TxPool) confirm(tailSeq *tx_types.Sequencer) error {
 	})
 
 	// solve conflicts of txs in pool
-	pool.solveConflicts(batch)
-	// add seq to txpool
-	if pool.flows.Get(seq.Sender()) == nil {
-		pool.flows.ResetFlow(seq.Sender(), state.NewBalanceSet())
-	}
-	pool.flows.Add(seq)
-	pool.tips.Add(seq)
-	pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
+	tailBatch := pool.cachedBatches.getConfirmBatch(tailSeq.GetTxHash())
+	pool.solveConflicts(tailBatch)
+
+	//// add seq to txpool
+	//if pool.flows.Get(seq.Sender()) == nil {
+	//	pool.flows.ResetFlow(seq.Sender(), state.NewBalanceSet())
+	//}
+	//pool.flows.Add(seq)
+	//pool.tips.Add(seq)
+	//pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
 
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
 		if status.NodeStopped {
 			break
 		}
-		c <- elders
+		c <- batch.eldersQueryMap
 	}
 	for _, c := range pool.OnNewLatestSequencer {
 		if status.NodeStopped {
@@ -821,7 +823,7 @@ func (pool *TxPool) confirm(tailSeq *tx_types.Sequencer) error {
 		c <- true
 	}
 
-	log.WithField("seq height", seq.Height).WithField("seq", seq).Trace("finished confirm seq")
+	log.WithField("seq height", batch.seq.Height).WithField("seq", batch.seq).Trace("finished confirm seq")
 	return nil
 }
 
@@ -890,45 +892,10 @@ func (pool *TxPool) seekElders(seq *tx_types.Sequencer) (map[common.Hash]types.T
 // solveConflicts remove elders from txpool and reprocess
 // all txs in the pool in order to make sure all txs are
 // correct after seq confirmation.
-func (pool *TxPool) solveConflicts(batch *confirmBatch) {
-	// remove elders from pool.txLookUp.txs
-	//
-	// pool.txLookUp.remove() will try remove tx from txLookup.order
-	// and it will call hash.Cmp() to check if two hashes are the same.
-	// For a large amount of txs to remove, hash.Cmp() will cost a O(n^2)
-	// complexity. To solve this, solveConflicts will just remove the tx
-	// from txLookUp.txs, which is a map struct, and find out txs left
-	// which in this case is stored in txsInPool. As for the txs should
-	// be removed from pool, pool.clearall() will be called to remove all
-	// the txs in the pool including pool.txLookUp.order.
+func (pool *TxPool) solveConflicts(tailBatch *confirmBatch) {
 
-	// remove elders from pool
-	for _, tx := range batch.Txs {
-		elderHash := tx.GetTxHash()
-		pool.txLookup.removeTxFromMapOnly(elderHash)
-	}
-
-	// change storage status to chosen seq batch status
-
-	var txsInPool []*txEnvelope
-	for _, hash := range pool.storage.getTxHashesInOrder() {
-		txEnv := pool.storage.getTxEnvelope(hash)
-		if txEnv == nil {
-			continue
-		}
-		if txEnv.tx.GetType() == types.TxBaseTypeSequencer {
-			continue
-		}
-		txsInPool = append(txsInPool, txEnv)
-	}
-
-	seqEnv := pool.txLookup.GetEnvelope(batch.Seq.GetTxHash())
-	pool.clearAll()
-	if seqEnv != nil {
-		defer pool.txLookup.Add(seqEnv)
-	}
-
-	for _, txEnv := range txsInPool {
+	txToRejudge := pool.storage.switchToConfirmBatch(tailBatch)
+	for _, txEnv := range txToRejudge {
 		if txEnv.judgeNum >= PoolRejudgeThreshold {
 			log.WithField("txEnvelope", txEnv.String()).Infof("exceed rejudge time, throw away")
 			continue
@@ -938,7 +905,7 @@ func (pool *TxPool) solveConflicts(batch *confirmBatch) {
 		txEnv.txType = TxTypeRejudge
 		txEnv.status = TxStatusQueue
 		txEnv.judgeNum += 1
-		pool.txLookup.Add(txEnv)
+		pool.storage.addTxEnv(txEnv)
 		e := pool.commit(txEnv.tx)
 		if e != nil {
 			log.WithField("txEnvelope ", txEnv).WithError(e).Debug("rejudge error")
@@ -1379,5 +1346,5 @@ func (bd *batchDetail) verifyNonce(nonces nonceHeap) error {
 //}
 
 func (pool *TxPool) GetOrder() common.Hashes {
-	return pool.txLookup.GetOrder()
+	return pool.storage.getTxHashesInOrder()
 }

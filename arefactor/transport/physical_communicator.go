@@ -28,6 +28,7 @@ var IpLayerProtocol = "tcp"
 type IoEvent struct {
 	Neighbour *Neighbour
 	Err       error
+	Reason    string
 }
 
 // PhysicalCommunicator
@@ -42,7 +43,7 @@ type PhysicalCommunicator struct {
 	tryingPeers                   map[peer.ID]bool                     // peers that is trying to connect.
 	incomingChannel               chan *transport_event.IncomingLetter // incoming message channel
 	outgoingChannel               chan *transport_event.OutgoingLetter // universal outgoing channel to collect send requests
-	ioEventChannel                chan *IoEvent                        // receive event when peer disconnects
+	ioEventChannel                chan *IoEvent                        // receive discard when peer disconnects
 	newIncomingMessageSubscribers []transport_event.NewIncomingMessageEventSubscriber
 
 	initWait sync.WaitGroup
@@ -76,17 +77,33 @@ func (c *PhysicalCommunicator) InitDefault() {
 func (c *PhysicalCommunicator) Start() {
 	// start consuming queue
 	go c.Listen()
-	go c.consumeQueue()
-	go c.recoverPeer()
+	go c.mainLoop()
+	go c.peerDiscovery()
 }
 
-func (c *PhysicalCommunicator) consumeQueue() {
+func (c *PhysicalCommunicator) peerDiscovery() {
 	c.initWait.Wait()
 	for {
 		select {
+		case <-c.quit:
+			return
+		default:
+			time.Sleep(time.Second * 1) // at least sleep one second to prevent flood
+			c.pickOneAndConnect()
+		}
+	}
+}
+
+func (c *PhysicalCommunicator) mainLoop() {
+	c.initWait.Wait()
+	for {
+		select {
+		case <-c.quit:
+			// TODO: close all peers
+			return
 		case outgoingLetter := <-c.outgoingChannel:
 			logrus.WithField("outgoingLetter", outgoingLetter).Trace("physical communicator got a request from outgoing channel")
-			go c.handleOutgoing(outgoingLetter)
+			c.handleOutgoing(outgoingLetter)
 		case incomingLetter := <-c.incomingChannel:
 			c.NetworkReporter.Report("receive", incomingLetter)
 			for _, sub := range c.newIncomingMessageSubscribers {
@@ -94,11 +111,11 @@ func (c *PhysicalCommunicator) consumeQueue() {
 				<-goffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), incomingLetter, "receive message "+sub.Name()).C
 				//sub.GetNewIncomingMessageEventChannel() <- message
 			}
-		case <-c.quit:
-			return
+		case event := <-c.ioEventChannel:
+			logrus.WithField("reason", event.Reason).WithError(event.Err).Trace("peer down")
+			c.handlePeerError(event.Neighbour)
 		}
 	}
-
 }
 
 func (c *PhysicalCommunicator) Stop() {
@@ -193,8 +210,7 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 	c.activePeers[peerId] = neighbour
 	logrus.WithField("peerId", peerId).Debug("peer becomes active")
 
-	go neighbour.StartRead()
-	go neighbour.StartWrite()
+	neighbour.Start()
 }
 
 func (c *PhysicalCommunicator) ClosePeer(id string) {
@@ -301,7 +317,7 @@ func (c *PhysicalCommunicator) handleOutgoing(req *transport_event.OutgoingLette
 	logrus.Trace("physical is handling send request")
 	if req.SendType == transport_event.SendTypeBroadcast {
 		for _, neighbour := range c.activePeers {
-			go neighbour.Send(req)
+			neighbour.EnqueueSend(req)
 		}
 		return
 	}
@@ -320,7 +336,7 @@ func (c *PhysicalCommunicator) handleOutgoing(req *transport_event.OutgoingLette
 		}
 		logrus.WithField("peerId", peerId).Trace("go send")
 		c.NetworkReporter.Report("send", req)
-		go neighbour.Send(req)
+		neighbour.EnqueueSend(req)
 	}
 }
 
@@ -365,23 +381,15 @@ func (c *PhysicalCommunicator) pickOneAndConnect() {
 	//logrus.WithField("s", info).WithError(err).Warn("connection established")
 }
 
-func (c *PhysicalCommunicator) recoverPeer() {
-	for {
-		select {
-		case <-c.quit:
-			return
-		case event := <-c.ioEventChannel:
-			c.reportPeerDown(event.Neighbour)
-		default:
-			time.Sleep(time.Second * 1) // at least sleep one second to prevent flood
-			c.pickOneAndConnect()
-		}
-	}
-}
-
-func (c *PhysicalCommunicator) reportPeerDown(neighbour *Neighbour) {
+func (c *PhysicalCommunicator) handlePeerError(neighbour *Neighbour) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.activePeers, neighbour.Id)
 	c.tryingPeers[neighbour.Id] = true
+	logrus.Trace("closing stream")
+	err := neighbour.Stream.Close()
+	if err != nil {
+		logrus.WithError(err).Warn("closing stream")
+	}
+	neighbour.Close()
 }

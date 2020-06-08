@@ -21,6 +21,7 @@ require (
 	github.com/influxdata/influxdb v1.7.6
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
+	github.com/jessevdk/go-flags v1.4.0 // indirect
 	github.com/latifrons/soccerdash v0.0.0-20200526135519-7df7239ba832
 	github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 // indirect
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f

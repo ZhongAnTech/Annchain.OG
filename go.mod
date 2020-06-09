@@ -12,6 +12,7 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/gin-gonic/gin v1.5.0
+	github.com/go-co-op/gocron v0.2.0
 	github.com/golang/snappy v0.0.1
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.0

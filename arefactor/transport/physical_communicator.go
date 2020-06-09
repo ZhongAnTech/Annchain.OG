@@ -112,7 +112,7 @@ func (c *PhysicalCommunicator) mainLoop() {
 				//sub.GetNewIncomingMessageEventChannel() <- message
 			}
 		case event := <-c.ioEventChannel:
-			logrus.WithField("reason", event.Reason).WithError(event.Err).Trace("peer down")
+			logrus.WithField("reason", event.Reason).WithError(event.Err).Trace("physical got neighbour down event")
 			c.handlePeerError(event.Neighbour)
 		}
 	}
@@ -214,7 +214,32 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 }
 
 func (c *PhysicalCommunicator) ClosePeer(id string) {
+	idt, err := peer.Decode(id)
+	if err != nil {
+		logrus.WithError(err).Warn("Id format not recognized")
+		return
+	}
+	c.closePeer(idt)
+}
 
+func (c *PhysicalCommunicator) closePeer(id peer.ID) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	neighbour, ok := c.activePeers[id]
+	if !ok {
+		logrus.WithField("peerId", id).Trace("peer already removed from activePeers")
+		return
+	}
+
+	delete(c.activePeers, neighbour.Id)
+	c.tryingPeers[neighbour.Id] = true
+	logrus.Trace("physical is closing neighbour stream")
+	err := neighbour.Stream.Close()
+	if err != nil {
+		logrus.WithError(err).Warn("physical closing stream")
+	}
+	neighbour.CloseOutgoing()
 }
 
 func (c *PhysicalCommunicator) GetNeighbour(id string) (neighbour *Neighbour, err error) {
@@ -382,14 +407,5 @@ func (c *PhysicalCommunicator) pickOneAndConnect() {
 }
 
 func (c *PhysicalCommunicator) handlePeerError(neighbour *Neighbour) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.activePeers, neighbour.Id)
-	c.tryingPeers[neighbour.Id] = true
-	logrus.Trace("closing stream")
-	err := neighbour.Stream.Close()
-	if err != nil {
-		logrus.WithError(err).Warn("closing stream")
-	}
-	neighbour.Close()
+	c.closePeer(neighbour.Id)
 }

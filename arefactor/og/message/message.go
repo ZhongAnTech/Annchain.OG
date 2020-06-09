@@ -125,6 +125,7 @@ func (z *OgMessagePing) FromBytes(bts []byte) error {
 //msgp OgMessagePong
 type OgMessagePong struct {
 	Protocol string
+	Close    bool
 }
 
 func (m *OgMessagePong) String() string {

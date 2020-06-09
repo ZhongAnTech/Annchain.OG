@@ -56,7 +56,7 @@ type OutgoingMsg interface {
 	Bytable
 	msgp.Marshaler
 	msgp.Unmarshaler
-	GetType() int
+	GetTypeValue() int
 	String() string
 }
 

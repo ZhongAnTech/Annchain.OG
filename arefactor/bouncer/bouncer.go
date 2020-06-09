@@ -63,7 +63,7 @@ func (b *Bouncer) loop() {
 				EndReceivers: []string{b.Peers[(b.Id+1)%len(b.Peers)]},
 			}
 			for _, c := range b.newOutgoingMessageSubscribers {
-				<-goffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
+				<-goffchan.NewTimeoutSender(c.NewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
 
 			}
 			b.i = bm.Value + 1
@@ -81,7 +81,7 @@ func (b *Bouncer) loop() {
 					EndReceivers: []string{b.Peers[1]},
 				}
 				for _, c := range b.newOutgoingMessageSubscribers {
-					<-goffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
+					<-goffchan.NewTimeoutSender(c.NewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
 				}
 				b.i += 10
 			}

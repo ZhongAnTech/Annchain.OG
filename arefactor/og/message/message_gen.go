@@ -311,6 +311,12 @@ func (z *OgMessagePong) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Protocol")
 				return
 			}
+		case "Close":
+			z.Close, err = dc.ReadBool()
+			if err != nil {
+				err = msgp.WrapError(err, "Close")
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -324,9 +330,9 @@ func (z *OgMessagePong) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z OgMessagePong) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
+	// map header, size 2
 	// write "Protocol"
-	err = en.Append(0x81, 0xa8, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c)
+	err = en.Append(0x82, 0xa8, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c)
 	if err != nil {
 		return
 	}
@@ -335,16 +341,29 @@ func (z OgMessagePong) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Protocol")
 		return
 	}
+	// write "Close"
+	err = en.Append(0xa5, 0x43, 0x6c, 0x6f, 0x73, 0x65)
+	if err != nil {
+		return
+	}
+	err = en.WriteBool(z.Close)
+	if err != nil {
+		err = msgp.WrapError(err, "Close")
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z OgMessagePong) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
+	// map header, size 2
 	// string "Protocol"
-	o = append(o, 0x81, 0xa8, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c)
+	o = append(o, 0x82, 0xa8, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c)
 	o = msgp.AppendString(o, z.Protocol)
+	// string "Close"
+	o = append(o, 0xa5, 0x43, 0x6c, 0x6f, 0x73, 0x65)
+	o = msgp.AppendBool(o, z.Close)
 	return
 }
 
@@ -372,6 +391,12 @@ func (z *OgMessagePong) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "Protocol")
 				return
 			}
+		case "Close":
+			z.Close, bts, err = msgp.ReadBoolBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Close")
+				return
+			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -386,7 +411,7 @@ func (z *OgMessagePong) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z OgMessagePong) Msgsize() (s int) {
-	s = 1 + 9 + msgp.StringPrefixSize + len(z.Protocol)
+	s = 1 + 9 + msgp.StringPrefixSize + len(z.Protocol) + 6 + msgp.BoolSize
 	return
 }
 

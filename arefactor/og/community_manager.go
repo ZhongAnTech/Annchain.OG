@@ -74,6 +74,8 @@ func (d *DefaultCommunityManager) loop() {
 			switch message.OgMessageType(incomingLetter.Msg.MsgType) {
 			case message.OgMessageTypePing:
 				d.handleMsgPing(incomingLetter)
+			case message.OgMessageTypePong:
+				d.handleMsgPong(incomingLetter)
 			}
 		}
 	}
@@ -112,20 +114,25 @@ func (d *DefaultCommunityManager) StaticSetup() {
 	}
 }
 
+func (d *DefaultCommunityManager) notifyNewOutgoingMessageSubscribers(req *transport_event.OutgoingLetter) {
+	for _, subscriber := range d.newOutgoingMessageSubscribers {
+		//goffchan.NewTimeoutSenderShort(subscriber.GetNewOutgoingMessageEventChannel(), req, "outgoing")
+		subscriber.GetNewOutgoingMessageEventChannel() <- req
+	}
+}
+
 func (d *DefaultCommunityManager) handleMsgPing(letter *transport_event.IncomingLetter) {
 	m := &message.OgMessagePing{}
 	_, err := m.UnmarshalMsg(letter.Msg.ContentBytes)
 	if err != nil {
 		logrus.WithField("type", "OgMessagePing").WithError(err).Warn("bad message")
 	}
-	// TODO: adapt multiple protocols
-	closeFlag := false
-	if m.Protocol == Protocol {
-		closeFlag = true
-	}
+
+	closeFlag := !d.protocolMatch(Protocol, m.Protocol)
 
 	resp := &message.OgMessagePong{
 		Protocol: Protocol,
+		Close:    closeFlag,
 	}
 
 	oreq := &transport_event.OutgoingLetter{
@@ -137,9 +144,21 @@ func (d *DefaultCommunityManager) handleMsgPing(letter *transport_event.Incoming
 	d.notifyNewOutgoingMessageSubscribers(oreq)
 }
 
-func (d *DefaultCommunityManager) notifyNewOutgoingMessageSubscribers(req *transport_event.OutgoingLetter) {
-	for _, subscriber := range d.newOutgoingMessageSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.GetNewOutgoingMessageEventChannel(), req, "outgoing")
-		subscriber.GetNewOutgoingMessageEventChannel() <- req
+func (d *DefaultCommunityManager) handleMsgPong(letter *transport_event.IncomingLetter) {
+	// if we get a pong with close flag, the target peer is dropping us.
+	m := &message.OgMessagePong{}
+	_, err := m.UnmarshalMsg(letter.Msg.ContentBytes)
+	if err != nil {
+		logrus.WithField("type", "OgMessagePong").WithError(err).Warn("bad message")
 	}
+	// remove the peer if not removed
+	if m.Close || !d.protocolMatch(Protocol, m.Protocol) {
+		logrus.WithField("peer", letter.From).Debug("closing neighbour because the target is closing")
+		d.PhysicalCommunicator.ClosePeer(letter.From)
+	}
+}
+
+func (d *DefaultCommunityManager) protocolMatch(mine string, theirs string) bool {
+	// TODO: adapt multiple protocols
+	return mine == theirs
 }

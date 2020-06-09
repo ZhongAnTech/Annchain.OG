@@ -118,7 +118,7 @@ func (c *Neighbour) EnqueueSend(req *transport_event.OutgoingLetter) {
 	}
 }
 
-func (c *Neighbour) Close() {
+func (c *Neighbour) CloseOutgoing() {
 	if atomic.AddInt32(&c.closing, 1) != 1 {
 		// cannot close twice
 		logrus.Trace("forbid close twice")
@@ -126,7 +126,7 @@ func (c *Neighbour) Close() {
 	}
 	logrus.Trace("neighbour closing")
 	close(c.outgoingChannel)
-	logrus.Trace("neighbour closed")
+	logrus.Warn("neighbour closed")
 }
 
 func (c *Neighbour) peerError(err error, reason string) {

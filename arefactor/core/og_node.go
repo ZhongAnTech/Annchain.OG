@@ -60,6 +60,7 @@ func (n *OgNode) Setup() {
 		Ledger:           ledger,
 		CommunityManager: cpCommunityManager,
 	}
+	cpCommunityManager.NodeInfoProvider = cpOgEngine
 
 	cpOgEngine.InitDefault()
 	cpOgEngine.StaticSetup()
@@ -79,6 +80,12 @@ func (n *OgNode) Setup() {
 	// message receivers
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpOgEngine)
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpCommunityManager)
+
+	// peer connected
+	cpTransport.AddSubscriberPeerConnectedEvent(cpCommunityManager)
+
+	// peer joined to the network cluster (protocol verified)
+	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpOgEngine)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpOgEngine)

@@ -38,12 +38,14 @@ type PhysicalCommunicator struct {
 	ProtocolId      string
 	NetworkReporter *performance.SoccerdashReporter
 
-	node                          host.Host                            // p2p host to receive new streams
-	activePeers                   map[peer.ID]*Neighbour               // active peers that will be reconnect if error
-	tryingPeers                   map[peer.ID]bool                     // peers that is trying to connect.
-	incomingChannel               chan *transport_event.IncomingLetter // incoming message channel
-	outgoingChannel               chan *transport_event.OutgoingLetter // universal outgoing channel to collect send requests
-	ioEventChannel                chan *IoEvent                        // receive discard when peer disconnects
+	node            host.Host                            // p2p host to receive new streams
+	activePeers     map[peer.ID]*Neighbour               // active peers that will be reconnect if error
+	tryingPeers     map[peer.ID]bool                     // peers that is trying to connect.
+	incomingChannel chan *transport_event.IncomingLetter // incoming message channel
+	outgoingChannel chan *transport_event.OutgoingLetter // universal outgoing channel to collect send requests
+	ioEventChannel  chan *IoEvent                        // receive discard when peer disconnects
+
+	peerConnectedSubscribers      []transport_event.PeerConnectedEventSubscriber
 	newIncomingMessageSubscribers []transport_event.NewIncomingMessageEventSubscriber
 
 	initWait sync.WaitGroup
@@ -59,6 +61,26 @@ func (c *PhysicalCommunicator) AddSubscriberNewIncomingMessageEvent(sub transpor
 	c.newIncomingMessageSubscribers = append(c.newIncomingMessageSubscribers, sub)
 }
 
+func (c *PhysicalCommunicator) notifyNewIncomingMessage(incomingLetter *transport_event.IncomingLetter) {
+	for _, sub := range c.newIncomingMessageSubscribers {
+		//sub.GetNewIncomingMessageEventChannel() <- message
+		<-goffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), incomingLetter, "receive message "+sub.Name()).C
+		//sub.GetNewIncomingMessageEventChannel() <- message
+	}
+}
+
+func (c *PhysicalCommunicator) AddSubscriberPeerConnectedEvent(sub transport_event.PeerConnectedEventSubscriber) {
+	c.peerConnectedSubscribers = append(c.peerConnectedSubscribers, sub)
+}
+
+func (c *PhysicalCommunicator) notifyPeerConnected(event *transport_event.PeerConnectedEvent) {
+	for _, sub := range c.peerConnectedSubscribers {
+		//sub.GetNewIncomingMessageEventChannel() <- message
+		<-goffchan.NewTimeoutSenderShort(sub.GetPeerConnectedEventChannel(), event, "peer connected"+sub.Name()).C
+		//sub.GetNewIncomingMessageEventChannel() <- message
+	}
+}
+
 func (c *PhysicalCommunicator) Name() string {
 	return "PhysicalCommunicator"
 }
@@ -70,6 +92,7 @@ func (c *PhysicalCommunicator) InitDefault() {
 	c.incomingChannel = make(chan *transport_event.IncomingLetter)
 	c.ioEventChannel = make(chan *IoEvent)
 	c.initWait.Add(1)
+	c.peerConnectedSubscribers = []transport_event.PeerConnectedEventSubscriber{}
 	c.newIncomingMessageSubscribers = []transport_event.NewIncomingMessageEventSubscriber{}
 	c.quit = make(chan bool)
 }
@@ -106,11 +129,7 @@ func (c *PhysicalCommunicator) mainLoop() {
 			c.handleOutgoing(outgoingLetter)
 		case incomingLetter := <-c.incomingChannel:
 			c.NetworkReporter.Report("receive", incomingLetter)
-			for _, sub := range c.newIncomingMessageSubscribers {
-				//sub.GetNewIncomingMessageEventChannel() <- message
-				<-goffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), incomingLetter, "receive message "+sub.Name()).C
-				//sub.GetNewIncomingMessageEventChannel() <- message
-			}
+			c.notifyNewIncomingMessage(incomingLetter)
 		case event := <-c.ioEventChannel:
 			logrus.WithField("reason", event.Reason).WithError(event.Err).Trace("physical got neighbour down event")
 			c.handlePeerError(event.Neighbour)
@@ -209,6 +228,10 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 	neighbour.InitDefault()
 	c.activePeers[peerId] = neighbour
 	logrus.WithField("peerId", peerId).Debug("peer becomes active")
+
+	c.notifyPeerConnected(&transport_event.PeerConnectedEvent{
+		PeerId: neighbour.PrettyId,
+	})
 
 	neighbour.Start()
 }

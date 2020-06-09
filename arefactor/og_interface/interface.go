@@ -1,13 +1,23 @@
 package og_interface
 
-type HeightProvider interface {
-	Height() int
+type PeerJoinedEvent struct {
+	PeerId string
 }
 
-type PeerConnectedEvent struct {
-	peerId string
+type PeerJoinedEventSubscriber interface {
+	PeerJoinedEventChannel() chan *PeerJoinedEvent
 }
 
-type PeerConnectedEventSubscriber interface {
-	PeerConnectedEventChannel() chan *PeerConnectedEvent
+type NodeInfoProvider interface {
+	CurrentHeight() int64
+	GetNetworkId() string
+}
+
+type NewHeightDetectedEvent struct {
+	Height int64
+	PeerId string
+}
+
+type NewHeightDetectedEventSubscriber interface {
+	NewHeightDetectedEventChannel() chan *NewHeightDetectedEvent
 }

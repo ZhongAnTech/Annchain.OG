@@ -34,7 +34,7 @@ type Neighbour struct {
 
 func (c *Neighbour) InitDefault() {
 	c.quit = make(chan bool)
-	c.outgoingChannel = make(chan *transport_event.OutgoingLetter) // messages already dispatched
+	c.outgoingChannel = make(chan *transport_event.OutgoingLetter, 100) // messages already dispatched
 }
 
 func (c *Neighbour) Start() {
@@ -91,7 +91,7 @@ loop:
 			logrus.Trace("neighbour got send request")
 
 			wireMessage := &transport_event.WireMessage{
-				MsgType:      req.Msg.GetType(),
+				MsgType:      req.Msg.GetTypeValue(),
 				ContentBytes: req.Msg.ToBytes(),
 			}
 			err = c.write(wireMessage)

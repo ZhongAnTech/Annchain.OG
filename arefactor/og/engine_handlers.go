@@ -1,0 +1,55 @@
+package og
+
+import (
+	"github.com/annchain/OG/arefactor/og/message"
+	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/sirupsen/logrus"
+)
+
+func (o *OgEngine) handleHeightRequest(letter *transport_event.IncomingLetter) {
+	// report my height info
+	resp := message.OgMessageHeightResponse{
+		Height: o.CurrentHeight(),
+	}
+	o.notifyNewOutgoingMessage(&transport_event.OutgoingLetter{
+		Msg:            &resp,
+		SendType:       transport_event.SendTypeUnicast,
+		CloseAfterSent: false,
+		EndReceivers:   []string{letter.From},
+	})
+}
+
+func (o *OgEngine) handleHeightResponse(letter *transport_event.IncomingLetter) {
+	// if we get a pong with close flag, the target peer is dropping us.
+	m := &message.OgMessageHeightResponse{}
+	_, err := m.UnmarshalMsg(letter.Msg.ContentBytes)
+	if err != nil {
+		logrus.WithField("type", m.GetType()).WithError(err).Warn("bad message")
+	}
+	if m.Height <= o.CurrentHeight() {
+		// already known that
+		logrus.WithField("theirHeight", m.Height).
+			WithField("myHeight", o.CurrentHeight()).
+			WithField("from", letter.From).Debug("detected a new height but is not higher than mine")
+		return
+	}
+	// found a height that is higher that ours. Announce a new height received event
+	logrus.WithField("height", m.Height).WithField("from", letter.From).Debug("detected a new height")
+	o.notifyNewHeightDetected(&og_interface.NewHeightDetectedEvent{
+		Height: m.Height,
+		PeerId: letter.From,
+	})
+
+}
+
+func (o *OgEngine) handlePeerJoined(event *og_interface.PeerJoinedEvent) {
+	// detect height
+	m := &message.OgMessageHeightRequest{}
+	o.notifyNewOutgoingMessage(&transport_event.OutgoingLetter{
+		Msg:            m,
+		SendType:       transport_event.SendTypeUnicast,
+		CloseAfterSent: false,
+		EndReceivers:   []string{event.PeerId},
+	})
+}

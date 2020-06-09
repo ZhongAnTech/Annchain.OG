@@ -34,7 +34,7 @@ func (b *Bouncer) RegisterSubscriberNewOutgoingMessageEvent(sub transport_event.
 	b.newOutgoingMessageSubscribers = append(b.newOutgoingMessageSubscribers, sub)
 }
 
-func (b *Bouncer) GetNewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
+func (b *Bouncer) NewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
 	return b.myNewIncomingMessageEventChan
 }
 

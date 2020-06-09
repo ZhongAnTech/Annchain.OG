@@ -49,7 +49,7 @@ func (d *DefaultCommunityManager) InitDefault() {
 // event handlers begin
 
 // my subscriptions
-func (d *DefaultCommunityManager) GetNewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
+func (d *DefaultCommunityManager) NewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
 	return d.myNewIncomingMessageEventChannel
 }
 
@@ -72,7 +72,7 @@ func (d *DefaultCommunityManager) AddSubscriberPeerJoinedEvent(sub og_interface.
 func (d *DefaultCommunityManager) notifyPeerJoined(event *og_interface.PeerJoinedEvent) {
 	for _, subscriber := range d.peerJoinedEventSubscribers {
 		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
-		subscriber.PeerJoinedEventChannel() <- event
+		subscriber.EventChannelPeerJoined() <- event
 	}
 }
 

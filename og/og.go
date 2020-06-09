@@ -31,6 +31,7 @@ import (
 	"github.com/annchain/OG/core"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
+	"github.com/go-co-op/gocron"
 	"github.com/latifrons/soccerdash"
 )
 
@@ -138,6 +139,7 @@ func (og *Og) Start() {
 	//goroutine.New( og.syncer)
 	//goroutine.New(og.txsyncLoop)
 	goroutine.New(og.BroadcastLatestSequencer)
+	goroutine.New(og.PushNodeData)
 
 	logrus.Info("OG Started")
 }
@@ -200,14 +202,14 @@ func (og *Og) BroadcastLatestSequencer() {
 	var reportKey string
 	if v, ok := os.LookupEnv("HOSTNAME"); ok {
 		reportKey = v
-	}else {
-		reportKey = "node_" +fmt.Sprintf("%d",viper.GetInt("debug.node_id"))
+	} else {
+		reportKey = "node_" + fmt.Sprintf("%d", viper.GetInt("debug.node_id"))
 	}
-	r:= &soccerdash.Reporter{
-		Id:reportKey,
+	r := &soccerdash.Reporter{
+		Id:            reportKey,
 		TargetAddress: viper.GetString("report.address"),
 	}
-	var reportTime  = time.Now()
+	var reportTime = time.Now()
 	for {
 		select {
 		case <-og.NewLatestSequencerCh:
@@ -234,11 +236,11 @@ func (og *Og) BroadcastLatestSequencer() {
 			goroutine.New(function)
 			if enableReport {
 				re := func() {
-					r.Report("height",seq.GetHeight(),false)
-					r.Report("hash",seq.GetTxHash().Hex(),false)
-					r.Report("from",seq.GetSender().Hex(),false)
-					r.Report("nonce",seq.GetNonce(),false)
-					r.Report("root",seq.StateRoot.Hex(),false)
+					r.Report("height", seq.GetHeight(), false)
+					r.Report("hash", seq.GetTxHash().Hex(), false)
+					r.Report("from", seq.GetSender().Hex(), false)
+					r.Report("nonce", seq.GetNonce(), false)
+					r.Report("root", seq.StateRoot.Hex(), false)
 				}
 				goroutine.New(re)
 				reportTime = time.Now()
@@ -259,10 +261,10 @@ func (og *Og) BroadcastLatestSequencer() {
 				}
 				goroutine.New(function)
 			}
-			if enableReport  && time.Now().Sub(reportTime) > time.Second*15{
+			if enableReport && time.Now().Sub(reportTime) > time.Second*15 {
 				re := func() {
-					r.Report("msg", "synchronising or stopping?",false)
-					r.Report("height",og.Dag.LatestSequencer().Height,false)
+					r.Report("msg", "synchronising or stopping?", false)
+					r.Report("height", og.Dag.LatestSequencer().Height, false)
 				}
 				goroutine.New(re)
 				reportTime = time.Now()
@@ -272,4 +274,54 @@ func (og *Og) BroadcastLatestSequencer() {
 			return
 		}
 	}
+}
+
+// PushNodeData will push the node data to the ogbrowser-node-statistics server by soccerdash.
+// It uses goCron as time scheduler.
+func (og *Og) PushNodeData() {
+	// var enableReport = viper.GetBool("report.enable")
+	// var reportKey string
+	// if v, ok := os.LookupEnv("HOSTNAME"); ok {
+	// 	reportKey = v
+	// } else {
+	// 	reportKey = "node_" + fmt.Sprintf("%d", viper.GetInt("debug.node_id"))
+	// }
+
+	// r := &soccerdash.Reporter{
+	// 	Id:            reportKey,
+	// 	TargetAddress: viper.GetString("report.address"),
+	// }
+	r := soccerdash.Reporter{
+		Id:            "C1",
+		TargetAddress: "127.0.0.1:8080",
+	}
+
+	s := gocron.NewScheduler(time.UTC)
+	s.Every(2).Seconds().Do(func() {
+		goroutine.New(func() {
+			r.Report("TxPoolNum", og.TxPool.GetTxNum(), false)
+		})
+	})
+
+	s.Every(10).Seconds().Do(func() {
+		goroutine.New(func() {
+			r.Report("ConnNum", "10", false)
+		})
+	})
+
+	s.Every(1).Minute().Do(func() {
+		goroutine.New(func() {
+			r.Report("Version", "1.0", false)
+			r.Report("LatestNode", "123", false)
+		})
+	})
+
+	s.StartBlocking()
+	// 	// select {
+	// 	// case <-og.quit:
+	// 	// 	logrus.Info("hub PushNodeData received quit message. Quitting...")
+	// 	// 	return
+	// 	// }
+	// }
+
 }

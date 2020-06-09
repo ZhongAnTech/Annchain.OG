@@ -17,6 +17,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sort"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
@@ -29,10 +34,6 @@ import (
 	"github.com/annchain/OG/types/p2p_message"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/annchain/kyber/v3/pairing/bn256"
-	"sort"
-	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"

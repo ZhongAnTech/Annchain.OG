@@ -7,5 +7,5 @@ type NewIncomingMessageEventSubscriber interface {
 
 type NewOutgoingMessageEventSubscriber interface {
 	Name() string
-	GetNewOutgoingMessageEventChannel() chan *OutgoingLetter
+	NewOutgoingMessageEventChannel() chan *OutgoingLetter
 }

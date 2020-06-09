@@ -3,6 +3,7 @@ package og
 import (
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/og/message"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_event"
 	"github.com/sirupsen/logrus"
@@ -26,6 +27,7 @@ type DefaultCommunityManager struct {
 
 	myNewIncomingMessageEventChannel chan *transport_event.IncomingLetter
 	newOutgoingMessageSubscribers    []transport_event.NewOutgoingMessageEventSubscriber
+	peerConnectedEventSubscribers    []og_interface.PeerConnectedEventSubscriber
 
 	quit chan bool
 }
@@ -34,15 +36,37 @@ func (d *DefaultCommunityManager) InitDefault() {
 	d.quit = make(chan bool)
 	d.myNewIncomingMessageEventChannel = make(chan *transport_event.IncomingLetter)
 	d.newOutgoingMessageSubscribers = []transport_event.NewOutgoingMessageEventSubscriber{}
+	d.peerConnectedEventSubscribers = []og_interface.PeerConnectedEventSubscriber{}
 }
+
+// event handlers begin
 
 func (d *DefaultCommunityManager) AddSubscriberNewOutgoingMessageEvent(sub transport_event.NewOutgoingMessageEventSubscriber) {
 	d.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
 }
 
+func (d *DefaultCommunityManager) AddSubscriberPeerConnectedEvent(sub og_interface.PeerConnectedEventSubscriber) {
+	d.peerConnectedEventSubscribers = append(d.peerConnectedEventSubscribers, sub)
+}
+
 func (d *DefaultCommunityManager) GetNewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
 	return d.myNewIncomingMessageEventChannel
 }
+
+func (d *DefaultCommunityManager) notifyNewOutgoingMessageSubscribers(event *transport_event.OutgoingLetter) {
+	for _, subscriber := range d.newOutgoingMessageSubscribers {
+		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
+		subscriber.NewOutgoingMessageEventChannel() <- event
+	}
+}
+func (d *DefaultCommunityManager) notifyPeerConnectedEventSubscribers(event *og_interface.PeerConnectedEvent) {
+	for _, subscriber := range d.peerConnectedEventSubscribers {
+		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
+		subscriber.PeerConnectedEventChannel() <- event
+	}
+}
+
+// event handlers over
 
 func (d *DefaultCommunityManager) Start() {
 	go d.loop()
@@ -111,13 +135,6 @@ func (d *DefaultCommunityManager) StaticSetup() {
 		nodeId, err := d.PhysicalCommunicator.GetPeerId(address)
 		utilfuncs.PanicIfError(err, "parse node address")
 		d.peers = append(d.peers, nodeId)
-	}
-}
-
-func (d *DefaultCommunityManager) notifyNewOutgoingMessageSubscribers(req *transport_event.OutgoingLetter) {
-	for _, subscriber := range d.newOutgoingMessageSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.GetNewOutgoingMessageEventChannel(), req, "outgoing")
-		subscriber.GetNewOutgoingMessageEventChannel() <- req
 	}
 }
 

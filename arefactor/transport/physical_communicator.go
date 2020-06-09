@@ -51,7 +51,7 @@ type PhysicalCommunicator struct {
 	mu       sync.RWMutex
 }
 
-func (c *PhysicalCommunicator) GetNewOutgoingMessageEventChannel() chan *transport_event.OutgoingLetter {
+func (c *PhysicalCommunicator) NewOutgoingMessageEventChannel() chan *transport_event.OutgoingLetter {
 	return c.outgoingChannel
 }
 

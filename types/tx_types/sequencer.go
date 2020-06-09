@@ -16,11 +16,13 @@ package tx_types
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"strings"
+	"time"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/kyber/v3/util/random"
-	"math/rand"
-	"strings"
 
 	"github.com/annchain/OG/common/hexutil"
 )
@@ -36,6 +38,7 @@ type Sequencer struct {
 	BlsJointPubKey hexutil.Bytes
 	StateRoot      common.Hash
 	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
+	Timestamp      int64
 }
 
 //msgp:tuple SequencerJson
@@ -45,6 +48,7 @@ type SequencerJson struct {
 	BlsJointSig    hexutil.Bytes   `json:"bls_joint_sig"`
 	BlsJointPubKey hexutil.Bytes   `json:"bls_joint_pub_key"`
 	Proposing      bool            `msg:"-",json:"-"`
+	Timestamp      int64           `msg:"timestamp"`
 }
 
 func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {
@@ -57,6 +61,7 @@ func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {
 		BlsJointSig:    s.BlsJointSig,
 		BlsJointPubKey: s.BlsJointPubKey,
 		Proposing:      s.Proposing,
+		Timestamp:      s.Timestamp,
 	}
 
 	return json.Marshal(&j)
@@ -89,7 +94,8 @@ func SampleSequencer() *Sequencer {
 			Type:         types.TxBaseTypeSequencer,
 			AccountNonce: 234,
 		},
-		Issuer: &from,
+		Issuer:    &from,
+		Timestamp: (time.Now().UnixNano() / 1e6),
 	}
 }
 
@@ -106,7 +112,8 @@ func RandomSequencer() *Sequencer {
 			AccountNonce: uint64(rand.Int63n(50000)),
 			Weight:       uint64(rand.Int31n(2000)),
 		},
-		Issuer: &from,
+		Issuer:    &from,
+		Timestamp: time.Now().UnixNano() / 1e6,
 	}
 	seq.BlsJointSig = make([]byte, 64)
 	seq.BlsJointPubKey = make([]byte, 128)
@@ -246,6 +253,7 @@ type SequencerMsg struct {
 	Weight         uint64   `json:"weight"`
 	BlsJointSig    string   `json:"bls_joint_sig"`
 	BlsJointPubKey string   `json:"bls_joint_pub_key"`
+	Timestamp      int64    `json:"timestamp"`
 }
 
 func (s *Sequencer) ToJsonMsg() SequencerMsg {
@@ -261,6 +269,8 @@ func (s *Sequencer) ToJsonMsg() SequencerMsg {
 
 	seqMsg.BlsJointSig = s.BlsJointSig.String()
 	seqMsg.BlsJointPubKey = s.BlsJointPubKey.String()
+
+	seqMsg.Timestamp = s.Timestamp
 
 	seqMsg.Parents = make([]string, 0)
 	for _, p := range s.ParentsHash {

@@ -16,14 +16,17 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/token"
 	"github.com/annchain/OG/types/tx_types"
 
-	"github.com/annchain/OG/common"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/annchain/OG/common"
 
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
@@ -356,6 +359,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 		}
 		sq = r.Og.Dag.GetSequencerByHeight(uint64(id))
 		if sq != nil {
+			sq.Timestamp = time.Now().UnixNano() / 1e6
 			Response(c, http.StatusOK, nil, sq)
 			return
 		} else {
@@ -366,6 +370,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 	if hashtr == "" {
 		sq = r.Og.Dag.LatestSequencer()
 		if sq != nil {
+			sq.Timestamp = time.Now().UnixNano() / 1e6
 			Response(c, http.StatusOK, nil, sq)
 			return
 		} else {

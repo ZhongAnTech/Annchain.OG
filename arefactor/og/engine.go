@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const EngineCheckIntervalSeconds = 5
+
 type OgEngine struct {
 	Ledger           Ledger
 	CommunityManager CommunityManager
@@ -24,18 +26,6 @@ type OgEngine struct {
 
 }
 
-func (o *OgEngine) PeerJoinedEventChannel() chan *og_interface.PeerJoinedEvent {
-	return o.myPeerJoinedEventChan
-}
-
-func (o *OgEngine) CurrentHeight() int64 {
-	return o.Ledger.CurrentHeight()
-}
-
-func (o *OgEngine) GetNetworkId() string {
-	return o.NetworkId
-}
-
 func (o *OgEngine) InitDefault() {
 	o.myPeerJoinedEventChan = make(chan *og_interface.PeerJoinedEvent)
 	o.myNewIncomingMessageEventChan = make(chan *transport_event.IncomingLetter)
@@ -43,8 +33,12 @@ func (o *OgEngine) InitDefault() {
 	o.quit = make(chan bool)
 }
 
-func (o *OgEngine) GetBenchmarks() map[string]interface{} {
-	return map[string]interface{}{}
+func (o *OgEngine) EventChannelPeerJoined() chan *og_interface.PeerJoinedEvent {
+	return o.myPeerJoinedEventChan
+}
+
+func (o *OgEngine) NewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
+	return o.myNewIncomingMessageEventChan
 }
 
 func (o *OgEngine) AddSubscriberNewOutgoingMessageEvent(sub transport_event.NewOutgoingMessageEventSubscriber) {
@@ -69,10 +63,6 @@ func (o *OgEngine) notifyNewHeightDetected(event *og_interface.NewHeightDetected
 	}
 }
 
-func (o *OgEngine) GetNewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
-	return o.myNewIncomingMessageEventChan
-}
-
 func (o *OgEngine) Start() {
 	go o.loop()
 }
@@ -89,9 +79,14 @@ func (o *OgEngine) loop() {
 	// load committee
 	//height := o.Ledger.CurrentHeight()
 	//committee := o.Ledger.CurrentCommittee()
+	timer := time.NewTimer(time.Second * time.Duration(EngineCheckIntervalSeconds))
 
 	for {
 		logrus.Trace("ogEngine loop round start")
+		if !timer.Stop() {
+			<-timer.C
+		}
+		timer.Reset(time.Second * time.Duration(EngineCheckIntervalSeconds))
 		select {
 		case <-o.quit:
 			return
@@ -104,8 +99,8 @@ func (o *OgEngine) loop() {
 			}
 		case event := <-o.myPeerJoinedEventChan:
 			o.handlePeerJoined(event)
-		case <-time.Tick(time.Second * 10):
-
+		case <-timer.C:
+			logrus.Warn("routing check in engine")
 		}
 	}
 }
@@ -114,48 +109,14 @@ func (o *OgEngine) StaticSetup() {
 
 }
 
-func (o *OgEngine) handleHeightRequest(letter *transport_event.IncomingLetter) {
-	// report my height info
-	resp := message.OgMessageHeightResponse{
-		Height: o.CurrentHeight(),
-	}
-	o.notifyNewOutgoingMessage(&transport_event.OutgoingLetter{
-		Msg:            &resp,
-		SendType:       transport_event.SendTypeUnicast,
-		CloseAfterSent: false,
-		EndReceivers:   []string{letter.From},
-	})
+func (o *OgEngine) CurrentHeight() int64 {
+	return o.Ledger.CurrentHeight()
 }
 
-func (o *OgEngine) handleHeightResponse(letter *transport_event.IncomingLetter) {
-	// if we get a pong with close flag, the target peer is dropping us.
-	m := &message.OgMessageHeightResponse{}
-	_, err := m.UnmarshalMsg(letter.Msg.ContentBytes)
-	if err != nil {
-		logrus.WithField("type", m.GetType()).WithError(err).Warn("bad message")
-	}
-	if m.Height <= o.CurrentHeight() {
-		// already known that\
-		logrus.WithField("theirHeight", m.Height).
-			WithField("myHeight", o.CurrentHeight()).
-			WithField("from", letter.From).Debug("detected a new height but is not higher than mine")
-		return
-	}
-	// get their height response, announce a new height received event
-	o.notifyNewHeightDetected(&og_interface.NewHeightDetectedEvent{
-		Height: m.Height,
-		PeerId: letter.From,
-	})
-	logrus.WithField("height", m.Height).WithField("from", letter.From).Debug("detected a new height")
+func (o *OgEngine) GetNetworkId() string {
+	return o.NetworkId
 }
 
-func (o *OgEngine) handlePeerJoined(event *og_interface.PeerJoinedEvent) {
-	// detect height
-	m := &message.OgMessageHeightRequest{}
-	o.notifyNewOutgoingMessage(&transport_event.OutgoingLetter{
-		Msg:            m,
-		SendType:       transport_event.SendTypeUnicast,
-		CloseAfterSent: false,
-		EndReceivers:   []string{event.PeerId},
-	})
+func (o *OgEngine) GetBenchmarks() map[string]interface{} {
+	return map[string]interface{}{}
 }

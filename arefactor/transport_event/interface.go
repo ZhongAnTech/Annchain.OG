@@ -11,7 +11,7 @@ type PeerConnectedEventSubscriber interface {
 
 type NewIncomingMessageEventSubscriber interface {
 	Name() string
-	GetNewIncomingMessageEventChannel() chan *IncomingLetter
+	NewIncomingMessageEventChannel() chan *IncomingLetter
 }
 
 type NewOutgoingMessageEventSubscriber interface {

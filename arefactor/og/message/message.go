@@ -178,7 +178,6 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 
 //msgp OgMessageHeightRequest
 type OgMessageHeightRequest struct {
-	// Nothing in it
 }
 
 func (z *OgMessageHeightRequest) GetType() OgMessageType {

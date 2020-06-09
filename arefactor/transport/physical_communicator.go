@@ -63,9 +63,9 @@ func (c *PhysicalCommunicator) AddSubscriberNewIncomingMessageEvent(sub transpor
 
 func (c *PhysicalCommunicator) notifyNewIncomingMessage(incomingLetter *transport_event.IncomingLetter) {
 	for _, sub := range c.newIncomingMessageSubscribers {
-		//sub.GetNewIncomingMessageEventChannel() <- message
-		<-goffchan.NewTimeoutSenderShort(sub.GetNewIncomingMessageEventChannel(), incomingLetter, "receive message "+sub.Name()).C
-		//sub.GetNewIncomingMessageEventChannel() <- message
+		//sub.NewIncomingMessageEventChannel() <- message
+		<-goffchan.NewTimeoutSenderShort(sub.NewIncomingMessageEventChannel(), incomingLetter, "receive message "+sub.Name()).C
+		//sub.NewIncomingMessageEventChannel() <- message
 	}
 }
 
@@ -75,9 +75,9 @@ func (c *PhysicalCommunicator) AddSubscriberPeerConnectedEvent(sub transport_eve
 
 func (c *PhysicalCommunicator) notifyPeerConnected(event *transport_event.PeerConnectedEvent) {
 	for _, sub := range c.peerConnectedSubscribers {
-		//sub.GetNewIncomingMessageEventChannel() <- message
+		//sub.NewIncomingMessageEventChannel() <- message
 		<-goffchan.NewTimeoutSenderShort(sub.GetPeerConnectedEventChannel(), event, "peer connected"+sub.Name()).C
-		//sub.GetNewIncomingMessageEventChannel() <- message
+		//sub.NewIncomingMessageEventChannel() <- message
 	}
 }
 

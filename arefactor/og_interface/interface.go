@@ -5,7 +5,7 @@ type PeerJoinedEvent struct {
 }
 
 type PeerJoinedEventSubscriber interface {
-	PeerJoinedEventChannel() chan *PeerJoinedEvent
+	EventChannelPeerJoined() chan *PeerJoinedEvent
 }
 
 type NodeInfoProvider interface {

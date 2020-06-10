@@ -17,9 +17,9 @@
 package code
 
 import (
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"testing"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/vm/instruction"
 )
 
@@ -71,7 +71,7 @@ func BenchmarkJumpdestHashing_1200k(bench *testing.B) {
 	code := make([]byte, 1200000)
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
-		crypto.Keccak256Hash(code)
+		ogcrypto.Keccak256Hash(code)
 	}
 	bench.StopTimer()
 }

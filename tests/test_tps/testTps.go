@@ -15,7 +15,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/rpc"
@@ -24,10 +24,10 @@ import (
 
 func generateTxrequests(N int) []rpc.NewTxRequest {
 	var requests []rpc.NewTxRequest
-	oldpub, _ := crypto.Signer.RandomKeyPair()
+	oldpub, _ := og_interface.Signer.RandomKeyPair()
 	to := oldpub.Address().Hex()
 	toAdd := oldpub.Address()
-	pub, priv := crypto.Signer.RandomKeyPair()
+	pub, priv := og_interface.Signer.RandomKeyPair()
 	for i := 1; i < N; i++ {
 		from := pub.Address()
 		tx := types.Tx{
@@ -40,7 +40,7 @@ func generateTxrequests(N int) []rpc.NewTxRequest {
 			To:    toAdd,
 			Value: math.NewBigInt(0),
 		}
-		tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
+		tx.Signature = og_interface.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 		//v:=  og.TxFormatVerifier{}
 		//ok:= v.VerifySignature(&tx)
 		//target := tx.SignatureTargets()

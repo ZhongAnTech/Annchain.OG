@@ -2,6 +2,7 @@ package tx_client
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
@@ -33,7 +34,7 @@ func NewRequestGenerator(priv crypto.PrivateKey) *RequstGenerator {
 }
 
 func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenName string, value *math.BigInt) rpc.NewPublicOfferingRequest {
-	//pub, priv := crypto.Signer.RandomKeyPair()
+	//pub, priv := ogcrypto.Signer.RandomKeyPair()
 	from := r.address
 	if !r.Nodebug {
 		fmt.Println(from.String())
@@ -52,7 +53,7 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 			TokenName: tokenName,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
+	tx.Signature = og_interface.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
@@ -75,7 +76,7 @@ func (r *RequstGenerator) TokenPublishing(nonce uint64, enableSPO bool, tokenNam
 }
 
 func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPublicOfferingRequest {
-	//pub, priv := crypto.Signer.RandomKeyPair()
+	//pub, priv := ogcrypto.Signer.RandomKeyPair()
 	from := r.address
 	//fmt.Println(pub.String(), priv.String(), from.String())
 	fmt.Println(from.String())
@@ -96,7 +97,7 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 			TokenId: tokenId,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
+	tx.Signature = og_interface.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
@@ -120,7 +121,7 @@ func (r *RequstGenerator) TokenDestroy(tokenId int32, nonce uint64) rpc.NewPubli
 }
 
 func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, value *math.BigInt) rpc.NewPublicOfferingRequest {
-	//pub, priv := crypto.Signer.RandomKeyPair()
+	//pub, priv := ogcrypto.Signer.RandomKeyPair()
 	from := r.address
 	if !r.Nodebug {
 		fmt.Println(from.String())
@@ -140,7 +141,7 @@ func (r *RequstGenerator) SecondPublicOffering(tokenId int32, nonce uint64, valu
 			TokenId: tokenId,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
+	tx.Signature = og_interface.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	target := tx.SignatureTargets()
@@ -181,7 +182,7 @@ func (r *RequstGenerator) NormalTx(tokenId int32, nonce uint64, to common.Addres
 		Value:   value,
 		To:      to,
 	}
-	tx.Signature = crypto.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
+	tx.Signature = og_interface.Signer.Sign(r.privKey, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {

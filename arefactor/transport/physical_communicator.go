@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/performance"
-	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core/crypto"
@@ -38,30 +38,30 @@ type PhysicalCommunicator struct {
 	ProtocolId      string
 	NetworkReporter *performance.SoccerdashReporter
 
-	node            host.Host                            // p2p host to receive new streams
-	activePeers     map[peer.ID]*Neighbour               // active peers that will be reconnect if error
-	tryingPeers     map[peer.ID]bool                     // peers that is trying to connect.
-	incomingChannel chan *transport_event.IncomingLetter // incoming message channel
-	outgoingChannel chan *transport_event.OutgoingLetter // universal outgoing channel to collect send requests
-	ioEventChannel  chan *IoEvent                        // receive discard when peer disconnects
+	node            host.Host                                // p2p host to receive new streams
+	activePeers     map[peer.ID]*Neighbour                   // active peers that will be reconnect if error
+	tryingPeers     map[peer.ID]bool                         // peers that is trying to connect.
+	incomingChannel chan *transport_interface.IncomingLetter // incoming message channel
+	outgoingChannel chan *transport_interface.OutgoingLetter // universal outgoing channel to collect send requests
+	ioEventChannel  chan *IoEvent                            // receive discard when peer disconnects
 
-	peerConnectedSubscribers      []transport_event.PeerConnectedEventSubscriber
-	newIncomingMessageSubscribers []transport_event.NewIncomingMessageEventSubscriber
+	peerConnectedSubscribers      []transport_interface.PeerConnectedEventSubscriber
+	newIncomingMessageSubscribers []transport_interface.NewIncomingMessageEventSubscriber
 
 	initWait sync.WaitGroup
 	quit     chan bool
 	mu       sync.RWMutex
 }
 
-func (c *PhysicalCommunicator) NewOutgoingMessageEventChannel() chan *transport_event.OutgoingLetter {
+func (c *PhysicalCommunicator) NewOutgoingMessageEventChannel() chan *transport_interface.OutgoingLetter {
 	return c.outgoingChannel
 }
 
-func (c *PhysicalCommunicator) AddSubscriberNewIncomingMessageEvent(sub transport_event.NewIncomingMessageEventSubscriber) {
+func (c *PhysicalCommunicator) AddSubscriberNewIncomingMessageEvent(sub transport_interface.NewIncomingMessageEventSubscriber) {
 	c.newIncomingMessageSubscribers = append(c.newIncomingMessageSubscribers, sub)
 }
 
-func (c *PhysicalCommunicator) notifyNewIncomingMessage(incomingLetter *transport_event.IncomingLetter) {
+func (c *PhysicalCommunicator) notifyNewIncomingMessage(incomingLetter *transport_interface.IncomingLetter) {
 	for _, sub := range c.newIncomingMessageSubscribers {
 		//sub.NewIncomingMessageEventChannel() <- message
 		<-goffchan.NewTimeoutSenderShort(sub.NewIncomingMessageEventChannel(), incomingLetter, "receive message "+sub.Name()).C
@@ -69,11 +69,11 @@ func (c *PhysicalCommunicator) notifyNewIncomingMessage(incomingLetter *transpor
 	}
 }
 
-func (c *PhysicalCommunicator) AddSubscriberPeerConnectedEvent(sub transport_event.PeerConnectedEventSubscriber) {
+func (c *PhysicalCommunicator) AddSubscriberPeerConnectedEvent(sub transport_interface.PeerConnectedEventSubscriber) {
 	c.peerConnectedSubscribers = append(c.peerConnectedSubscribers, sub)
 }
 
-func (c *PhysicalCommunicator) notifyPeerConnected(event *transport_event.PeerConnectedEvent) {
+func (c *PhysicalCommunicator) notifyPeerConnected(event *transport_interface.PeerEvent) {
 	for _, sub := range c.peerConnectedSubscribers {
 		//sub.NewIncomingMessageEventChannel() <- message
 		<-goffchan.NewTimeoutSenderShort(sub.GetPeerConnectedEventChannel(), event, "peer connected"+sub.Name()).C
@@ -88,12 +88,12 @@ func (c *PhysicalCommunicator) Name() string {
 func (c *PhysicalCommunicator) InitDefault() {
 	c.activePeers = make(map[peer.ID]*Neighbour)
 	c.tryingPeers = make(map[peer.ID]bool)
-	c.outgoingChannel = make(chan *transport_event.OutgoingLetter)
-	c.incomingChannel = make(chan *transport_event.IncomingLetter)
+	c.outgoingChannel = make(chan *transport_interface.OutgoingLetter)
+	c.incomingChannel = make(chan *transport_interface.IncomingLetter)
 	c.ioEventChannel = make(chan *IoEvent)
 	c.initWait.Add(1)
-	c.peerConnectedSubscribers = []transport_event.PeerConnectedEventSubscriber{}
-	c.newIncomingMessageSubscribers = []transport_event.NewIncomingMessageEventSubscriber{}
+	c.peerConnectedSubscribers = []transport_interface.PeerConnectedEventSubscriber{}
+	c.newIncomingMessageSubscribers = []transport_interface.NewIncomingMessageEventSubscriber{}
 	c.quit = make(chan bool)
 }
 
@@ -229,7 +229,7 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 	c.activePeers[peerId] = neighbour
 	logrus.WithField("peerId", peerId).Debug("peer becomes active")
 
-	c.notifyPeerConnected(&transport_event.PeerConnectedEvent{
+	c.notifyPeerConnected(&transport_interface.PeerEvent{
 		PeerId: neighbour.PrettyId,
 	})
 
@@ -353,7 +353,7 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) (peerIds string
 	return
 }
 
-func (c *PhysicalCommunicator) Enqueue(req *transport_event.OutgoingLetter) {
+func (c *PhysicalCommunicator) Enqueue(req *transport_interface.OutgoingLetter) {
 	logrus.WithField("req", req).Info("Sending message")
 	c.initWait.Wait()
 	<-goffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
@@ -361,9 +361,9 @@ func (c *PhysicalCommunicator) Enqueue(req *transport_event.OutgoingLetter) {
 }
 
 // we use direct connection currently so let's build a connection if not exists.
-func (c *PhysicalCommunicator) handleOutgoing(req *transport_event.OutgoingLetter) {
+func (c *PhysicalCommunicator) handleOutgoing(req *transport_interface.OutgoingLetter) {
 	logrus.Trace("physical is handling send request")
-	if req.SendType == transport_event.SendTypeBroadcast {
+	if req.SendType == transport_interface.SendTypeBroadcast {
 		for _, neighbour := range c.activePeers {
 			neighbour.EnqueueSend(req)
 		}

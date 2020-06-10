@@ -25,11 +25,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"os"
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -200,7 +200,7 @@ func (db *nodeDB) node(id NodeID) *Node {
 	if err != nil {
 		return nil
 	}
-	node.sha = crypto.Keccak256Hash(node.ID[:])
+	node.sha = ogcrypto.Keccak256Hash(node.ID[:])
 	return &node
 }
 

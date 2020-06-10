@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
@@ -34,7 +35,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/annchain/OG/common"
@@ -511,7 +511,7 @@ var testPackets = []struct {
 }
 
 func TestForwardCompatibility(t *testing.T) {
-	testkey, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testkey, _ := ogcrypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	wantNodeKey := encodePubkey(&testkey.PublicKey)
 
 	for _, test := range testPackets {

@@ -17,10 +17,10 @@ package rpc
 import (
 	"bytes"
 	"fmt"
+	math2 "github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/og/types"
 
 	"github.com/annchain/OG/status"
-	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -31,7 +31,7 @@ import (
 var archiveId uint32
 
 func getArchiveId() uint32 {
-	if archiveId > math.MaxUint32-1000 {
+	if archiveId > math2.MaxUint32-1000 {
 		archiveId = 10
 	}
 	return atomic.AddUint32(&archiveId, 1)

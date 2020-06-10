@@ -55,6 +55,10 @@ func (n *OgNode) Setup() {
 	ledger := &og.DefaultLedger{}
 	ledger.StaticSetup()
 
+	cpSyncer := &og.BlockByBlockSyncer{
+		Ledger: ledger,
+	}
+
 	// OG engine
 	cpOgEngine := &og.OgEngine{
 		Ledger:           ledger,
@@ -70,22 +74,29 @@ func (n *OgNode) Setup() {
 	n.components = append(n.components, cpCommunityManager)
 	n.components = append(n.components, cpOgEngine)
 	n.components = append(n.components, cpRpc)
+	n.components = append(n.components, cpSyncer)
 
 	// event registration
 
 	// message sender
 	cpOgEngine.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpCommunityManager.AddSubscriberNewOutgoingMessageEvent(cpTransport)
+	cpSyncer.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 
 	// message receivers
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpOgEngine)
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpCommunityManager)
+	cpTransport.AddSubscriberNewIncomingMessageEvent(cpSyncer)
 
 	// peer connected
 	cpTransport.AddSubscriberPeerConnectedEvent(cpCommunityManager)
 
-	// peer joined to the network cluster (protocol verified)
+	// peer joined and left to the network cluster (protocol verified)
 	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpOgEngine)
+	cpCommunityManager.AddSubscriberPeerLeftEvent(cpSyncer)
+
+	// peer height provided
+	cpOgEngine.AddSubscriberNewHeightDetectedEvent(cpSyncer)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpOgEngine)

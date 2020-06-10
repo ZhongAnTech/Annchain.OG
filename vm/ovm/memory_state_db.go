@@ -2,10 +2,11 @@ package ovm
 
 import (
 	"fmt"
+	math2 "github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"math/big"
@@ -55,7 +56,7 @@ func (m *MemoryStateDB) GetBalance(addr common.Address) *math.BigInt {
 	if v, ok := m.soLedger[addr]; ok {
 		return math.NewBigIntFromBigInt(v.Balance)
 	}
-	return math.NewBigIntFromBigInt(common.Big0)
+	return math.NewBigIntFromBigInt(math2.Big0)
 }
 
 func (m *MemoryStateDB) GetNonce(addr common.Address) uint64 {
@@ -88,7 +89,7 @@ func (m *MemoryStateDB) GetCode(addr common.Address) []byte {
 func (m *MemoryStateDB) SetCode(addr common.Address, code []byte) {
 	if v, ok := m.soLedger[addr]; ok {
 		v.Code = code
-		v.CodeHash = crypto.Keccak256Hash(code)
+		v.CodeHash = ogcrypto.Keccak256Hash(code)
 		v.DirtyCode = true
 	}
 }

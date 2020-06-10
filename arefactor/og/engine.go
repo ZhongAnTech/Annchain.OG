@@ -3,7 +3,7 @@ package og
 import (
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -17,19 +17,19 @@ type OgEngine struct {
 	quit             chan bool
 
 	// receive events
-	myNewIncomingMessageEventChan chan *transport_event.IncomingLetter // subscribe to NewIncomingMessageEvent
+	myNewIncomingMessageEventChan chan *transport_interface.IncomingLetter // subscribe to NewIncomingMessageEvent
 	myPeerJoinedEventChan         chan *og_interface.PeerJoinedEvent
 
 	// publish events
-	newOutgoingMessageSubscribers []transport_event.NewOutgoingMessageEventSubscriber // a message need to be sent
-	newHeightDetectedSubscribers  []og_interface.NewHeightDetectedEventSubscriber     // a message need to be sent
+	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
+	newHeightDetectedSubscribers  []og_interface.NewHeightDetectedEventSubscriber         // a message need to be sent
 
 }
 
 func (o *OgEngine) InitDefault() {
 	o.myPeerJoinedEventChan = make(chan *og_interface.PeerJoinedEvent)
-	o.myNewIncomingMessageEventChan = make(chan *transport_event.IncomingLetter)
-	o.newOutgoingMessageSubscribers = []transport_event.NewOutgoingMessageEventSubscriber{}
+	o.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
+	o.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 	o.quit = make(chan bool)
 }
 
@@ -37,15 +37,15 @@ func (o *OgEngine) EventChannelPeerJoined() chan *og_interface.PeerJoinedEvent {
 	return o.myPeerJoinedEventChan
 }
 
-func (o *OgEngine) NewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
+func (o *OgEngine) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
 	return o.myNewIncomingMessageEventChan
 }
 
-func (o *OgEngine) AddSubscriberNewOutgoingMessageEvent(sub transport_event.NewOutgoingMessageEventSubscriber) {
+func (o *OgEngine) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
 	o.newOutgoingMessageSubscribers = append(o.newOutgoingMessageSubscribers, sub)
 }
 
-func (o *OgEngine) notifyNewOutgoingMessage(event *transport_event.OutgoingLetter) {
+func (o *OgEngine) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range o.newOutgoingMessageSubscribers {
 		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
 		subscriber.NewOutgoingMessageEventChannel() <- event

@@ -23,13 +23,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/p2p/onode"
 	"github.com/sirupsen/logrus"
 	"net"
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p/netutil"
 )
 
@@ -564,7 +564,7 @@ func encodePacket(priv *ecdsa.PrivateKey, ptype byte, data []byte) (packet, hash
 	b.WriteByte(ptype)
 	b.Write(data)
 	packet = b.Bytes()
-	sig, err := crypto.Sign(crypto.Keccak256(packet[headSize:]), priv)
+	sig, err := ogcrypto.Sign(ogcrypto.Keccak256(packet[headSize:]), priv)
 	if err != nil {
 		log.WithError(err).Error("Can't sign discv4 packet")
 		return nil, nil, err
@@ -573,7 +573,7 @@ func encodePacket(priv *ecdsa.PrivateKey, ptype byte, data []byte) (packet, hash
 	// add the hash to the front. Note: this doesn't protect the
 	// packet in any way. Our public key will be part of this hash in
 	// The future.
-	hash = crypto.Keccak256(packet[macSize:])
+	hash = ogcrypto.Keccak256(packet[macSize:])
 	copy(packet, hash)
 	return packet, hash, nil
 }
@@ -624,11 +624,11 @@ func decodePacket(buf []byte) (packet, EncPubkey, []byte, error) {
 		return nil, EncPubkey{}, nil, errPacketTooSmall
 	}
 	hash, sig, sigdata := buf[:macSize], buf[macSize:headSize], buf[headSize:]
-	shouldhash := crypto.Keccak256(buf[macSize:])
+	shouldhash := ogcrypto.Keccak256(buf[macSize:])
 	if !bytes.Equal(hash, shouldhash) {
 		return nil, EncPubkey{}, nil, errBadHash
 	}
-	fromID, err := recoverNodeKey(crypto.Keccak256(buf[headSize:]), sig)
+	fromID, err := recoverNodeKey(ogcrypto.Keccak256(buf[headSize:]), sig)
 	if err != nil {
 		return nil, EncPubkey{}, hash, err
 	}
@@ -723,7 +723,7 @@ func (req *Findnode) handle(t *udp, from *net.UDPAddr, fromKey EncPubkey, mac []
 		// findnode) to the victim.
 		return errUnknownNode
 	}
-	target := onode.ID(crypto.Keccak256Hash(req.Target[:]).Bytes)
+	target := onode.ID(ogcrypto.Keccak256Hash(req.Target[:]).Bytes)
 	t.tab.mutex.Lock()
 	closest := t.tab.closest(target, bucketSize).entries
 	t.tab.mutex.Unlock()

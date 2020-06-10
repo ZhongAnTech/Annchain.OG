@@ -5,7 +5,7 @@ import (
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
-	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 )
@@ -26,39 +26,47 @@ type DefaultCommunityManager struct {
 	peers             []string
 	knownPeersAddress []string
 
-	myNewIncomingMessageEventChannel chan *transport_event.IncomingLetter // handle incoming messages
-	myPeerConnectedEventChannel      chan *transport_event.PeerConnectedEvent
-	newOutgoingMessageSubscribers    []transport_event.NewOutgoingMessageEventSubscriber // a message need to be sent
-	peerJoinedEventSubscribers       []og_interface.PeerJoinedEventSubscriber            // a peer is connected after protocol verification
+	myNewIncomingMessageEventChannel chan *transport_interface.IncomingLetter // handle incoming messages
+	myPeerConnectedEventChannel      chan *transport_interface.PeerEvent
+	myPeerDisconnectedEventChannel   chan *transport_interface.PeerEvent
+	newOutgoingMessageSubscribers    []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
+	peerJoinedEventSubscribers       []og_interface.PeerJoinedEventSubscriber                // a peer is connected after protocol verification
+	peerLeftEventSubscribers         []og_interface.PeerLeftEventSubscriber                  // a peer is left due to disconnection
 
 	quit chan bool
 }
 
-func (d *DefaultCommunityManager) GetPeerConnectedEventChannel() chan *transport_event.PeerConnectedEvent {
+func (d *DefaultCommunityManager) GetPeerDisconnectedEventChannel() chan *transport_interface.PeerEvent {
+	return d.myPeerDisconnectedEventChannel
+}
+
+func (d *DefaultCommunityManager) GetPeerConnectedEventChannel() chan *transport_interface.PeerEvent {
 	return d.myPeerConnectedEventChannel
 }
 
 func (d *DefaultCommunityManager) InitDefault() {
 	d.quit = make(chan bool)
-	d.myPeerConnectedEventChannel = make(chan *transport_event.PeerConnectedEvent)
-	d.myNewIncomingMessageEventChannel = make(chan *transport_event.IncomingLetter)
-	d.newOutgoingMessageSubscribers = []transport_event.NewOutgoingMessageEventSubscriber{}
+	d.myPeerConnectedEventChannel = make(chan *transport_interface.PeerEvent)
+	d.myPeerDisconnectedEventChannel = make(chan *transport_interface.PeerEvent)
+	d.myNewIncomingMessageEventChannel = make(chan *transport_interface.IncomingLetter)
+	d.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 	d.peerJoinedEventSubscribers = []og_interface.PeerJoinedEventSubscriber{}
+	d.peerLeftEventSubscribers = []og_interface.PeerLeftEventSubscriber{}
 }
 
 // event handlers begin
 
 // my subscriptions
-func (d *DefaultCommunityManager) NewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
+func (d *DefaultCommunityManager) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
 	return d.myNewIncomingMessageEventChannel
 }
 
 // subscribe mine
-func (d *DefaultCommunityManager) AddSubscriberNewOutgoingMessageEvent(sub transport_event.NewOutgoingMessageEventSubscriber) {
+func (d *DefaultCommunityManager) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
 	d.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
 }
 
-func (d *DefaultCommunityManager) notifyNewOutgoingMessage(event *transport_event.OutgoingLetter) {
+func (d *DefaultCommunityManager) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range d.newOutgoingMessageSubscribers {
 		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
 		subscriber.NewOutgoingMessageEventChannel() <- event
@@ -73,6 +81,17 @@ func (d *DefaultCommunityManager) notifyPeerJoined(event *og_interface.PeerJoine
 	for _, subscriber := range d.peerJoinedEventSubscribers {
 		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
 		subscriber.EventChannelPeerJoined() <- event
+	}
+}
+
+func (d *DefaultCommunityManager) AddSubscriberPeerLeftEvent(sub og_interface.PeerLeftEventSubscriber) {
+	d.peerLeftEventSubscribers = append(d.peerLeftEventSubscribers, sub)
+}
+
+func (d *DefaultCommunityManager) notifyPeerLeft(event *og_interface.PeerLeftEvent) {
+	for _, subscriber := range d.peerLeftEventSubscribers {
+		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
+		subscriber.EventChannelPeerLeft() <- event
 	}
 }
 
@@ -114,6 +133,8 @@ func (d *DefaultCommunityManager) loop() {
 		case event := <-d.myPeerConnectedEventChannel:
 			// send ping
 			d.handlePeerConnected(event)
+		case event := <-d.myPeerDisconnectedEventChannel:
+			d.handlePeerDisconnected(event)
 		}
 	}
 }
@@ -127,9 +148,9 @@ func (d *DefaultCommunityManager) SendPing(peer string) {
 		peer = d.peers[rand.Intn(len(d.peers))]
 	}
 
-	oreq := &transport_event.OutgoingLetter{
+	oreq := &transport_interface.OutgoingLetter{
 		Msg:            ping,
-		SendType:       transport_event.SendTypeUnicast,
+		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,
 		EndReceivers:   []string{peer},
 	}
@@ -137,7 +158,7 @@ func (d *DefaultCommunityManager) SendPing(peer string) {
 }
 
 func (d *DefaultCommunityManager) StaticSetup() {
-	knownPeersAddress, err := transport_event.LoadKnownPeers(d.KnownPeerListFilePath)
+	knownPeersAddress, err := transport_interface.LoadKnownPeers(d.KnownPeerListFilePath)
 	if err != nil {
 		logrus.WithError(err).Fatal("you need provide at least one known address to connect to the address network. Place them in config/peers.lst")
 	}
@@ -151,9 +172,9 @@ func (d *DefaultCommunityManager) StaticSetup() {
 	}
 }
 
-func (d *DefaultCommunityManager) handleMsgPing(letter *transport_event.IncomingLetter) {
+func (d *DefaultCommunityManager) handleMsgPing(letter *transport_interface.IncomingLetter) {
 	m := &message.OgMessagePing{}
-	_, err := m.UnmarshalMsg(letter.Msg.ContentBytes)
+	err := m.FromBytes(letter.Msg.ContentBytes)
 	if err != nil {
 		logrus.WithField("type", "OgMessagePing").WithError(err).Warn("bad message")
 	}
@@ -165,19 +186,19 @@ func (d *DefaultCommunityManager) handleMsgPing(letter *transport_event.Incoming
 		Close:    closeFlag,
 	}
 
-	oreq := &transport_event.OutgoingLetter{
+	oreq := &transport_interface.OutgoingLetter{
 		Msg:            resp,
-		SendType:       transport_event.SendTypeUnicast,
+		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: closeFlag,
 		EndReceivers:   []string{letter.From},
 	}
 	d.notifyNewOutgoingMessage(oreq)
 }
 
-func (d *DefaultCommunityManager) handleMsgPong(letter *transport_event.IncomingLetter) {
+func (d *DefaultCommunityManager) handleMsgPong(letter *transport_interface.IncomingLetter) {
 	// if we get a pong with close flag, the target peer is dropping us.
 	m := &message.OgMessagePong{}
-	_, err := m.UnmarshalMsg(letter.Msg.ContentBytes)
+	err := m.FromBytes(letter.Msg.ContentBytes)
 	if err != nil {
 		logrus.WithField("type", "OgMessagePong").WithError(err).Warn("bad message")
 	}
@@ -197,17 +218,26 @@ func (d *DefaultCommunityManager) protocolMatch(mine string, theirs string) bool
 	return mine == theirs
 }
 
-func (d *DefaultCommunityManager) handlePeerConnected(event *transport_event.PeerConnectedEvent) {
+func (d *DefaultCommunityManager) handlePeerConnected(event *transport_interface.PeerEvent) {
 	// send ping
 	resp := &message.OgMessagePing{
 		Protocol: Protocol,
 	}
 
-	oreq := &transport_event.OutgoingLetter{
+	oreq := &transport_interface.OutgoingLetter{
 		Msg:            resp,
-		SendType:       transport_event.SendTypeUnicast,
+		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,
 		EndReceivers:   []string{event.PeerId},
 	}
 	d.notifyNewOutgoingMessage(oreq)
+}
+
+func (d *DefaultCommunityManager) handlePeerDisconnected(event *transport_interface.PeerEvent) {
+	// TODO: connect another potential node if there is spare node
+	peerLeftEvent := &og_interface.PeerLeftEvent{
+		PeerId: event.PeerId,
+	}
+
+	d.notifyPeerLeft(peerLeftEvent)
 }

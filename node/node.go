@@ -19,6 +19,7 @@ import (
 	archive2 "github.com/annchain/OG/archive"
 	"github.com/annchain/OG/arefactor/common/io"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common/encryption"
 	"github.com/annchain/OG/og/message_archive"
 	"github.com/annchain/OG/og/txmaker"
@@ -63,18 +64,18 @@ func NewNode() *Node {
 
 	// Crypto and signers
 	var cryptoType crypto.CryptoType
-	switch viper.GetString("crypto.algorithm") {
+	switch viper.GetString("ogcrypto.algorithm") {
 	case "ed25519":
 		cryptoType = crypto.CryptoTypeEd25519
 	case "secp256k1":
 		cryptoType = crypto.CryptoTypeSecp256k1
 	default:
-		logrus.Fatal("Unknown crypto algorithm: " + viper.GetString("crypto.algorithm"))
+		logrus.Fatal("Unknown ogcrypto algorithm: " + viper.GetString("ogcrypto.algorithm"))
 	}
 	//set default signer
-	crypto.Signer = crypto.NewSigner(cryptoType)
-	// Setup crypto algorithm
-	if crypto.Signer.CanRecoverPubFromSig() {
+	og_interface.Signer = crypto.NewSigner(cryptoType)
+	// Setup ogcrypto algorithm
+	if og_interface.Signer.CanRecoverPubFromSig() {
 		archive.CanRecoverPubFromSig = true
 	}
 	// network id is configured either in config.toml or env variable
@@ -320,9 +321,9 @@ func NewNode() *Node {
 	}
 
 	// TODO: move to (embeded) client. It is not part of OG
-	//var privateKey crypto.PrivateKey
+	//var privateKey ogcrypto.PrivateKey
 	//if viper.IsSet("account.private_key") {
-	//	privateKey, err = crypto.PrivateKeyFromString(viper.GetString("account.private_key"))
+	//	privateKey, err = ogcrypto.PrivateKeyFromString(viper.GetString("account.private_key"))
 	//	logrus.Info("Loaded private key from configuration")
 	//	if err != nil {
 	//		panic(err)

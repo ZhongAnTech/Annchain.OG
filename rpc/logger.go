@@ -15,7 +15,7 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/annchain/OG/vm/eth/common/math"
+	math2 "github.com/annchain/OG/arefactor/common/math"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"sync/atomic"
@@ -25,7 +25,7 @@ import (
 var requestId uint32
 
 func getRequestId() uint32 {
-	if requestId > math.MaxUint32-1000 {
+	if requestId > math2.MaxUint32-1000 {
 		requestId = 10
 	}
 	return atomic.AddUint32(&requestId, 1)

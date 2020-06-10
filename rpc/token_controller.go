@@ -15,6 +15,7 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -99,8 +100,8 @@ func (r *RpcController) TokenDestroy(c *gin.Context) {
 	}
 
 	sig = crypto.SignatureFromBytes(pub.Type, signature)
-	if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
-		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
+	if sig.Type != og_interface.Signer.GetCryptoType() || pub.Type != og_interface.Signer.GetCryptoType() {
+		Response(c, http.StatusOK, fmt.Errorf("ogcrypto algorithm mismatch"), nil)
 		return
 	}
 
@@ -203,8 +204,8 @@ func (r *RpcController) NewPublicOffering(c *gin.Context) {
 	}
 
 	sig = crypto.SignatureFromBytes(pub.Type, signature)
-	if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
-		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
+	if sig.Type != og_interface.Signer.GetCryptoType() || pub.Type != og_interface.Signer.GetCryptoType() {
+		Response(c, http.StatusOK, fmt.Errorf("ogcrypto algorithm mismatch"), nil)
 		return
 	}
 
@@ -304,8 +305,8 @@ func (r *RpcController) NewSecondOffering(c *gin.Context) {
 	}
 
 	sig = crypto.SignatureFromBytes(pub.Type, signature)
-	if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
-		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
+	if sig.Type != og_interface.Signer.GetCryptoType() || pub.Type != og_interface.Signer.GetCryptoType() {
+		Response(c, http.StatusOK, fmt.Errorf("ogcrypto algorithm mismatch"), nil)
 		return
 	}
 

@@ -20,8 +20,8 @@ import (
 	"github.com/annchain/OG/arefactor/common/io"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/client/tx_client"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/rpc"
@@ -65,7 +65,7 @@ func tpsInit() {
 }
 
 func tepsDataGen(threadNum uint16, db ogdb.Database, total uint16) {
-	_, priv := crypto.Signer.RandomKeyPair()
+	_, priv := og_interface.Signer.RandomKeyPair()
 	requester := tx_client.NewRequestGenerator(priv)
 	to := types.RandomAddress()
 	requester.Nodebug = true

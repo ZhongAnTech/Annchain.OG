@@ -19,7 +19,7 @@ package onode
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/p2p/enr"
 	"github.com/annchain/OG/types/msg"
@@ -53,7 +53,7 @@ func SignV4(r *enr.Record, privkey *ecdsa.PrivateKey) error {
 	list := msg.Messages(cpy.AppendElements(nil))
 	data, _ := list.MarshalMsg(nil)
 	h.Write(data)
-	sig, err := crypto.Sign(h.Sum(nil), privkey)
+	sig, err := ogcrypto.Sign(h.Sum(nil), privkey)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (V4ID) Verify(r *enr.Record, sig []byte) error {
 	list := msg.Messages(r.AppendElements(nil))
 	data, _ := list.MarshalMsg(nil)
 	h.Write(data)
-	if !crypto.VerifySignature(entry, h.Sum(nil), sig) {
+	if !ogcrypto.VerifySignature(entry, h.Sum(nil), sig) {
 		return enr.ErrInvalidSig
 	}
 	return nil
@@ -90,7 +90,7 @@ func (V4ID) NodeAddr(r *enr.Record) []byte {
 	buf := make([]byte, 64)
 	math.ReadBits(pubkey.X, buf[:32])
 	math.ReadBits(pubkey.Y, buf[32:])
-	return crypto.Keccak256(buf)
+	return ogcrypto.Keccak256(buf)
 }
 
 // S256raw is an unparsed secp256k1 public key entry.

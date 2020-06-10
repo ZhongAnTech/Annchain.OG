@@ -35,6 +35,7 @@ github.com/annchain/OG v0.0.5 h1:GbCE2XMOrCksPe90me4XUHYQCjxwNFLpG1Lh51GXEz8=
 github.com/annchain/OG v0.0.5/go.mod h1:pLMQXS8WyBJL1NbYGSkW/OiYZeROIcjdo/6Im4UAG7w=
 github.com/annchain/bloom v2.0.4+incompatible/go.mod h1:NaO/1aKiTqpS4a8Q4lN4v5OchY2WrX5k0Ll5NmpuFGA=
 github.com/annchain/gcache v0.0.2/go.mod h1:2eUoU39YhvRAJGoI7ROAOAdoGt03FxDx2b4qjFGNdd8=
+github.com/annchain/kyber/v3 v3.1.1 h1:Xq4bhZGLz1wXvzkxlvCYbxvgkkYQicNqfNHC06fNWaw=
 github.com/annchain/kyber/v3 v3.1.1/go.mod h1:WhRE3Gn8VmTZsuzTamPekKDwv0kBwFXu0xNsfd86oE8=
 github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e/go.mod h1:D/tb0zPVXnP7fmsLZjtdUhSsumbK/ij54UXjjVgMGxQ=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
@@ -710,6 +711,7 @@ github.com/willf/bitset v1.1.10/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPy
 github.com/x-cray/logrus-prefixed-formatter v0.5.2/go.mod h1:2duySbKsL6M18s5GU7VPsoEPHyzalCE06qoARUCeBBE=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
+go.dedis.ch/fixbuf v1.0.3 h1:hGcV9Cd/znUxlusJ64eAlExS+5cJDIyTyEG+otu5wQs=
 go.dedis.ch/fixbuf v1.0.3/go.mod h1:yzJMt34Wa5xD37V5RTdmp38cz3QhMagdGoem9anUalw=
 go.dedis.ch/protobuf v1.0.5/go.mod h1:eIV4wicvi6JK0q/QnfIEGeSFNG0ZeB24kzut5+HaRLo=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

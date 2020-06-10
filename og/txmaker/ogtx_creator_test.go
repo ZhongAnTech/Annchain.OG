@@ -16,6 +16,8 @@ package txmaker
 import (
 	"fmt"
 	types2 "github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
 
@@ -23,7 +25,6 @@ import (
 	"time"
 
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/ogcore/miner"
 	"github.com/sirupsen/logrus"
 )
@@ -47,7 +48,7 @@ func (a *AllOkVerifier) Independent() bool {
 }
 
 func Init() *OGTxCreator {
-	crypto.Signer = &crypto.SignerEd25519{}
+	og_interface.Signer = &ogcrypto.SignerEd25519{}
 	txc := OGTxCreator{
 		TipGenerator:       &dummyTxPoolRandomTx{},
 		Miner:              &miner.PoWMiner{},
@@ -63,7 +64,7 @@ func TestTxCreator(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	txc := Init()
 	tx := txc.TipGenerator.GetRandomTips(1)[0].(*types.Tx)
-	_, priv := crypto.Signer.RandomKeyPair()
+	_, priv := og_interface.Signer.RandomKeyPair()
 	time1 := time.Now()
 
 	txSigned := txc.NewSignedTx(SignedTxBuildRequest{
@@ -95,7 +96,7 @@ func TestTxCreator(t *testing.T) {
 func TestSequencerCreator(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	txc := Init()
-	_, priv := crypto.Signer.RandomKeyPair()
+	_, priv := og_interface.Signer.RandomKeyPair()
 	time1 := time.Now()
 
 	// for copy
@@ -129,7 +130,7 @@ func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType)
 }
 
 func TestBuildDag(t *testing.T) {
-	crypto.Signer = &crypto.SignerEd25519{}
+	og_interface.Signer = &ogcrypto.SignerEd25519{}
 	logrus.SetLevel(logrus.DebugLevel)
 	pool := &dummyTxPoolMiniTx{}
 	pool.Init()
@@ -142,7 +143,7 @@ func TestBuildDag(t *testing.T) {
 		GraphVerifier:      &AllOkVerifier{},
 	}
 
-	_, privateKey := crypto.Signer.RandomKeyPair()
+	_, privateKey := og_interface.Signer.RandomKeyPair()
 
 	txs := []types.Txi{
 		txc.NewSignedSequencer(SignedSequencerBuildRequest{

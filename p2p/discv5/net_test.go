@@ -19,15 +19,14 @@ package discv5
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"net"
 	"testing"
 	"time"
-
-	"github.com/annchain/OG/common/crypto"
 )
 
 func TestNetwork_Lookup(t *testing.T) {
-	key, _ := crypto.GenerateKey()
+	key, _ := ogcrypto.GenerateKey()
 	network, err := newNetwork(lookupTestnet, key.PublicKey, "", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -338,12 +337,12 @@ func (*preminedTestnet) localAddr() *net.UDPAddr {
 // various distances to the given target.
 func (tn *preminedTestnet) mine(target NodeID) {
 	tn.target = target
-	tn.targetSha = crypto.Keccak256Hash(tn.target[:])
+	tn.targetSha = ogcrypto.Keccak256Hash(tn.target[:])
 	found := 0
 	for found < bucketSize*10 {
 		k := newkey()
 		id := PubkeyID(&k.PublicKey)
-		sha := crypto.Keccak256Hash(id[:])
+		sha := ogcrypto.Keccak256Hash(id[:])
 		ld := logdist(tn.targetSha, sha)
 		if len(tn.dists[ld]) < bucketSize {
 			tn.dists[ld] = append(tn.dists[ld], id)

@@ -21,8 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/crypto/ecies"
+	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
+	"github.com/annchain/OG/arefactor/ogcrypto/ecies"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/golang/snappy"
 	"io"
@@ -134,7 +134,7 @@ func initiatorRawencHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey, remote 
 		Version: 1,
 	}
 	copy(msg.Nonce[:], h.initNonce)
-	signature, err := crypto.Sign(h.initNonce, prv)
+	signature, err := crypto2.Sign(h.initNonce, prv)
 	if err != nil {
 		return err
 	}
@@ -237,7 +237,7 @@ func receiverRawHandshake(conn io.ReadWriter, prv *ecdsa.PrivateKey) (*ecdsa.Pub
 	}
 	//log.WithField("nonce ", hex.EncodeToString(authMsg.Nonce[:])).WithField(
 	//"sig ", hex.EncodeToString(authMsg.Signature[:])).Trace("read msg")
-	rPub, err := crypto.Ecrecover(authMsg.Nonce[:], authMsg.Signature[:])
+	rPub, err := crypto2.Ecrecover(authMsg.Nonce[:], authMsg.Signature[:])
 	if err != nil {
 		return nil, fmt.Errorf("sig invalid %v", err)
 	}

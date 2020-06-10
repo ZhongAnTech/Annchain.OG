@@ -3,27 +3,27 @@ package og
 import (
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/sirupsen/logrus"
 )
 
-func (o *OgEngine) handleHeightRequest(letter *transport_event.IncomingLetter) {
+func (o *OgEngine) handleHeightRequest(letter *transport_interface.IncomingLetter) {
 	// report my height info
 	resp := message.OgMessageHeightResponse{
 		Height: o.CurrentHeight(),
 	}
-	o.notifyNewOutgoingMessage(&transport_event.OutgoingLetter{
+	o.notifyNewOutgoingMessage(&transport_interface.OutgoingLetter{
 		Msg:            &resp,
-		SendType:       transport_event.SendTypeUnicast,
+		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,
 		EndReceivers:   []string{letter.From},
 	})
 }
 
-func (o *OgEngine) handleHeightResponse(letter *transport_event.IncomingLetter) {
+func (o *OgEngine) handleHeightResponse(letter *transport_interface.IncomingLetter) {
 	// if we get a pong with close flag, the target peer is dropping us.
 	m := &message.OgMessageHeightResponse{}
-	_, err := m.UnmarshalMsg(letter.Msg.ContentBytes)
+	err := m.FromBytes(letter.Msg.ContentBytes)
 	if err != nil {
 		logrus.WithField("type", m.GetType()).WithError(err).Warn("bad message")
 	}
@@ -46,9 +46,9 @@ func (o *OgEngine) handleHeightResponse(letter *transport_event.IncomingLetter) 
 func (o *OgEngine) handlePeerJoined(event *og_interface.PeerJoinedEvent) {
 	// detect height
 	m := &message.OgMessageHeightRequest{}
-	o.notifyNewOutgoingMessage(&transport_event.OutgoingLetter{
+	o.notifyNewOutgoingMessage(&transport_interface.OutgoingLetter{
 		Msg:            m,
-		SendType:       transport_event.SendTypeUnicast,
+		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,
 		EndReceivers:   []string{event.PeerId},
 	})

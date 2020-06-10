@@ -29,7 +29,7 @@ package archive
 //		log.WithField("txs ", txs).Debug("lucky cps")
 //		for _, tx := range txs {
 //			cp := tx.(*tx_types.Campaign)
-//			publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
+//			publicKey := ogcrypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 //			d.term.AddCandidate(cp, publicKey)
 //			if d.isValidPartner {
 //				d.addPartner(cp)
@@ -74,7 +74,7 @@ package archive
 //		if cp == nil {
 //			panic("cp is nil")
 //		}
-//		publicKey := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
+//		publicKey := ogcrypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 //		d.term.AddCandidate(cp, publicKey)
 //		log.WithField("v", v).WithField(" j ", j).Trace("you are lucky one")
 //		if bytes.Equal(cp.PublicKey, d.myAccount.PublicKey.KeyBytes) {

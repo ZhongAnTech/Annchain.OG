@@ -87,7 +87,7 @@ func TestSequencerSecpSign(t *testing.T) {
 	seq.Issuer = &addr
 	seq.Height = 221
 
-	// signer := crypto.SignerSecp256k1{}
+	// signer := ogcrypto.SignerSecp256k1{}
 
 }
 

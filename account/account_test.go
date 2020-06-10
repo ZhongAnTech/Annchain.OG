@@ -17,7 +17,7 @@ import (
 //			Height:    10,
 //		},
 //	}
-//	signer := &crypto.SignerSecp256k1{}
+//	signer := &ogcrypto.SignerSecp256k1{}
 //
 //	beforeSign := tx.SignatureTargets()
 //	fmt.Println(hexutil.Encode(beforeSign))

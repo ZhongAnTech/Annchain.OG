@@ -4,7 +4,7 @@ import (
 	"github.com/annchain/OG/arefactor/bouncer"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/transport"
-	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/OG/common/io"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -70,7 +70,7 @@ func (n *SampleNode) Start() {
 	n.AfterStart()
 }
 func (n *SampleNode) AfterStart() {
-	knownPeersAddress, err := transport_event.LoadKnownPeers(
+	knownPeersAddress, err := transport_interface.LoadKnownPeers(
 		io.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "peers.lst")))
 	if err != nil {
 		logrus.WithError(err).Fatal("you need provide at least one known address to connect to the address network. Place them in config/peers.lst")

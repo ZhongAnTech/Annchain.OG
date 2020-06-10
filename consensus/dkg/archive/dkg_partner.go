@@ -31,7 +31,7 @@ package archive
 //	"strings"
 //	"sync"
 //
-//	"github.com/annchain/OG/common/crypto"
+//	"github.com/annchain/OG/common/ogcrypto"
 //	"github.com/annchain/kyber/v3"
 //	"github.com/annchain/kyber/v3/pairing/bn256"
 //	"github.com/annchain/kyber/v3/share/dkg/pedersen"
@@ -251,7 +251,7 @@ package archive
 ////func (d *DkgPartner) AddPartner(c *tx_types.Campaign) {
 ////	d.mu.Lock()
 ////	defer d.mu.Unlock()
-////	publicKey := crypto.Signer.PublicKeyFromBytes(c.PublicKey)
+////	publicKey := ogcrypto.Signer.PublicKeyFromBytes(c.PublicKey)
 ////	d.addPartner(c,publicKey)
 ////	return
 ////
@@ -301,14 +301,14 @@ package archive
 //	return ok
 //}
 //
-//func (d *DkgPartner) SendGenesisPublicKey(genesisAccounts []crypto.PublicKey) {
+//func (d *DkgPartner) SendGenesisPublicKey(genesisAccounts []ogcrypto.PublicKey) {
 //	log := d.log()
 //	for i := 0; i < len(genesisAccounts); i++ {
 //		msg := &p2p_message.MessageConsensusDkgGenesisPublicKey{
 //			DkgPublicKey: d.myPublicKey,
 //			PublicKey:    d.myAccount.PublicKey.KeyBytes,
 //		}
-//		msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).KeyBytes
+//		msg.Signature = ogcrypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).KeyBytes
 //		if uint32(i) == d.context.MyIndex {
 //			log.Tracef("escape me %d ", d.context.MyIndex)
 //			//myself
@@ -420,9 +420,9 @@ package archive
 ////		if cp == nil {
 ////			panic("campaign not found")
 ////		}
-////		msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).KeyBytes
+////		msg.Signature = ogcrypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).KeyBytes
 ////		msg.PublicKey = d.myAccount.PublicKey.KeyBytes
-////		pk := crypto.Signer.PublicKeyFromBytes(cp.PublicKey)
+////		pk := ogcrypto.Signer.PublicKeyFromBytes(cp.PublicKey)
 ////		log.WithField("to ", addr.TerminalString()).WithField("deal",
 ////			deal.TerminateString()).WithField("msg", msg).trace("send dkg deal to")
 ////		dkg2.AnonymousSendMessage(message.MessageTypeConsensusDkgDeal, msg, &pk)
@@ -479,7 +479,7 @@ package archive
 //				continue
 //			}
 //
-//			addr := crypto.Signer.AddressFromPubKeyBytes(request.PublicKey)
+//			addr := ogcrypto.Signer.AddressFromPubKeyBytes(request.PublicKey)
 //			if !d.CacheDealsIfNotReady(addr, request) {
 //				log.WithField("deal ", request).trace("process later ,not ready yet")
 //				continue
@@ -514,7 +514,7 @@ package archive
 //			//	//MyIndex:   request.MyIndex,
 //			//	MyIndex: message.MsgCounter.Get(),
 //			//}
-//			//response.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, response.SignatureTargets()).KeyBytes
+//			//response.Signature = ogcrypto.Signer.Sign(d.myAccount.PrivateKey, response.SignatureTargets()).KeyBytes
 //			//response.PublicKey = d.myAccount.PublicKey.KeyBytes
 //			//log.WithField("to request ", request).WithField("response ", &response).trace("will send response")
 //			//broadcast response to all context
@@ -524,7 +524,7 @@ package archive
 //			//		continue
 //			//	}
 //			//	msgCopy := response
-//			//	pk := crypto.Signer.PublicKeyFromBytes(v.PublicKey)
+//			//	pk := ogcrypto.Signer.PublicKeyFromBytes(v.PublicKey)
 //			//	goroutine.New(func() {
 //			//		dkg2.AnonymousSendMessage(message.MessageTypeConsensusDkgDealResponse, &msgCopy, &pk)
 //			//	})
@@ -545,7 +545,7 @@ package archive
 //			//	log.Warn("why send to me")
 //			//	continue
 //			//}
-//			addr := crypto.Signer.AddressFromPubKeyBytes(response.PublicKey)
+//			addr := ogcrypto.Signer.AddressFromPubKeyBytes(response.PublicKey)
 //			if !d.CacheResponseIfNotReady(addr, response) {
 //				log.WithField("response ", resp).trace("process later ,not ready yet")
 //				continue
@@ -590,7 +590,7 @@ package archive
 //			//d.ann.dkgPkCh <- jointPub
 //			var msg p2p_message.MessageConsensusDkgSigSets
 //			msg.PkBls, _ = jointPub.MarshalBinary()
-//			msg.Signature = crypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).KeyBytes
+//			msg.Signature = ogcrypto.Signer.Sign(d.myAccount.PrivateKey, msg.SignatureTargets()).KeyBytes
 //			msg.PublicKey = d.myAccount.PublicKey.KeyBytes
 //
 //			for k, v := range d.term.Candidates() {
@@ -598,7 +598,7 @@ package archive
 //					continue
 //				}
 //				msgCopy := msg
-//				pk := crypto.Signer.PublicKeyFromBytes(v.PublicKey)
+//				pk := ogcrypto.Signer.PublicKeyFromBytes(v.PublicKey)
 //				goroutine.New(func() {
 //					dkg2.AnonymousSendMessage(message.MessageTypeConsensusDkgSigSets, &msgCopy, &pk)
 //				})
@@ -622,7 +622,7 @@ package archive
 //				log.Warn("why send to me")
 //				continue
 //			}
-//			addr := crypto.Signer.AddressFromPubKeyBytes(response.PublicKey)
+//			addr := ogcrypto.Signer.AddressFromPubKeyBytes(response.PublicKey)
 //			if !d.CacheSigSetsIfNotReady(addr, response) {
 //				log.WithField("response ",
 //					response).trace("process later sigsets ,not ready yet")

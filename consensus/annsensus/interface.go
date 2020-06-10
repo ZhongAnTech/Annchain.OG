@@ -46,7 +46,7 @@ type HeightProvider interface {
 
 //type SequencerProducer interface {
 //	GenerateSequencer(issuer common.Address, height uint64, accountNonce uint64,
-//		privateKey *crypto.PrivateKey, blsPubKey []byte) (seq *types.Sequencer, err error, genAgain bool)
+//		privateKey *ogcrypto.PrivateKey, blsPubKey []byte) (seq *types.Sequencer, err error, genAgain bool)
 //	ValidateSequencer(seq types.Sequencer) error
 //}
 

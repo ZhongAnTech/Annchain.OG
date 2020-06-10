@@ -38,7 +38,7 @@ package archive
 //	"sync/atomic"
 //	"time"
 //
-//	"github.com/annchain/OG/common/crypto"
+//	"github.com/annchain/OG/common/ogcrypto"
 //	"github.com/annchain/OG/types"
 //	"github.com/annchain/kyber/v3"
 //)
@@ -47,7 +47,7 @@ package archive
 //type AnnSensus struct {
 //	//id           int
 //	campaignFlag bool
-//	cryptoType   crypto.CryptoType
+//	cryptoType   ogcrypto.CryptoType
 //
 //	//dkg  *dkg.DkgPartner
 //	term *term.Term
@@ -68,7 +68,7 @@ package archive
 //	mu sync.RWMutex
 //
 //	close                         chan struct{}
-//	genesisAccounts               crypto.PublicKeys
+//	genesisAccounts               ogcrypto.PublicKeys
 //	isGenesisPartner              bool
 //	genesisBftIsRunning           uint32
 //	UpdateEvent                   chan bool // syner update event
@@ -89,8 +89,8 @@ package archive
 //	initDone             bool
 //}
 //
-//func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType crypto.CryptoType, campaign bool, partnerNum int,
-//	genesisAccounts crypto.PublicKeys, configFile string, disableTermChange bool) *AnnSensus {
+//func NewAnnSensus(termChangeInterval int, disableConsensus bool, cryptoType ogcrypto.CryptoType, campaign bool, partnerNum int,
+//	genesisAccounts ogcrypto.PublicKeys, configFile string, disableTermChange bool) *AnnSensus {
 //	ann := &AnnSensus{}
 //	//ann.disable = disableConsensus
 //	//if disableConsensus {

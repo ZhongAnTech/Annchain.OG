@@ -2,6 +2,7 @@ package account
 
 import (
 	"fmt"
+	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/encryption"
 )
@@ -15,7 +16,7 @@ func SavePrivateKey(path string, content string) {
 }
 
 func GenAccount() (crypto.PrivateKey, crypto.PublicKey) {
-	signer := &crypto.SignerSecp256k1{}
+	signer := &crypto2.SignerSecp256k1{}
 	pub, priv := signer.RandomKeyPair()
 
 	return priv, pub

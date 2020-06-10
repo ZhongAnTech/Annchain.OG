@@ -1,7 +1,7 @@
 package transport
 
 import (
-	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -22,11 +22,11 @@ type Neighbour struct {
 	PrettyId        string
 	Stream          network.Stream
 	IoEventChannel  chan *IoEvent
-	IncomingChannel chan *transport_event.IncomingLetter
+	IncomingChannel chan *transport_interface.IncomingLetter
 	msgpReader      *msgp.Reader
 	msgpWriter      *msgp.Writer
 
-	outgoingChannel chan *transport_event.OutgoingLetter
+	outgoingChannel chan *transport_interface.OutgoingLetter
 
 	closing int32
 	quit    chan bool
@@ -34,7 +34,7 @@ type Neighbour struct {
 
 func (c *Neighbour) InitDefault() {
 	c.quit = make(chan bool)
-	c.outgoingChannel = make(chan *transport_event.OutgoingLetter, 100) // messages already dispatched
+	c.outgoingChannel = make(chan *transport_interface.OutgoingLetter, 100) // messages already dispatched
 }
 
 func (c *Neighbour) Start() {
@@ -46,7 +46,7 @@ func (c *Neighbour) loopRead() {
 	var err error
 	c.msgpReader = msgp.NewReader(c.Stream)
 	for {
-		msg := &transport_event.WireMessage{}
+		msg := &transport_interface.WireMessage{}
 		err = msg.DecodeMsg(c.msgpReader)
 		if err != nil {
 			// bad message, drop
@@ -55,7 +55,7 @@ func (c *Neighbour) loopRead() {
 			break
 		}
 
-		incoming := &transport_event.IncomingLetter{
+		incoming := &transport_interface.IncomingLetter{
 			Msg:  msg,
 			From: c.PrettyId,
 		}
@@ -66,7 +66,7 @@ func (c *Neighbour) loopRead() {
 	logrus.Trace("peer read end")
 }
 
-func (c *Neighbour) write(wireMessage *transport_event.WireMessage) (err error) {
+func (c *Neighbour) write(wireMessage *transport_interface.WireMessage) (err error) {
 	err = wireMessage.EncodeMsg(c.msgpWriter)
 	if err != nil {
 		return
@@ -90,7 +90,7 @@ loop:
 			}
 			logrus.Trace("neighbour got send request")
 
-			wireMessage := &transport_event.WireMessage{
+			wireMessage := &transport_interface.WireMessage{
 				MsgType:      req.Msg.GetTypeValue(),
 				ContentBytes: req.Msg.ToBytes(),
 			}
@@ -110,7 +110,7 @@ loop:
 	logrus.Trace("peer write end")
 }
 
-func (c *Neighbour) EnqueueSend(req *transport_event.OutgoingLetter) {
+func (c *Neighbour) EnqueueSend(req *transport_interface.OutgoingLetter) {
 	select {
 	case c.outgoingChannel <- req:
 	default:

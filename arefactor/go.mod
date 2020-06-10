@@ -4,6 +4,8 @@ go 1.13
 
 require (
 	github.com/annchain/OG v0.0.5
+	github.com/annchain/kyber/v3 v3.1.1
+	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/gin-gonic/gin v1.5.0
 	github.com/latifrons/goffchan v1.0.0
 	github.com/latifrons/soccerdash v1.1.1
@@ -16,7 +18,10 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
+	github.com/stretchr/testify v1.5.1
 	github.com/tebeka/strftime v0.1.4 // indirect
 	github.com/tinylib/msgp v1.1.2
+	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
 	gopkg.in/yaml.v2 v2.3.0
 )

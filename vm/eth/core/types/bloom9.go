@@ -18,9 +18,9 @@ package types
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"math/big"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
 )
 
@@ -113,7 +113,7 @@ func LogsBloom(logs []*Log) *big.Int {
 }
 
 func bloom9(b []byte) *big.Int {
-	b = crypto.Keccak256(b)
+	b = ogcrypto.Keccak256(b)
 
 	r := new(big.Int)
 

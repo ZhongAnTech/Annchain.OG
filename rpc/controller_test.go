@@ -18,6 +18,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/arefactor/og_interface"
+	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
@@ -66,7 +68,7 @@ func newAccount(algorithm string) (string, string, string, error) {
 	defer resp.Body.Close()
 	var buf bytes.Buffer
 	var a account
-	var signer crypto.ISigner
+	var signer og_interface.ISigner
 	io.Copy(&buf, resp.Body)
 	err = json.Unmarshal(buf.Bytes(), &a)
 	if err != nil {
@@ -74,9 +76,9 @@ func newAccount(algorithm string) (string, string, string, error) {
 	}
 	switch algorithm {
 	case "secp256k1":
-		signer = &crypto.SignerSecp256k1{}
+		signer = &crypto2.SignerSecp256k1{}
 	case "ed25519":
-		signer = &crypto.SignerEd25519{}
+		signer = &crypto2.SignerEd25519{}
 	}
 	pubkey, err := crypto.PublicKeyFromString(a.Pubkey)
 	if err != nil {
@@ -153,12 +155,12 @@ func sendTx(algorithm string) error {
 	}
 	toAddr, err := common.StringToAddress(addr2)
 
-	var signer crypto.ISigner
+	var signer og_interface.ISigner
 	switch algorithm {
 	case "secp256k1":
-		signer = &crypto.SignerSecp256k1{}
+		signer = &crypto2.SignerSecp256k1{}
 	case "ed25519":
-		signer = &crypto.SignerEd25519{}
+		signer = &crypto2.SignerEd25519{}
 	}
 
 	for nonce := 0; nonce < 10; nonce++ {

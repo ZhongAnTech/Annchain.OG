@@ -58,7 +58,7 @@ func (h PartPubs) Len() int {
 //
 //type DkgPeer struct {
 //	MyIndex        int
-//	PublicKey crypto.PublicKey `json:"-"`
+//	PublicKey ogcrypto.PublicKey `json:"-"`
 //
 //	Part kyber.Point
 //}

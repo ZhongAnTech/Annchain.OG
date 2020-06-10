@@ -17,7 +17,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/debug/debuglog"
 	"github.com/annchain/OG/og/downloader"
 	core2 "github.com/annchain/OG/ogcore/ledger"
@@ -31,8 +31,8 @@ import (
 )
 
 var (
-	testBankKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	testBank       = crypto.PubkeyToAddress(testBankKey.PublicKey)
+	testBankKey, _ = ogcrypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testBank       = ogcrypto.PubkeyToAddress(testBankKey.PublicKey)
 	testNetworkId  = uint64(101)
 )
 
@@ -67,8 +67,8 @@ func newTestHub(mode downloader.SyncMode) (*Hub, *ogdb.MemDatabase, error) {
 		syncConf := DefaultSyncerConfig()
 		syncer := NewSyncer(&syncConf, hub)
 		verfier := &GraphVerifier{
-			Signer:       &crypto.SignerSecp256k1{},
-			CryptoType:   crypto.CryptoTypeSecp256k1,
+			Signer:       &ogcrypto.SignerSecp256k1{},
+			CryptoType:   ogcrypto.CryptoTypeSecp256k1,
 			Dag:          dag,
 			TxPool:       txPool,
 			MaxTxHash:    common.HexToHash("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),

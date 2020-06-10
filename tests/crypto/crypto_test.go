@@ -15,6 +15,7 @@ package crypto
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/types/archive"
 	"testing"
@@ -42,7 +43,7 @@ func TestRawTx_Tx(t *testing.T) {
 
 func TestRawTx_encode(t *testing.T) {
 	signer := crypto.NewSigner(crypto.CryptoTypeEd25519)
-	crypto.Signer = signer
+	og_interface.Signer = signer
 	var num = 10000
 	var txs types.Txs
 	type bytes struct {

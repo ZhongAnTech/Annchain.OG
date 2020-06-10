@@ -3,9 +3,16 @@ package og_interface
 type PeerJoinedEvent struct {
 	PeerId string
 }
+type PeerLeftEvent struct {
+	PeerId string
+}
 
 type PeerJoinedEventSubscriber interface {
 	EventChannelPeerJoined() chan *PeerJoinedEvent
+}
+
+type PeerLeftEventSubscriber interface {
+	EventChannelPeerLeft() chan *PeerLeftEvent
 }
 
 type NodeInfoProvider interface {

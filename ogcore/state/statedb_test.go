@@ -2,10 +2,10 @@ package state_test
 
 import (
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
 	"testing"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogcore/state"
 	"github.com/annchain/OG/ogdb"
@@ -26,12 +26,12 @@ func TestStateDB(t *testing.T) {
 }
 
 var (
-	storageKey1   = crypto.Keccak256Hash([]byte("key1"))
-	storageValue1 = crypto.Keccak256Hash([]byte("value1"))
-	storageKey2   = crypto.Keccak256Hash([]byte("key2"))
-	storageValue2 = crypto.Keccak256Hash([]byte("value2"))
-	storageKey3   = crypto.Keccak256Hash([]byte("key3"))
-	storageValue3 = crypto.Keccak256Hash([]byte("value3"))
+	storageKey1   = ogcrypto.Keccak256Hash([]byte("key1"))
+	storageValue1 = ogcrypto.Keccak256Hash([]byte("value1"))
+	storageKey2   = ogcrypto.Keccak256Hash([]byte("key2"))
+	storageValue2 = ogcrypto.Keccak256Hash([]byte("value2"))
+	storageKey3   = ogcrypto.Keccak256Hash([]byte("key3"))
+	storageValue3 = ogcrypto.Keccak256Hash([]byte("value3"))
 )
 
 func TestStateStorage(t *testing.T) {

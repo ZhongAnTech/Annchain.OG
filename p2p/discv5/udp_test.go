@@ -19,6 +19,7 @@ package discv5
 import (
 	"encoding/hex"
 	"errors"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"io"
 	"net"
 	"reflect"
@@ -26,7 +27,6 @@ import (
 	"testing"
 
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -122,7 +122,7 @@ var (
 // 	// put a few nodes into the table. their exact
 // 	// distribution shouldn't matter much, although we need to
 // 	// take care not to overflow any bucket.
-// 	targetHash := crypto.Keccak256Hash(testTarget[:])
+// 	targetHash := ogcrypto.Keccak256Hash(testTarget[:])
 // 	nodes := &nodesByDistance{target: targetHash}
 // 	for i := 0; i < bucketSize; i++ {
 // 		nodes.push(nodeAtDistance(test.table.self.sha, i+2), bucketSize)
@@ -362,7 +362,7 @@ var testPackets = []struct {
 func TestForwardCompatibility(t *testing.T) {
 	t.Skip("skipped while working on discovery v5")
 
-	testkey, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testkey, _ := ogcrypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	wantNodeID := PubkeyID(&testkey.PublicKey)
 
 	for _, test := range testPackets {

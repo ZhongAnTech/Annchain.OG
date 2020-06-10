@@ -42,9 +42,9 @@ func main() {
 	fmt.Println("sig ", hexutil.Encode(signature.SignatureBytes))
 	//data2 :=tx.SignatureTargets()
 	ok := signer.Verify(
-		//crypto.PublicKey{Type: signer.GetCryptoType(), KeyBytes: tx.GetBase().PublicKey},
+		//ogcrypto.PublicKey{Type: signer.GetCryptoType(), KeyBytes: tx.GetBase().PublicKey},
 		pubKey,
-		//crypto.Signature{Type: signer.GetCryptoType(), KeyBytes: tx.GetBase().Signature},
+		//ogcrypto.Signature{Type: signer.GetCryptoType(), KeyBytes: tx.GetBase().Signature},
 		signature,
 		data)
 	if !ok {

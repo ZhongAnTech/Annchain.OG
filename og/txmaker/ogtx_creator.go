@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
 	types2 "github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/og/types"
 
@@ -75,8 +76,8 @@ func (m *OGTxCreator) newUnsignedTx(req UnsignedTxBuildRequest) *types.Tx {
 		Value:        req.Value,
 		TokenId:      req.TokenId,
 		//Data:         nil,
-		//PublicKey:    crypto.PublicKey{},
-		//Signature:    crypto.Signature{},
+		//PublicKey:    ogcrypto.PublicKey{},
+		//Signature:    ogcrypto.Signature{},
 		//Height:       0,
 		//Weight:       0,
 	}
@@ -159,14 +160,14 @@ func (m *OGTxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, e
 //}
 
 func (m *OGTxCreator) NewSignedTx(req SignedTxBuildRequest) types.Txi {
-	if req.PrivateKey.Type != crypto.Signer.GetCryptoType() {
-		panic("crypto type mismatch")
+	if req.PrivateKey.Type != og_interface.Signer.GetCryptoType() {
+		panic("ogcrypto type mismatch")
 	}
 	tx := m.newUnsignedTx(req.UnsignedTxBuildRequest)
 	// do sign work
-	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
+	signature := og_interface.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
 	tx.Signature = signature
-	tx.PublicKey = crypto.Signer.PubKey(req.PrivateKey)
+	tx.PublicKey = og_interface.Signer.PubKey(req.PrivateKey)
 	tx.Hash = m.Miner.CalcHash(tx)
 	return tx
 }
@@ -189,15 +190,15 @@ func (m *OGTxCreator) newUnsignedSequencer(req UnsignedSequencerBuildRequest) *t
 
 //NewSignedSequencer this function is for test
 func (m *OGTxCreator) NewSignedSequencer(req SignedSequencerBuildRequest) types.Txi {
-	if req.PrivateKey.Type != crypto.Signer.GetCryptoType() {
-		panic("crypto type mismatch")
+	if req.PrivateKey.Type != og_interface.Signer.GetCryptoType() {
+		panic("ogcrypto type mismatch")
 	}
 	tx := m.newUnsignedSequencer(req.UnsignedSequencerBuildRequest)
 	// do sign work
-	logrus.Tracef("seq before sign, the sign type is: %s", crypto.Signer.GetCryptoType().String())
-	signature := crypto.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
+	logrus.Tracef("seq before sign, the sign type is: %s", og_interface.Signer.GetCryptoType().String())
+	signature := og_interface.Signer.Sign(req.PrivateKey, tx.SignatureTargets())
 	tx.Signature = signature.SignatureBytes
-	tx.PublicKey = crypto.Signer.PubKey(req.PrivateKey).KeyBytes
+	tx.PublicKey = og_interface.Signer.PubKey(req.PrivateKey).KeyBytes
 	tx.Hash = m.Miner.CalcHash(tx)
 	return tx
 }
@@ -246,7 +247,7 @@ func (m *OGTxCreator) tryConnect(tx types.Txi, parents []types.Txi, privateKey *
 
 		if tx.GetType() == types.TxBaseTypeSequencer {
 			txs := tx.(*types.Sequencer)
-			txs.Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
+			txs.Signature = og_interface.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
 			txs.SetHash(m.Miner.CalcHash(tx))
 		}
 
@@ -366,7 +367,7 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 	})
 	//for sequencer no mined nonce
 	// record the mining times.
-	pubkey := crypto.Signer.PubKey(*privateKey)
+	pubkey := og_interface.Signer.PubKey(*privateKey)
 	tx.PublicKey = pubkey.KeyBytes
 	tx.SetSender(pubkey.Address())
 	if blsPubKey != nil {
@@ -427,7 +428,7 @@ func (m *OGTxCreator) GenerateSequencer(issuer common.Address, height uint64, ac
 				return nil, err, false
 			}
 			tx.StateRoot = root
-			tx.Signature = crypto.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
+			tx.Signature = og_interface.Signer.Sign(*privateKey, tx.SignatureTargets()).SignatureBytes
 			tx.SetHash(m.Miner.CalcHash(tx))
 			//tx.SetVerified(types.VerifiedGraph)
 			//tx.SetVerified(types.VerifiedFormat)

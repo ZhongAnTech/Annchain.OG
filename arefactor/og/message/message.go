@@ -21,14 +21,14 @@ const (
 	OgMessageTypePong
 	OgMessageTypeHeightRequest
 	OgMessageTypeHeightResponse
-	OgMessageTypeBatchSyncRequest
+	OgMessageTypeHeightSyncRequest
+	OgMessageTypeHeightSyncResponse
 	OgMessageTypeSyncResponse
 	MessageTypeFetchByHashRequest
 	MessageTypeFetchByHashResponse
 	OgMessageTypeQueryStatusRequest
 	OgMessageTypeQueryStatusResponse
 	OgMessageTypeNewResource
-	OgMessageTypeHeightSyncRequest
 
 	//MessageTypeNewSequencer
 	//MessageTypeNewTxs
@@ -239,6 +239,78 @@ func (z *OgMessageHeightResponse) FromBytes(bts []byte) error {
 		return err
 	}
 	return nil
+}
+
+//msgp OgMessageHeightSyncRequest
+type OgMessageHeightSyncRequest struct {
+	Height      int64
+	Offset      int // sync starts from (paging)
+	BloomFilter []byte
+}
+
+func (z *OgMessageHeightSyncRequest) GetType() OgMessageType {
+	return OgMessageTypeHeightSyncRequest
+
+}
+
+func (z *OgMessageHeightSyncRequest) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgMessageHeightSyncRequest) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *OgMessageHeightSyncRequest) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (z *OgMessageHeightSyncRequest) String() string {
+	return fmt.Sprintf("OgMessageHeightSyncRequest: [height=%d]", z.Height)
+}
+
+//msgp OgMessageHeightSyncResponse
+type OgMessageHeightSyncResponse struct {
+	Height      int64
+	Offset      int  // sync starts from (paging)
+	HasNextPage bool // whether there are still some tx to be synced due to paging
+	Resources   []MessageContentResource
+}
+
+func (z *OgMessageHeightSyncResponse) GetType() OgMessageType {
+	return OgMessageTypeHeightSyncResponse
+}
+
+func (z *OgMessageHeightSyncResponse) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgMessageHeightSyncResponse) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *OgMessageHeightSyncResponse) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (z *OgMessageHeightSyncResponse) String() string {
+	return fmt.Sprintf("OgMessageHeightSyncResponse: [height=%d, len=%d]", z.Height, len(z.Resources))
 }
 
 ////msgp OgMessageBatchSyncRequest

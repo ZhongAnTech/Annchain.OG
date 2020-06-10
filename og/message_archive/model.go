@@ -2,12 +2,12 @@ package message_archive
 
 //import (
 //	"bytes"
-//	"crypto/sha256"
+//	"ogcrypto/sha256"
 //	"encoding/binary"
 //	"errors"
 //	"fmt"
 //	"github.com/annchain/OG/common"
-//	"github.com/annchain/OG/common/crypto"
+//	"github.com/annchain/OG/common/ogcrypto"
 //	"github.com/sirupsen/logrus"
 //)
 
@@ -118,7 +118,7 @@ package message_archive
 //	return err
 //}
 
-//func (m *types) AppendGossipTarget(pub *crypto.PublicKey) error {
+//func (m *types) AppendGossipTarget(pub *ogcrypto.PublicKey) error {
 //	b := make([]byte, 2)
 //	//use one key for tx and sequencer
 //	binary.BigEndian.PutUint16(b, uint16(m.MessageType))
@@ -129,7 +129,7 @@ package message_archive
 //	return nil
 //}
 
-//func (m *types) Encrypt(pub *crypto.PublicKey) error {
+//func (m *types) Encrypt(pub *ogcrypto.PublicKey) error {
 //	//if m.MessageType == MessageTypeConsensusDkgDeal || m.MessageType == MessageTypeConsensusDkgDealResponse {
 //	b := make([]byte, 2)
 //	//use one key for tx and sequencer
@@ -160,7 +160,7 @@ package message_archive
 //	return true
 //}
 
-//func (m *types) MaybeIsforMe(myPub *crypto.PublicKey) bool {
+//func (m *types) MaybeIsforMe(myPub *ogcrypto.PublicKey) bool {
 //	if m.MessageType != MessageTypeSecret {
 //		panic("not a secret Message")
 //	}
@@ -198,7 +198,7 @@ package message_archive
 //	return nil
 //}
 
-//func (m *types) Decrypt(priv *crypto.PrivateKey) error {
+//func (m *types) Decrypt(priv *ogcrypto.PrivateKey) error {
 //	if m.MessageType != MessageTypeSecret {
 //		panic("not a secret Message")
 //	}

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types"
 	archive2 "github.com/annchain/OG/og/types/archive"
@@ -21,7 +21,7 @@ var archive bool
 func generateTxs(height uint64, totalHeight int, txnum int) []*core2.ConfirmBatch {
 	var batchs []*core2.ConfirmBatch
 	for j := 0; j < totalHeight; j++ {
-		pub, priv := crypto.Signer.RandomKeyPair()
+		pub, priv := og_interface.Signer.RandomKeyPair()
 		var txis types.Txis
 		for i := 0; i < txnum; i++ {
 			if archive {
@@ -36,13 +36,13 @@ func generateTxs(height uint64, totalHeight int, txnum int) []*core2.ConfirmBatc
 				tx.PublicKey = pub.KeyBytes[:]
 				tx.From = pub.Address()
 				tx.AccountNonce = uint64(i) + 1
-				tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
+				tx.Signature = og_interface.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 				txis = append(txis, tx)
 			}
 		}
 		seq := types.RandomSequencer()
 		seq.PublicKey = pub.KeyBytes[:]
-		seq.Signature = crypto.Signer.Sign(priv, seq.SignatureTargets()).SignatureBytes[:]
+		seq.Signature = og_interface.Signer.Sign(priv, seq.SignatureTargets()).SignatureBytes[:]
 		batch := &core2.ConfirmBatch{
 			Seq: seq,
 			Txs: txis,

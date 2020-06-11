@@ -18,12 +18,12 @@ package vm
 
 import (
 	"fmt"
+	math2 "github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og/types"
 	"hash"
 	"sync/atomic"
 
 	"github.com/annchain/OG/vm/eth/common"
-	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/params"
 	"github.com/annchain/OG/vm/instruction"
 
@@ -197,7 +197,7 @@ func (in *EVMInterpreter) Run(contract *vmtypes.Contract, input []byte, readOnly
 			}
 			// memory is expanded in words of 32 bytes. Gas
 			// is also calculated in words.
-			if memorySize, overflow = math.SafeMul(common.ToWordSize(memSize), 32); overflow {
+			if memorySize, overflow = math2.SafeMul(common.ToWordSize(memSize), 32); overflow {
 				return nil, errGasUintOverflow
 			}
 		}

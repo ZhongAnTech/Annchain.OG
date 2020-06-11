@@ -1,7 +1,7 @@
 package bouncer
 
 import (
-	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -15,8 +15,8 @@ type Bouncer struct {
 	Peers                         []string
 	i                             int
 	quit                          chan bool
-	myNewIncomingMessageEventChan chan *transport_event.IncomingLetter
-	newOutgoingMessageSubscribers []transport_event.NewOutgoingMessageEventSubscriber
+	myNewIncomingMessageEventChan chan *transport_interface.IncomingLetter
+	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber
 	lastReceiveTime               time.Time
 }
 
@@ -25,16 +25,16 @@ func (b *Bouncer) GetBenchmarks() map[string]interface{} {
 }
 
 func (b *Bouncer) InitDefault() {
-	b.myNewIncomingMessageEventChan = make(chan *transport_event.IncomingLetter)
-	b.newOutgoingMessageSubscribers = []transport_event.NewOutgoingMessageEventSubscriber{}
+	b.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
+	b.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 	b.quit = make(chan bool)
 }
 
-func (b *Bouncer) RegisterSubscriberNewOutgoingMessageEvent(sub transport_event.NewOutgoingMessageEventSubscriber) {
+func (b *Bouncer) RegisterSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
 	b.newOutgoingMessageSubscribers = append(b.newOutgoingMessageSubscribers, sub)
 }
 
-func (b *Bouncer) GetNewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
+func (b *Bouncer) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
 	return b.myNewIncomingMessageEventChan
 }
 
@@ -49,21 +49,21 @@ func (b *Bouncer) loop() {
 				panic("bad message")
 			}
 			bm := &BouncerMessage{}
-			_, err := bm.UnmarshalMsg(letter.Msg.ContentBytes)
+			err := bm.FromBytes(letter.Msg.ContentBytes)
 			if err != nil {
 				panic(err)
 			}
 
 			// generate new message
-			or := &transport_event.OutgoingLetter{
+			or := &transport_interface.OutgoingLetter{
 				Msg: &BouncerMessage{
 					Value: 1,
 				},
-				SendType:     transport_event.SendTypeUnicast,
+				SendType:     transport_interface.SendTypeUnicast,
 				EndReceivers: []string{b.Peers[(b.Id+1)%len(b.Peers)]},
 			}
 			for _, c := range b.newOutgoingMessageSubscribers {
-				<-goffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
+				<-goffchan.NewTimeoutSender(c.NewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
 
 			}
 			b.i = bm.Value + 1
@@ -73,15 +73,15 @@ func (b *Bouncer) loop() {
 				break
 			}
 			if b.Id == 0 {
-				or := &transport_event.OutgoingLetter{
+				or := &transport_interface.OutgoingLetter{
 					Msg: &BouncerMessage{
 						Value: 1,
 					},
-					SendType:     transport_event.SendTypeUnicast,
+					SendType:     transport_interface.SendTypeUnicast,
 					EndReceivers: []string{b.Peers[1]},
 				}
 				for _, c := range b.newOutgoingMessageSubscribers {
-					<-goffchan.NewTimeoutSender(c.GetNewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
+					<-goffchan.NewTimeoutSender(c.NewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
 				}
 				b.i += 10
 			}

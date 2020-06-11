@@ -26,13 +26,13 @@ import (
 	"github.com/annchain/OG/arefactor/common/format"
 	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/arefactor/common/io"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/p2p/onode"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"sort"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/discover"
 	"github.com/annchain/OG/p2p/discv5"
@@ -487,7 +487,7 @@ func (srv *Server) start() (err error) {
 
 func (srv *Server) setupLocalNode() error {
 	// Create the devp2p handshake.
-	pubkey := crypto.FromECDSAPub(&srv.PrivateKey.PublicKey)
+	pubkey := ogcrypto.FromECDSAPub(&srv.PrivateKey.PublicKey)
 	srv.ourHandshake = &ProtoHandshake{Version: baseProtocolVersion, Name: srv.NodeName, ID: pubkey[1:]}
 	for _, p := range srv.Protocols {
 		srv.ourHandshake.Caps = append(srv.ourHandshake.Caps, p.cap())
@@ -1000,7 +1000,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *onode.Node) erro
 		log.WithFields(clog).WithError(err).Trace("Failed proto handshake")
 		return err
 	}
-	if id := c.node.ID(); !bytes.Equal(crypto.Keccak256(phs.ID), id[:]) {
+	if id := c.node.ID(); !bytes.Equal(ogcrypto.Keccak256(phs.ID), id[:]) {
 		log.WithFields(clog).WithField("phs.ID", phs.ID).Trace("Wrong devp2p handshake identity")
 		return DiscUnexpectedIdentity
 	}

@@ -59,7 +59,7 @@ type PrivateKey []byte
 type PublicKey []byte
 
 // GenerateKey creates a public/private key pair using rnd for randomness.
-// If rnd is nil, crypto/rand is used.
+// If rnd is nil, ogcrypto/rand is used.
 func GenerateKey(rnd io.Reader) (sk PrivateKey, err error) {
 	if rnd == nil {
 		rnd = rand.Reader

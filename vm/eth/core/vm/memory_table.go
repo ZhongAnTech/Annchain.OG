@@ -17,10 +17,10 @@
 package vm
 
 import (
+	math2 "github.com/annchain/OG/arefactor/common/math"
 	"math/big"
 
 	"github.com/annchain/OG/vm/eth/common"
-	"github.com/annchain/OG/vm/eth/common/math"
 )
 
 func memorySha3(stack *Stack) *big.Int {
@@ -67,21 +67,21 @@ func memoryCall(stack *Stack) *big.Int {
 	x := common.CalcMemSize(stack.Back(5), stack.Back(6))
 	y := common.CalcMemSize(stack.Back(3), stack.Back(4))
 
-	return math.BigMax(x, y)
+	return math2.BigMax(x, y)
 }
 
 func memoryDelegateCall(stack *Stack) *big.Int {
 	x := common.CalcMemSize(stack.Back(4), stack.Back(5))
 	y := common.CalcMemSize(stack.Back(2), stack.Back(3))
 
-	return math.BigMax(x, y)
+	return math2.BigMax(x, y)
 }
 
 func memoryStaticCall(stack *Stack) *big.Int {
 	x := common.CalcMemSize(stack.Back(4), stack.Back(5))
 	y := common.CalcMemSize(stack.Back(2), stack.Back(3))
 
-	return math.BigMax(x, y)
+	return math2.BigMax(x, y)
 }
 
 func memoryReturn(stack *Stack) *big.Int {

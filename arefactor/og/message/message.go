@@ -19,14 +19,16 @@ const (
 	OgMessageTypeStatus OgMessageType = iota + 0
 	OgMessageTypePing
 	OgMessageTypePong
-	OgMessageTypeBatchSyncRequest
+	OgMessageTypeHeightRequest
+	OgMessageTypeHeightResponse
+	OgMessageTypeHeightSyncRequest
+	OgMessageTypeHeightSyncResponse
 	OgMessageTypeSyncResponse
 	MessageTypeFetchByHashRequest
 	MessageTypeFetchByHashResponse
 	OgMessageTypeQueryStatusRequest
 	OgMessageTypeQueryStatusResponse
 	OgMessageTypeNewResource
-	OgMessageTypeHeightSyncRequest
 
 	//MessageTypeNewSequencer
 	//MessageTypeNewTxs
@@ -88,30 +90,47 @@ func (o OgMessageType) String() string {
 		return "OgMessageTypePing"
 	case OgMessageTypePong:
 		return "OgMessageTypePong"
+	case OgMessageTypeHeightRequest:
+		return "OgMessageTypeHeightRequest"
+	case OgMessageTypeHeightResponse:
+		return "OgMessageTypeHeightResponse"
 	default:
 		return "Unknown Message " + strconv.Itoa(int(o))
 	}
 }
 
+type OgMessage interface {
+	GetType() OgMessageType
+	GetTypeValue() int
+	ToBytes() []byte
+	FromBytes(bts []byte) error
+	String() string
+}
+
 //msgp OgMessagePing
 type OgMessagePing struct {
-	Protocol string
+	Protocol  string
+	NetworkId string
 }
 
-func (z *OgMessagePing) GetType() int {
-	return int(OgMessageTypePing)
+func (z *OgMessagePing) GetType() OgMessageType {
+	return OgMessageTypePing
 }
 
-func (m *OgMessagePing) ToBytes() []byte {
-	b, err := m.MarshalMsg(nil)
+func (z *OgMessagePing) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgMessagePing) String() string {
+	return z.GetType().String()
+}
+
+func (z *OgMessagePing) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
 	}
 	return b
-}
-
-func (z *OgMessagePing) String() string {
-	return "MessageTypePing"
 }
 
 func (z *OgMessagePing) FromBytes(bts []byte) error {
@@ -124,19 +143,25 @@ func (z *OgMessagePing) FromBytes(bts []byte) error {
 
 //msgp OgMessagePong
 type OgMessagePong struct {
-	Protocol string
+	Protocol  string
+	NetworkId string
+	Close     bool
 }
 
-func (m *OgMessagePong) String() string {
-	return "MessageTypePong"
+func (z *OgMessagePong) GetType() OgMessageType {
+	return OgMessageTypePong
 }
 
-func (m *OgMessagePong) GetType() int {
-	return int(OgMessageTypePong)
+func (z *OgMessagePong) GetTypeValue() int {
+	return int(z.GetType())
 }
 
-func (m *OgMessagePong) ToBytes() []byte {
-	b, err := m.MarshalMsg(nil)
+func (z *OgMessagePong) String() string {
+	return z.GetType().String()
+}
+
+func (z *OgMessagePong) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
 	}
@@ -151,6 +176,143 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 	return nil
 }
 
+//msgp OgMessageHeightRequest
+type OgMessageHeightRequest struct {
+}
+
+func (z *OgMessageHeightRequest) GetType() OgMessageType {
+	return OgMessageTypeHeightRequest
+}
+
+func (z *OgMessageHeightRequest) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgMessageHeightRequest) String() string {
+	return z.GetType().String()
+}
+
+func (z *OgMessageHeightRequest) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *OgMessageHeightRequest) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//msgp OgMessageHeightResponse
+type OgMessageHeightResponse struct {
+	Height int64
+}
+
+func (z *OgMessageHeightResponse) GetType() OgMessageType {
+	return OgMessageTypeHeightResponse
+}
+
+func (z *OgMessageHeightResponse) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgMessageHeightResponse) String() string {
+	return z.GetType().String()
+}
+
+func (z *OgMessageHeightResponse) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *OgMessageHeightResponse) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//msgp OgMessageHeightSyncRequest
+type OgMessageHeightSyncRequest struct {
+	Height      int64
+	Offset      int // sync starts from (paging)
+	BloomFilter []byte
+}
+
+func (z *OgMessageHeightSyncRequest) GetType() OgMessageType {
+	return OgMessageTypeHeightSyncRequest
+
+}
+
+func (z *OgMessageHeightSyncRequest) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgMessageHeightSyncRequest) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *OgMessageHeightSyncRequest) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (z *OgMessageHeightSyncRequest) String() string {
+	return fmt.Sprintf("OgMessageHeightSyncRequest: [height=%d]", z.Height)
+}
+
+//msgp OgMessageHeightSyncResponse
+type OgMessageHeightSyncResponse struct {
+	Height      int64
+	Offset      int  // sync starts from (paging)
+	HasNextPage bool // whether there are still some tx to be synced due to paging
+	Resources   []MessageContentResource
+}
+
+func (z *OgMessageHeightSyncResponse) GetType() OgMessageType {
+	return OgMessageTypeHeightSyncResponse
+}
+
+func (z *OgMessageHeightSyncResponse) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgMessageHeightSyncResponse) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *OgMessageHeightSyncResponse) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (z *OgMessageHeightSyncResponse) String() string {
+	return fmt.Sprintf("OgMessageHeightSyncResponse: [height=%d, len=%d]", z.Height, len(z.Resources))
+}
+
 ////msgp OgMessageBatchSyncRequest
 //type OgMessageBatchSyncRequest struct {
 //	Hashes [][]byte
@@ -159,7 +321,7 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 //	//HashTerminats *HashTerminats
 //}
 //
-//func (m *OgMessageBatchSyncRequest) GetType() int {
+//func (m *OgMessageBatchSyncRequest) GetTypeValue() int {
 //	return int(OgMessageTypeBatchSyncRequest)
 //}
 //
@@ -197,7 +359,7 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 //	Resources []MessageContentResource
 //}
 //
-//func (m *OgMessageSyncResponse) GetType() int {
+//func (m *OgMessageSyncResponse) GetTypeValue() int {
 //	return int(OgMessageTypeSyncResponse)
 //}
 //
@@ -224,7 +386,7 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 ////msgp OgMessageQueryStatusRequest
 //type OgMessageQueryStatusRequest struct{}
 //
-//func (m *OgMessageQueryStatusRequest) GetType() int {
+//func (m *OgMessageQueryStatusRequest) GetTypeValue() int {
 //	return int(OgMessageTypeQueryStatusRequest)
 //}
 //
@@ -257,7 +419,7 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 //	CurrentHeight   uint64
 //}
 //
-//func (m *OgMessageQueryStatusResponse) GetType() int {
+//func (m *OgMessageQueryStatusResponse) GetTypeValue() int {
 //	return int(OgMessageTypeQueryStatusResponse)
 //}
 //
@@ -286,7 +448,7 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 //	Resources []MessageContentResource
 //}
 //
-//func (m *OgMessageNewResource) GetType() int {
+//func (m *OgMessageNewResource) GetTypeValue() int {
 //	return int(OgMessageTypeNewResource)
 //}
 //
@@ -318,7 +480,7 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 //	RequestId uint32 //avoid message drop
 //}
 //
-//func (z *OgMessageHeightSyncRequest) GetType() int {
+//func (z *OgMessageHeightSyncRequest) GetTypeValue() int {
 //	return int(OgMessageTypeHeightSyncRequest)
 //}
 //
@@ -353,7 +515,7 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 //	Resources   []MessageContentResource
 //}
 //
-//func (m *MessageTxsResponse) GetType() int {
+//func (m *MessageTxsResponse) GetTypeValue() int {
 //	return int(OgMessageType(MessageTypeTxsResponse)
 //}
 //
@@ -367,7 +529,7 @@ func (z *OgMessagePong) FromBytes(bts []byte) error {
 //
 //func (m *MessageTxsResponse) ToBinary() []byte {
 //	return []byte{
-//		Type: m.GetType(),
+//		Type: m.GetTypeValue(),
 //		Data: m.GetBytes(),
 //	}
 //}
@@ -392,7 +554,7 @@ type OgMessageHeaderRequest struct {
 	RequestId uint32 //avoid message drop
 }
 
-func (m *OgMessageHeaderRequest) GetType() int {
+func (m *OgMessageHeaderRequest) GetTypeValue() int {
 	return int(OgMessageTypeHeaderRequest)
 }
 
@@ -430,7 +592,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	Number uint64
 //}
 //
-//func (m *MessageSequencerHeader) GetType() int {
+//func (m *MessageSequencerHeader) GetTypeValue() int {
 //	return int(OgMessageType(MessageTypeSequencerHeader)
 //}
 //
@@ -444,7 +606,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //
 //func (m *MessageSequencerHeader) ToBinary() []byte {
 //	return []byte{
-//		Type: m.GetType(),
+//		Type: m.GetTypeValue(),
 //		Data: m.GetBytes(),
 //	}
 //}
@@ -464,7 +626,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	RequestedId uint32 //avoid message drop
 //}
 //
-//func (m *MessageHeaderResponse) GetType() int {
+//func (m *MessageHeaderResponse) GetTypeValue() int {
 //	return int(OgMessageType(MessageTypeHeaderResponse)
 //}
 //
@@ -478,7 +640,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //
 //func (m *MessageHeaderResponse) ToBinary() []byte {
 //	return []byte{
-//		Type: m.GetType(),
+//		Type: m.GetTypeValue(),
 //		Data: m.GetBytes(),
 //	}
 //}
@@ -498,7 +660,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	RequestId uint32 //avoid message drop
 //}
 //
-//func (m *MessageBodiesRequest) GetType() int {
+//func (m *MessageBodiesRequest) GetTypeValue() int {
 //	return int(OgMessageType(MessageTypeBodiesRequest)
 //}
 //
@@ -512,7 +674,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //
 //func (m *MessageBodiesRequest) ToBinary() []byte {
 //	return []byte{
-//		Type: m.GetType(),
+//		Type: m.GetTypeValue(),
 //		Data: m.GetBytes(),
 //	}
 //}
@@ -532,7 +694,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	RequestedId uint32 //avoid message drop
 //}
 //
-//func (m *MessageBodiesResponse) GetType() int {
+//func (m *MessageBodiesResponse) GetTypeValue() int {
 //	return MessageTypeBodiesResponse
 //}
 //
@@ -546,7 +708,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //
 //func (m *MessageBodiesResponse) ToBinary() []byte {
 //	return []byte{
-//		Type: OgMessageType(m.GetType()),
+//		Type: OgMessageType(m.GetTypeValue()),
 //		Data: m.GetBytes(),
 //	}
 //}
@@ -565,7 +727,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	Hash *common.Hash
 //}
 //
-//func (m *MessageControl) GetType() int {
+//func (m *MessageControl) GetTypeValue() int {
 //	return MessageTypeControl
 //}
 //
@@ -579,7 +741,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //
 //func (m *MessageControl) ToBinary() []byte {
 //	return []byte{
-//		Type: OgMessageType(m.GetType()),
+//		Type: OgMessageType(m.GetTypeValue()),
 //		Data: m.GetBytes(),
 //	}
 //}
@@ -601,7 +763,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	Hash *common.Hash
 //}
 //
-//func (m *MessageGetMsg) GetType() int {
+//func (m *MessageGetMsg) GetTypeValue() int {
 //	return MessageTypeGetMsg
 //}
 //
@@ -615,7 +777,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //
 //func (m *MessageGetMsg) ToBinary() []byte {
 //	return []byte{
-//		Type: OgMessageType(m.GetType()),
+//		Type: OgMessageType(m.GetTypeValue()),
 //		Data: m.GetBytes(),
 //	}
 //}
@@ -635,7 +797,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 ////msgp MessageGetMsg
 //type MessageDuplicate bool
 //
-//func (m *MessageDuplicate) GetType() int {
+//func (m *MessageDuplicate) GetTypeValue() int {
 //	return MessageTypeDuplicate
 //}
 //
@@ -649,7 +811,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //
 //func (m *MessageDuplicate) ToBinary() []byte {
 //	return []byte{
-//		Type: OgMessageType(m.GetType()),
+//		Type: OgMessageType(m.GetTypeValue()),
 //		Data: m.GetBytes(),
 //	}
 //}
@@ -668,7 +830,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //	ActionTx *ActionTx
 //}
 //
-//func (m *MessageNewActionTx) GetType() int {
+//func (m *MessageNewActionTx) GetTypeValue() int {
 //	return MessageTypeNewActionTx
 //}
 //
@@ -682,7 +844,7 @@ func (z *OgMessageHeaderRequest) FromBytes(bts []byte) error {
 //
 //func (m *MessageNewActionTx) ToBinary() []byte {
 //	return []byte{
-//		Type: OgMessageType(m.GetType()),
+//		Type: OgMessageType(m.GetTypeValue()),
 //		Data: m.GetBytes(),
 //	}
 //}

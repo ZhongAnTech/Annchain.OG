@@ -24,8 +24,8 @@ import (
 	"time"
 )
 
-//func genPublicKeys(num int) (accounts []crypto.PublicKey) {
-//	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+//func genPublicKeys(num int) (accounts []ogcrypto.PublicKey) {
+//	signer := ogcrypto.NewSigner(ogcrypto.CryptoTypeSecp256k1)
 //	for i := 0; i < num; i++ {
 //		pub, _ := signer.RandomKeyPair()
 //		accounts = append(accounts, pub)

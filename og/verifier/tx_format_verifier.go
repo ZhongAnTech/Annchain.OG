@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	types2 "github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/types"
@@ -75,7 +77,7 @@ func (v *TxFormatVerifier) VerifyFrom(t types.Txi) bool {
 	//	logrus.Warn("verify sig failed, from is nil")
 	//	return false
 	//}
-	if crypto.Signer.CanRecoverPubFromSig() {
+	if og_interface.Signer.CanRecoverPubFromSig() {
 
 	}
 	return true
@@ -90,22 +92,22 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 	switch txType {
 	case types.TxBaseTypeTx:
 		tx := t.(*types.Tx)
-		ok := crypto.Signer.Verify(tx.PublicKey, tx.Signature, t.SignatureTargets())
-		if crypto.Signer.CanRecoverPubFromSig() {
+		ok := og_interface.Signer.Verify(tx.PublicKey, tx.Signature, t.SignatureTargets())
+		if og_interface.Signer.CanRecoverPubFromSig() {
 			pub, err := crypto.PublicKeyFromSignature(tx.Hash, &tx.Signature)
 			if err != nil {
 				logrus.WithError(err).Warn("error on recovering pubkey from sig")
 				return false
 			}
 			var addr common.Address
-			copy(addr.Bytes[:], crypto.Keccak256(pub.KeyBytes)[12:])
+			copy(addr.Bytes[:], ogcrypto.Keccak256(pub.KeyBytes)[12:])
 			t.SetSender(addr)
 		}
 		return ok
 	case types.TxBaseTypeSequencer:
 		//tx := t.(*types.Sequencer)
 		// TODO: what should happen here?
-		//ok := crypto.Signer.Verify(tx.PublicKey, tx.Signature, t.SignatureTargets())
+		//ok := ogcrypto.Signer.Verify(tx.PublicKey, tx.Signature, t.SignatureTargets())
 		return true
 		//return ok
 	}
@@ -113,19 +115,19 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 }
 
 //func (v *TxFormatVerifier) VerifySourceAddress(t types.Txi) bool {
-//	if crypto.Signer.CanRecoverPubFromSig() {
+//	if ogcrypto.Signer.CanRecoverPubFromSig() {
 //		//address was set by recovering signature ,
 //		return true
 //	}
 //	switch t.(type) {
 //	case *archive2.Tx:
-//		return t.(*archive2.Tx).From.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+//		return t.(*archive2.Tx).From.Bytes == ogcrypto.Signer.Address(ogcrypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 //	case *types.Sequencer:
-//		return t.(*types.Sequencer).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+//		return t.(*types.Sequencer).Issuer.Bytes == ogcrypto.Signer.Address(ogcrypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 //	case *campaign.Campaign:
-//		return t.(*campaign.Campaign).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+//		return t.(*campaign.Campaign).Issuer.Bytes == ogcrypto.Signer.Address(ogcrypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 //	case *campaign.TermChange:
-//		return t.(*campaign.TermChange).Issuer.Bytes == crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
+//		return t.(*campaign.TermChange).Issuer.Bytes == ogcrypto.Signer.Address(ogcrypto.Signer.PublicKeyFromBytes(t.GetBase().PublicKey)).Bytes
 //	case *archive.Archive:
 //		return true
 //	default:

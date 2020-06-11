@@ -17,7 +17,7 @@
 package common
 
 import (
-	"github.com/annchain/OG/vm/eth/common/math"
+	math2 "github.com/annchain/OG/arefactor/common/math"
 	"math/big"
 )
 
@@ -49,8 +49,8 @@ func GetData(data []byte, start uint64, size uint64) []byte {
 func GetDataBig(data []byte, start *big.Int, size *big.Int) []byte {
 	dlen := big.NewInt(int64(len(data)))
 
-	s := math.BigMin(start, dlen)
-	e := math.BigMin(new(big.Int).Add(s, size), dlen)
+	s := math2.BigMin(start, dlen)
+	e := math2.BigMin(new(big.Int).Add(s, size), dlen)
 	return RightPadBytes(data[s.Uint64():e.Uint64()], int(size.Uint64()))
 }
 
@@ -62,8 +62,8 @@ func BigUint64(v *big.Int) (uint64, bool) {
 
 // toWordSize returns the ceiled word size required for memory expansion.
 func ToWordSize(size uint64) uint64 {
-	if size > math.MaxUint64-31 {
-		return math.MaxUint64/32 + 1
+	if size > math2.BiggerUint64-31 {
+		return math2.BiggerUint64/32 + 1
 	}
 
 	return (size + 31) / 32

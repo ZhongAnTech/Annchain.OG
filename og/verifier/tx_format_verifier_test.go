@@ -2,6 +2,8 @@ package verifier
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og_interface"
+	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
@@ -11,7 +13,7 @@ import (
 )
 
 type TestSigner struct {
-	crypto.SignerSecp256k1
+	crypto2.SignerSecp256k1
 }
 
 func (s *TestSigner) CanRecoverPubFromSig() bool {
@@ -43,8 +45,8 @@ func TestVerify(t *testing.T) {
 	fmt.Println("used ", time.Since(now))
 	start := time.Now()
 	newSigner := &TestSigner{}
-	crypto.Signer = newSigner
-	fmt.Println(crypto.Signer.CanRecoverPubFromSig())
+	og_interface.Signer = newSigner
+	fmt.Println(og_interface.Signer.CanRecoverPubFromSig())
 	for i, tx := range txis {
 		ok := v.VerifySignature(tx)
 		if !ok {

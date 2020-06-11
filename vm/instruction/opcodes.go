@@ -250,7 +250,7 @@ var opCodeToString = map[OpCode]string{
 	ADDMOD: "ADDMOD",
 	MULMOD: "MULMOD",
 
-	// 0x20 range - crypto.
+	// 0x20 range - ogcrypto.
 	SHA3: "SHA3",
 
 	// 0x30 range - closure state.

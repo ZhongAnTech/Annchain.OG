@@ -19,7 +19,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/annchain/OG/common/crypto"
+	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/hexutil"
 	msg2 "github.com/annchain/OG/types/msg"
 	"io/ioutil"
@@ -93,8 +93,8 @@ func testRawEncHandshake(token []byte) error {
 		err    error
 	}
 	var (
-		prv0, _  = crypto.GenerateKey()
-		prv1, _  = crypto.GenerateKey()
+		prv0, _  = crypto2.GenerateKey()
+		prv1, _  = crypto2.GenerateKey()
 		fd0, fd1 = net.Pipe()
 		c0, c1   = newrawTransport(fd0).(*rawTransport), newrawTransport(fd1).(*rawTransport)
 		output   = make(chan result)
@@ -142,7 +142,7 @@ func testRawEncHandshake(token []byte) error {
 }
 
 func TestCryptoSignature(t *testing.T) {
-	prv, _ := crypto.GenerateKey()
+	prv, _ := crypto2.GenerateKey()
 	initNonce := make([]byte, shaLen)
 	_, err := rand.Read(initNonce)
 	if err != nil {
@@ -152,14 +152,14 @@ func TestCryptoSignature(t *testing.T) {
 		Version: 1,
 	}
 	copy(msg.Nonce[:], initNonce)
-	signature, err := crypto.Sign(initNonce, prv)
+	signature, err := crypto2.Sign(initNonce, prv)
 	if err != nil {
 		t.Fatal(err)
 	}
 	copy(msg.Signature[:], signature)
 	copy(msg.Nonce[:], initNonce)
-	//ok := crypto.VerifySignature(msg.InitiatorPubkey[:],msg.Nonce[:],msg.Signature[:])
-	res, err := crypto.Ecrecover(msg.Nonce[:], msg.Signature[:])
+	//ok := ogcrypto.VerifySignature(msg.InitiatorPubkey[:],msg.Nonce[:],msg.Signature[:])
+	res, err := crypto2.Ecrecover(msg.Nonce[:], msg.Signature[:])
 	log.Debug(hex.EncodeToString(res))
 	if err != nil {
 		t.Fatal("sig failed ", err, hex.EncodeToString(res))

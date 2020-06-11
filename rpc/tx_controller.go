@@ -17,6 +17,7 @@ package rpc
 import (
 	"fmt"
 	types2 "github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 
@@ -104,8 +105,8 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 	}
 
 	sig = crypto.SignatureFromBytes(pub.Type, signature)
-	if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
-		Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
+	if sig.Type != og_interface.Signer.GetCryptoType() || pub.Type != og_interface.Signer.GetCryptoType() {
+		Response(c, http.StatusOK, fmt.Errorf("ogcrypto algorithm mismatch"), nil)
 		return
 	}
 
@@ -243,8 +244,8 @@ func (r *RpcController) NewTransactions(c *gin.Context) {
 		}
 
 		sig = crypto.SignatureFromBytes(pub.Type, signature)
-		if sig.Type != crypto.Signer.GetCryptoType() || pub.Type != crypto.Signer.GetCryptoType() {
-			Response(c, http.StatusOK, fmt.Errorf("crypto algorithm mismatch"), nil)
+		if sig.Type != og_interface.Signer.GetCryptoType() || pub.Type != og_interface.Signer.GetCryptoType() {
+			Response(c, http.StatusOK, fmt.Errorf("ogcrypto algorithm mismatch"), nil)
 			return
 		}
 		if !r.SyncerManager.IncrementalSyncer.Enabled {

@@ -19,7 +19,9 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/annchain/OG/common/crypto/secp256k1"
+	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogcrypto"
+	"github.com/annchain/OG/arefactor/ogcrypto/secp256k1"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/og/types/archive"
 
@@ -38,14 +40,14 @@ func (s *SignerSecp256k1cgo) GetCryptoType() CryptoType {
 }
 
 func (s *SignerSecp256k1cgo) Sign(privKey PrivateKey, msg []byte) Signature {
-	priv, _ := ToECDSA(privKey.KeyBytes)
+	priv, _ := ogcrypto.ToECDSA(privKey.KeyBytes)
 	hash := Sha256(msg)
 	if len(hash) != 32 {
 		log.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash))
 		return Signature{}
 	}
 	seckey := math.PaddedBigBytes(priv.D, priv.Params().BitSize/8)
-	defer zeroBytes(seckey)
+	defer ogcrypto.zeroBytes(seckey)
 	sig, _ := secp256k1.Sign(hash, seckey)
 
 	return SignatureFromBytes(CryptoTypeSecp256k1, sig)
@@ -53,7 +55,7 @@ func (s *SignerSecp256k1cgo) Sign(privKey PrivateKey, msg []byte) Signature {
 
 func (s *SignerSecp256k1cgo) PubKey(privKey PrivateKey) PublicKey {
 	_, ecdsapub := ecdsabtcec.PrivKeyFromBytes(ecdsabtcec.S256(), privKey.KeyBytes)
-	pub := FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
+	pub := ogcrypto.FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
 	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
 }
 
@@ -69,7 +71,7 @@ func (s *SignerSecp256k1cgo) Verify(pubKey PublicKey, signature Signature, msg [
 
 func (s *SignerSecp256k1cgo) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey) {
 	privKeyBytes := [32]byte{}
-	copy(privKeyBytes[:], CRandBytes(32))
+	copy(privKeyBytes[:], ogcrypto.CRandBytes(32))
 
 	privateKey = PrivateKeyFromBytes(CryptoTypeSecp256k1, privKeyBytes[:])
 	publicKey = s.PubKey(privateKey)
@@ -78,7 +80,7 @@ func (s *SignerSecp256k1cgo) RandomKeyPair() (publicKey PublicKey, privateKey Pr
 
 func (s *SignerSecp256k1cgo) DealRecoverID(sig Signature) Signature {
 	l := len(sig.SignatureBytes)
-	if l == sigLength+1 {
+	if l == og_interface.sigLength+1 {
 		sig.SignatureBytes = sig.SignatureBytes[:l-1]
 	}
 	return sig
@@ -87,7 +89,7 @@ func (s *SignerSecp256k1cgo) DealRecoverID(sig Signature) Signature {
 func TestSignerNewPrivKeyCGO(t *testing.T) {
 	t.Parallel()
 	signer := SignerSecp256k1cgo{}
-	signer2 := SignerSecp256k1{}
+	signer2 := ogcrypto.SignerSecp256k1{}
 	for i := 0; i < 10; i++ {
 		pk, priv := signer.RandomKeyPair()
 		//fmt.Println(priv.String())
@@ -112,7 +114,7 @@ func TestSignerNewPrivKeyCGO(t *testing.T) {
 func TestSignerNewPrivKeyCGOF(t *testing.T) {
 	t.Parallel()
 	signer := SignerSecp256k1cgo{}
-	signer2 := SignerSecp256k1{}
+	signer2 := ogcrypto.SignerSecp256k1{}
 	for i := 0; i < 1000; i++ {
 		pk, priv := signer.RandomKeyPair()
 		//fmt.Println(priv.String())
@@ -137,7 +139,7 @@ func TestSignerNewPrivKeyCGOF(t *testing.T) {
 func TestSignBenchMarksCgo(t *testing.T) {
 	signer := SignerSecp256k1cgo{}
 	pk, priv := signer.RandomKeyPair()
-	signer2 := SignerSecp256k1{}
+	signer2 := ogcrypto.SignerSecp256k1{}
 	var txs1 types.Txis
 	var txs2 types.Txis
 	N := 10000

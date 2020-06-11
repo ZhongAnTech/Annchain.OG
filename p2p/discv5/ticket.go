@@ -21,12 +21,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"math"
 	"math/rand"
 	"sort"
 	"time"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/mclock"
 	"net"
 )
@@ -715,7 +715,7 @@ func (b *topicRadiusBucket) adjust(now mclock.AbsTime, inside float64) {
 }
 
 func newTopicRadius(t Topic) *topicRadius {
-	topicHash := crypto.Keccak256Hash([]byte(t))
+	topicHash := ogcrypto.Keccak256Hash([]byte(t))
 	topicHashPrefix := binary.BigEndian.Uint64(topicHash.Bytes[0:8])
 
 	return &topicRadius{

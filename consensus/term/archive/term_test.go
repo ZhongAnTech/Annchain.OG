@@ -15,7 +15,7 @@ package archive
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
@@ -23,7 +23,7 @@ import (
 func TestNewTerm(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
 	term := NewTerm(1, 3, 4)
-	pk, _ := crypto.Signer.RandomKeyPair()
+	pk, _ := og_interface.Signer.RandomKeyPair()
 	term.PublicKeys = append(term.PublicKeys, pk)
 	fmt.Println()
 	term.ChangeTerm(&tx_types.TermChange{}, 2)

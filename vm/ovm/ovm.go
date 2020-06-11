@@ -18,6 +18,7 @@ package ovm
 
 import (
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
 	"math/big"
 	"sync/atomic"
@@ -31,7 +32,7 @@ import (
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
 // deployed contract addresses (relevant after the account abstraction).
-var emptyCodeHash = crypto.Keccak256Hash(nil)
+var emptyCodeHash = ogcrypto.Keccak256Hash(nil)
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte Code interpreter.
 func run(ovm *OVM, contract *vmtypes.Contract, input []byte, readOnly bool) ([]byte, error) {

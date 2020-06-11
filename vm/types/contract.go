@@ -18,8 +18,7 @@ package types
 
 import (
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/common/crypto"
-
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	common2 "github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
@@ -38,7 +37,7 @@ type CodeAndHash struct {
 
 func (c *CodeAndHash) Hash() types.Hash {
 	if c.hash == (types.Hash{}) {
-		c.hash = crypto.Keccak256Hash(c.Code)
+		c.hash = ogcrypto.Keccak256Hash(c.Code)
 	}
 	return c.hash
 }

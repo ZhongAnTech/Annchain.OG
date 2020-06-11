@@ -23,10 +23,10 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"net"
 	"time"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p/nat"
 	"github.com/annchain/OG/p2p/netutil"
 )
@@ -388,14 +388,14 @@ func encodePacket(priv *ecdsa.PrivateKey, ptype byte, data []byte) (p, hash []by
 	b.WriteByte(ptype)
 	b.Write(data)
 	packet := b.Bytes()
-	sig, err := crypto.Sign(crypto.Keccak256(packet[headSize:]), priv)
+	sig, err := ogcrypto.Sign(ogcrypto.Keccak256(packet[headSize:]), priv)
 	if err != nil {
 		log.WithError(err).Error("could not sign packet")
 		return nil, nil, err
 	}
 	copy(packet, versionPrefix)
 	copy(packet[versionPrefixSize:], sig)
-	hash = crypto.Keccak256(packet[versionPrefixSize:])
+	hash = ogcrypto.Keccak256(packet[versionPrefixSize:])
 	return packet, hash, nil
 }
 
@@ -444,12 +444,12 @@ func decodePacket(buffer []byte, pkt *ingressPacket) error {
 	if !bytes.Equal(prefix, versionPrefix) {
 		return errBadPrefix
 	}
-	fromID, err := recoverNodeID(crypto.Keccak256(buf[headSize:]), sig)
+	fromID, err := recoverNodeID(ogcrypto.Keccak256(buf[headSize:]), sig)
 	if err != nil {
 		return err
 	}
 	pkt.rawData = buf
-	pkt.hash = crypto.Keccak256(buf[versionPrefixSize:])
+	pkt.hash = ogcrypto.Keccak256(buf[versionPrefixSize:])
 	pkt.remoteID = fromID
 	data := sigdata[1:]
 	switch pkt.ev = nodeEvent(sigdata[0]); pkt.ev {

@@ -17,6 +17,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	types2 "github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/campaign"
@@ -32,7 +34,6 @@ import (
 	"strings"
 
 	"github.com/annchain/OG/arefactor/performance"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og"
 	"github.com/annchain/OG/og/syncer"
 	"github.com/annchain/OG/p2p"
@@ -273,7 +274,7 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 func (r *RpcController) NewAccount(c *gin.Context) {
 	var (
 		txReq  NewAccountRequest
-		signer crypto.ISigner
+		signer og_interface.ISigner
 		err    error
 	)
 	err = c.ShouldBindJSON(&txReq)
@@ -284,9 +285,9 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 	algorithm := strings.ToLower(txReq.Algorithm)
 	switch algorithm {
 	case "ed25519":
-		signer = &crypto.SignerEd25519{}
+		signer = &ogcrypto.SignerEd25519{}
 	case "secp256k1":
-		signer = &crypto.SignerSecp256k1{}
+		signer = &ogcrypto.SignerSecp256k1{}
 	}
 	pub, priv := signer.RandomKeyPair()
 	if err != nil {

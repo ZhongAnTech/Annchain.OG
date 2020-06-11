@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	log "github.com/sirupsen/logrus"
 	"github.com/tinylib/msgp/msgp"
@@ -74,7 +74,7 @@ func NewStateObject(addr common.Address, db StateDBInterface) *StateObject {
 
 	s := &StateObject{}
 	s.address = addr
-	s.addressHash = crypto.Keccak256Hash(addr.ToBytes())
+	s.addressHash = ogcrypto.Keccak256Hash(addr.ToBytes())
 	s.committedStorage = make(map[types.Hash]types.Hash)
 	s.dirtyStorage = make(map[types.Hash]types.Hash)
 	s.data = a
@@ -318,7 +318,7 @@ func (s *StateObject) Decode(b []byte, db *StateDB) error {
 
 	s.data = a
 	s.address = a.Address
-	s.addressHash = crypto.Keccak256Hash(a.Address.ToBytes())
+	s.addressHash = ogcrypto.Keccak256Hash(a.Address.ToBytes())
 	s.committedStorage = make(map[types.Hash]types.Hash)
 	s.dirtyStorage = make(map[types.Hash]types.Hash)
 	s.db = db

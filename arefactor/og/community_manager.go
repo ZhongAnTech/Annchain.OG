@@ -3,8 +3,9 @@ package og
 import (
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/og/message"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
-	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 )
@@ -18,31 +19,83 @@ type CommunityManager interface {
 // It keeps the community with a stable scale。
 // It also tries to balance the whole network to prevent some node being too heavy loaded
 type DefaultCommunityManager struct {
+	NodeInfoProvider      og_interface.NodeInfoProvider
 	PhysicalCommunicator  *transport.PhysicalCommunicator
 	KnownPeerListFilePath string
 
 	peers             []string
 	knownPeersAddress []string
 
-	myNewIncomingMessageEventChannel chan *transport_event.IncomingLetter
-	newOutgoingMessageSubscribers    []transport_event.NewOutgoingMessageEventSubscriber
+	myNewIncomingMessageEventChannel chan *transport_interface.IncomingLetter // handle incoming messages
+	myPeerConnectedEventChannel      chan *transport_interface.PeerEvent
+	myPeerDisconnectedEventChannel   chan *transport_interface.PeerEvent
+	newOutgoingMessageSubscribers    []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
+	peerJoinedEventSubscribers       []og_interface.PeerJoinedEventSubscriber                // a peer is connected after protocol verification
+	peerLeftEventSubscribers         []og_interface.PeerLeftEventSubscriber                  // a peer is left due to disconnection
 
 	quit chan bool
 }
 
-func (d *DefaultCommunityManager) InitDefault() {
-	d.quit = make(chan bool)
-	d.myNewIncomingMessageEventChannel = make(chan *transport_event.IncomingLetter)
-	d.newOutgoingMessageSubscribers = []transport_event.NewOutgoingMessageEventSubscriber{}
+func (d *DefaultCommunityManager) GetPeerDisconnectedEventChannel() chan *transport_interface.PeerEvent {
+	return d.myPeerDisconnectedEventChannel
 }
 
-func (d *DefaultCommunityManager) AddSubscriberNewOutgoingMessageEvent(sub transport_event.NewOutgoingMessageEventSubscriber) {
+func (d *DefaultCommunityManager) GetPeerConnectedEventChannel() chan *transport_interface.PeerEvent {
+	return d.myPeerConnectedEventChannel
+}
+
+func (d *DefaultCommunityManager) InitDefault() {
+	d.quit = make(chan bool)
+	d.myPeerConnectedEventChannel = make(chan *transport_interface.PeerEvent)
+	d.myPeerDisconnectedEventChannel = make(chan *transport_interface.PeerEvent)
+	d.myNewIncomingMessageEventChannel = make(chan *transport_interface.IncomingLetter)
+	d.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
+	d.peerJoinedEventSubscribers = []og_interface.PeerJoinedEventSubscriber{}
+	d.peerLeftEventSubscribers = []og_interface.PeerLeftEventSubscriber{}
+}
+
+// event handlers begin
+
+// my subscriptions
+func (d *DefaultCommunityManager) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
+	return d.myNewIncomingMessageEventChannel
+}
+
+// subscribe mine
+func (d *DefaultCommunityManager) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
 	d.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
 }
 
-func (d *DefaultCommunityManager) GetNewIncomingMessageEventChannel() chan *transport_event.IncomingLetter {
-	return d.myNewIncomingMessageEventChannel
+func (d *DefaultCommunityManager) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
+	for _, subscriber := range d.newOutgoingMessageSubscribers {
+		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
+		subscriber.NewOutgoingMessageEventChannel() <- event
+	}
 }
+
+func (d *DefaultCommunityManager) AddSubscriberPeerJoinedEvent(sub og_interface.PeerJoinedEventSubscriber) {
+	d.peerJoinedEventSubscribers = append(d.peerJoinedEventSubscribers, sub)
+}
+
+func (d *DefaultCommunityManager) notifyPeerJoined(event *og_interface.PeerJoinedEvent) {
+	for _, subscriber := range d.peerJoinedEventSubscribers {
+		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
+		subscriber.EventChannelPeerJoined() <- event
+	}
+}
+
+func (d *DefaultCommunityManager) AddSubscriberPeerLeftEvent(sub og_interface.PeerLeftEventSubscriber) {
+	d.peerLeftEventSubscribers = append(d.peerLeftEventSubscribers, sub)
+}
+
+func (d *DefaultCommunityManager) notifyPeerLeft(event *og_interface.PeerLeftEvent) {
+	for _, subscriber := range d.peerLeftEventSubscribers {
+		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
+		subscriber.EventChannelPeerLeft() <- event
+	}
+}
+
+// event handlers over
 
 func (d *DefaultCommunityManager) Start() {
 	go d.loop()
@@ -74,7 +127,14 @@ func (d *DefaultCommunityManager) loop() {
 			switch message.OgMessageType(incomingLetter.Msg.MsgType) {
 			case message.OgMessageTypePing:
 				d.handleMsgPing(incomingLetter)
+			case message.OgMessageTypePong:
+				d.handleMsgPong(incomingLetter)
 			}
+		case event := <-d.myPeerConnectedEventChannel:
+			// send ping
+			d.handlePeerConnected(event)
+		case event := <-d.myPeerDisconnectedEventChannel:
+			d.handlePeerDisconnected(event)
 		}
 	}
 }
@@ -88,17 +148,17 @@ func (d *DefaultCommunityManager) SendPing(peer string) {
 		peer = d.peers[rand.Intn(len(d.peers))]
 	}
 
-	oreq := &transport_event.OutgoingLetter{
+	oreq := &transport_interface.OutgoingLetter{
 		Msg:            ping,
-		SendType:       transport_event.SendTypeUnicast,
+		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,
 		EndReceivers:   []string{peer},
 	}
-	d.notifyNewOutgoingMessageSubscribers(oreq)
+	d.notifyNewOutgoingMessage(oreq)
 }
 
 func (d *DefaultCommunityManager) StaticSetup() {
-	knownPeersAddress, err := transport_event.LoadKnownPeers(d.KnownPeerListFilePath)
+	knownPeersAddress, err := transport_interface.LoadKnownPeers(d.KnownPeerListFilePath)
 	if err != nil {
 		logrus.WithError(err).Fatal("you need provide at least one known address to connect to the address network. Place them in config/peers.lst")
 	}
@@ -112,34 +172,72 @@ func (d *DefaultCommunityManager) StaticSetup() {
 	}
 }
 
-func (d *DefaultCommunityManager) handleMsgPing(letter *transport_event.IncomingLetter) {
+func (d *DefaultCommunityManager) handleMsgPing(letter *transport_interface.IncomingLetter) {
 	m := &message.OgMessagePing{}
-	_, err := m.UnmarshalMsg(letter.Msg.ContentBytes)
+	err := m.FromBytes(letter.Msg.ContentBytes)
 	if err != nil {
 		logrus.WithField("type", "OgMessagePing").WithError(err).Warn("bad message")
 	}
-	// TODO: adapt multiple protocols
-	closeFlag := false
-	if m.Protocol == Protocol {
-		closeFlag = true
-	}
+
+	closeFlag := !d.protocolMatch(Protocol, m.Protocol)
 
 	resp := &message.OgMessagePong{
 		Protocol: Protocol,
+		Close:    closeFlag,
 	}
 
-	oreq := &transport_event.OutgoingLetter{
+	oreq := &transport_interface.OutgoingLetter{
 		Msg:            resp,
-		SendType:       transport_event.SendTypeUnicast,
+		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: closeFlag,
 		EndReceivers:   []string{letter.From},
 	}
-	d.notifyNewOutgoingMessageSubscribers(oreq)
+	d.notifyNewOutgoingMessage(oreq)
 }
 
-func (d *DefaultCommunityManager) notifyNewOutgoingMessageSubscribers(req *transport_event.OutgoingLetter) {
-	for _, subscriber := range d.newOutgoingMessageSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.GetNewOutgoingMessageEventChannel(), req, "outgoing")
-		subscriber.GetNewOutgoingMessageEventChannel() <- req
+func (d *DefaultCommunityManager) handleMsgPong(letter *transport_interface.IncomingLetter) {
+	// if we get a pong with close flag, the target peer is dropping us.
+	m := &message.OgMessagePong{}
+	err := m.FromBytes(letter.Msg.ContentBytes)
+	if err != nil {
+		logrus.WithField("type", "OgMessagePong").WithError(err).Warn("bad message")
 	}
+	// remove the peer if not removed
+	if m.Close || !d.protocolMatch(Protocol, m.Protocol) {
+		logrus.WithField("peer", letter.From).Debug("closing neighbour because the target is closing")
+		d.PhysicalCommunicator.ClosePeer(letter.From)
+	}
+	peerJoinedEvent := &og_interface.PeerJoinedEvent{
+		PeerId: letter.From,
+	}
+	d.notifyPeerJoined(peerJoinedEvent)
+}
+
+func (d *DefaultCommunityManager) protocolMatch(mine string, theirs string) bool {
+	// TODO: adapt multiple protocols
+	return mine == theirs
+}
+
+func (d *DefaultCommunityManager) handlePeerConnected(event *transport_interface.PeerEvent) {
+	// send ping
+	resp := &message.OgMessagePing{
+		Protocol: Protocol,
+	}
+
+	oreq := &transport_interface.OutgoingLetter{
+		Msg:            resp,
+		SendType:       transport_interface.SendTypeUnicast,
+		CloseAfterSent: false,
+		EndReceivers:   []string{event.PeerId},
+	}
+	d.notifyNewOutgoingMessage(oreq)
+}
+
+func (d *DefaultCommunityManager) handlePeerDisconnected(event *transport_interface.PeerEvent) {
+	// TODO: connect another potential node if there is spare node
+	peerLeftEvent := &og_interface.PeerLeftEvent{
+		PeerId: event.PeerId,
+	}
+
+	d.notifyPeerLeft(peerLeftEvent)
 }

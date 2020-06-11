@@ -1,16 +1,16 @@
 package account
 
 import (
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common/hexutil"
 )
 
 type AccountSignerSignatureProvider struct {
-	Signer          crypto.ISigner
+	Signer          og_interface.ISigner
 	AccountProvider AccountProvider
 }
 
-func NewAccountSignerSignatureProvider(signer crypto.ISigner, myAccountProvider AccountProvider) *AccountSignerSignatureProvider {
+func NewAccountSignerSignatureProvider(signer og_interface.ISigner, myAccountProvider AccountProvider) *AccountSignerSignatureProvider {
 	return &AccountSignerSignatureProvider{
 		Signer:          signer,
 		AccountProvider: myAccountProvider,

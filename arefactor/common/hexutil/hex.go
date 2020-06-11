@@ -14,3 +14,26 @@ func FromHex(s string) ([]byte, error) {
 	}
 	return hex.DecodeString(s)
 }
+
+func ToHex(b []byte) string {
+	return ToHexWithPad(b, 0)
+}
+
+func ToHexWithPad(b []byte, padLength int) string {
+	hexstr := hex.EncodeToString(b)
+	if len(hexstr) == 0 {
+		hexstr = "0"
+	}
+	for len(hexstr) < padLength {
+		hexstr = "0" + hexstr
+	}
+	return hexstr
+}
+
+func ToFormalHex(b []byte) string {
+	return "0x" + ToHex(b)
+}
+
+func ToFormalHexWithPad(b []byte, padLength int) string {
+	return "0x" + ToHexWithPad(b, padLength)
+}

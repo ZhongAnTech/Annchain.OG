@@ -2,7 +2,7 @@ package campaign
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/consensus/vrf"
 	"github.com/annchain/OG/og/protocol/ogmessage/archive"
 	"github.com/annchain/OG/og/types"
@@ -52,7 +52,7 @@ func (rc *RawCampaign) Campaign() *Campaign {
 		Vrf:          rc.Vrf,
 	}
 	if !archive.CanRecoverPubFromSig {
-		addr := crypto.Signer.AddressFromPubKeyBytes(rc.PublicKey)
+		addr := og_interface.Signer.AddressFromPubKeyBytes(rc.PublicKey)
 		cp.Issuer = &addr
 	}
 	return cp
@@ -69,7 +69,7 @@ func (r *RawTermChange) TermChange() *TermChange {
 		TermID: r.TermId,
 	}
 	if !archive.CanRecoverPubFromSig {
-		addr := crypto.Signer.AddressFromPubKeyBytes(r.PublicKey)
+		addr := og_interface.Signer.AddressFromPubKeyBytes(r.PublicKey)
 		t.Issuer = &addr
 	}
 	return t

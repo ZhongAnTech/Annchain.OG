@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"math/rand"
 
 	"net"
@@ -27,8 +28,6 @@ import (
 	"testing"
 	"testing/quick"
 	"time"
-
-	"github.com/annchain/OG/common/crypto"
 )
 
 type nullTransport struct{}
@@ -329,7 +328,7 @@ func gen(typ interface{}, rand *rand.Rand) interface{} {
 }
 
 func newkey() *ecdsa.PrivateKey {
-	key, err := crypto.GenerateKey()
+	key, err := ogcrypto.GenerateKey()
 	if err != nil {
 		panic("couldn't generate key: " + err.Error())
 	}

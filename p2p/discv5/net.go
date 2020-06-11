@@ -23,11 +23,11 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/types/msg"
 	"net"
 	"time"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/mclock"
 	"github.com/annchain/OG/p2p/netutil"
 	"golang.org/x/crypto/sha3"
@@ -205,7 +205,7 @@ func (net *Network) SetFallbackNodes(nodes []*Node) error {
 		// Recompute cpy.sha because the node might not have been
 		// created by NewNode or ParseNode.
 		cpy := *n
-		cpy.sha = crypto.Keccak256Hash(n.ID[:])
+		cpy.sha = ogcrypto.Keccak256Hash(n.ID[:])
 		nursery = append(nursery, &cpy)
 	}
 	net.reqRefresh(nursery)
@@ -215,7 +215,7 @@ func (net *Network) SetFallbackNodes(nodes []*Node) error {
 // Resolve searches for a specific node with the given ID.
 // It returns nil if the node could not be found.
 func (net *Network) Resolve(targetID NodeID) *Node {
-	result := net.lookup(crypto.Keccak256Hash(targetID[:]), true)
+	result := net.lookup(ogcrypto.Keccak256Hash(targetID[:]), true)
 	for _, n := range result {
 		if n.ID == targetID {
 			return n
@@ -232,7 +232,7 @@ func (net *Network) Resolve(targetID NodeID) *Node {
 //
 // The local node may be included in the result.
 func (net *Network) Lookup(targetID NodeID) []*Node {
-	return net.lookup(crypto.Keccak256Hash(targetID[:]), false)
+	return net.lookup(ogcrypto.Keccak256Hash(targetID[:]), false)
 }
 
 func (net *Network) lookup(target types.Hash, stopOnMatch bool) []*Node {
@@ -801,7 +801,7 @@ func (n *nodeNetGuts) startNextQuery(net *Network) {
 func (q *findnodeQuery) start(net *Network) bool {
 	// Satisfy queries against the local node directly.
 	if q.remote == net.tab.self {
-		closest := net.tab.closest(crypto.Keccak256Hash(q.target.Bytes[:]), bucketSize)
+		closest := net.tab.closest(ogcrypto.Keccak256Hash(q.target.Bytes[:]), bucketSize)
 		q.reply <- closest.entries
 		return true
 	}
@@ -1154,7 +1154,7 @@ func (net *Network) handleKnownPong(n *Node, pkt *ingressPacket) error {
 func (net *Network) handleQueryEvent(n *Node, ev nodeEvent, pkt *ingressPacket) (*nodeState, error) {
 	switch ev {
 	case findnodePacket:
-		target := crypto.Keccak256Hash(pkt.data.(*Findnode).Target[:])
+		target := ogcrypto.Keccak256Hash(pkt.data.(*Findnode).Target[:])
 		results := net.tab.closest(target, bucketSize).entries
 		net.conn.sendNeighbours(n, results)
 		return n.state, nil

@@ -20,6 +20,8 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 
@@ -45,7 +47,7 @@ func (s *SignerSecp256k1Go) GetCryptoType() CryptoType {
 //
 // The produced signature is in the [R || S || V] format where V is 0 or 1.
 func (s *SignerSecp256k1Go) Sign(privKey PrivateKey, msg []byte) Signature {
-	prv, _ := ToECDSA(privKey.KeyBytes)
+	prv, _ := ogcrypto.ToECDSA(privKey.KeyBytes)
 	hash := Sha256(msg)
 	if len(hash) != 32 {
 		panic(fmt.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash)))
@@ -60,7 +62,7 @@ func (s *SignerSecp256k1Go) Sign(privKey PrivateKey, msg []byte) Signature {
 	}
 	sig := toByte(signature.R, signature.S)
 	// Convert to Ethereum signature format with 'recovery id' v at the end.
-	if len(sig) == sigLength+1 {
+	if len(sig) == og_interface.sigLength+1 {
 		v := sig[0]
 		copy(sig, sig[1:])
 		//sig[64] = v
@@ -112,7 +114,7 @@ func (s *SignerSecp256k1Go) Verify(pubKey PublicKey, signature Signature, msg []
 		return false
 	}
 	// Reject malleable signatures. libsecp256k1 does this check but btcec doesn't.
-	if sig.S.Cmp(secp256k1halfN) > 0 {
+	if sig.S.Cmp(ogcrypto.secp256k1halfN) > 0 {
 		fmt.Println("sec")
 		return false
 	}
@@ -121,7 +123,7 @@ func (s *SignerSecp256k1Go) Verify(pubKey PublicKey, signature Signature, msg []
 
 func (s *SignerSecp256k1Go) DealRecoverID(sig Signature) Signature {
 	l := len(sig.SignatureBytes)
-	if l == sigLength+1 {
+	if l == og_interface.sigLength+1 {
 		sig.SignatureBytes = sig.SignatureBytes[:l-1]
 	}
 	return sig
@@ -129,13 +131,13 @@ func (s *SignerSecp256k1Go) DealRecoverID(sig Signature) Signature {
 
 func (s *SignerSecp256k1Go) PubKey(privKey PrivateKey) PublicKey {
 	_, ecdsapub := btcec.PrivKeyFromBytes(btcec.S256(), privKey.KeyBytes)
-	pub := FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
+	pub := ogcrypto.FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
 	return PublicKeyFromBytes(CryptoTypeSecp256k1, pub[:])
 }
 
 func TestSignerNewPrivKeyGO(t *testing.T) {
 	t.Parallel()
-	signer := SignerSecp256k1{}
+	signer := ogcrypto.SignerSecp256k1{}
 	for i := 0; i < 10; i++ {
 		pk, priv := signer.RandomKeyPair()
 		//fmt.Println(priv.String())
@@ -159,7 +161,7 @@ func TestSignerNewPrivKeyGO(t *testing.T) {
 }
 
 func TestSignBenchMarks(t *testing.T) {
-	signer := SignerSecp256k1{}
+	signer := ogcrypto.SignerSecp256k1{}
 	pk, priv := signer.RandomKeyPair()
 	signer2 := SignerSecp256k1Go{}
 	var txs1 types.Txis

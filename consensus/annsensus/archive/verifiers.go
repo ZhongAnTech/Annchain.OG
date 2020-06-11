@@ -20,7 +20,7 @@ package archive
 //	"github.com/annchain/OG/types/tx_types"
 //	"time"
 //
-//	"github.com/annchain/OG/common/crypto"
+//	"github.com/annchain/OG/common/ogcrypto"
 //	"github.com/annchain/kyber/v3/pairing/bn256"
 //)
 //
@@ -45,14 +45,14 @@ package archive
 //			a.dkg.GetParticipantNumber()).Warn("not eoungh sigsets")
 //		return false
 //	}
-//	signer := crypto.NewSigner(a.cryptoType)
+//	signer := ogcrypto.NewSigner(a.cryptoType)
 //	for _, sig := range t.SigSet {
 //		if sig == nil {
 //			log.Warn("nil sig")
 //			return false
 //		}
-//		pk := crypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
-//		if !signer.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
+//		pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
+//		if !signer.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
 //			log.WithField("sig ", sig).Warn("Verify Signature for sigsets fail")
 //			return false
 //		}
@@ -161,13 +161,13 @@ package archive
 //			a.dkg.GetParticipantNumber()).Warn("not enough sigsets")
 //		return false
 //	}
-//	signer := crypto.NewSigner(a.cryptoType)
+//	signer := ogcrypto.NewSigner(a.cryptoType)
 //	for _, sig := range t.SigSet {
 //		if sig == nil {
 //			log.Warn("nil sig")
 //			return false
 //		}
-//		pk := crypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
+//		pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, sig.PublicKey)
 //		var ok bool
 //		for _, gPk := range a.genesisAccounts {
 //			if bytes.Equal(pk.KeyBytes, gPk.KeyBytes) {
@@ -178,7 +178,7 @@ package archive
 //			log.WithField("pk ", pk).Warn("not a consensus participater")
 //			return false
 //		}
-//		if !signer.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
+//		if !signer.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, sig.Signature), t.PkBls) {
 //			log.WithField("sig ", sig).Warn("Verify Signature for sigsets fail")
 //			return false
 //		}

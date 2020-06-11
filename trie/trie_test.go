@@ -21,7 +21,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -31,11 +33,10 @@ import (
 	"testing/quick"
 
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/ogdb"
 	"github.com/davecgh/go-spew/spew"
 	// "github.com/ethereum/go-ethereum/common"
-	// "github.com/ethereum/go-ethereum/crypto"
+	// "github.com/ethereum/go-ethereum/ogcrypto"
 	// "github.com/ethereum/go-ethereum/ethdb"
 	// "github.com/ethereum/go-ethereum/rlp"
 )
@@ -578,9 +579,9 @@ func BenchmarkHash(b *testing.B) {
 	for i := 0; i < len(accounts); i++ {
 		var (
 			nonce   = uint64(random.Int63())
-			balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
+			balance = new(big.Int).Rand(random, new(big.Int).Exp(math.Big2, math.Big256, nil))
 			root    = emptyRoot
-			code    = crypto.Keccak256(nil)
+			code    = ogcrypto.Keccak256(nil)
 		)
 		accstr := fmt.Sprintf("%d %v %s %v", nonce, balance.Bytes(), root.String(), code)
 		accounts[i] = common.Hex2BytesNoError(accstr)
@@ -588,7 +589,7 @@ func BenchmarkHash(b *testing.B) {
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
 	for i := 0; i < len(addresses); i++ {
-		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+		trie.Update(ogcrypto.Keccak256(addresses[i][:]), accounts[i])
 	}
 	b.ResetTimer()
 	b.ReportAllocs()

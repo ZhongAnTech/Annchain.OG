@@ -1,0 +1,40 @@
+package arefactor
+
+import (
+	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/transport_event"
+	"github.com/latifrons/goffchan"
+)
+
+type PeerConnectedEvent struct {
+	PeerId string
+}
+
+type PeerConnectedEventSubscriber interface {
+	Name() string
+	GetPeerConnectedEventChannel() chan *PeerConnectedEvent
+}
+
+peerConnectedSubscribers      []transport_event.PeerConnectedEventSubscriber
+
+func (c *PhysicalCommunicator) AddSubscriberPeerConnectedEvent(sub transport_event.PeerConnectedEventSubscriber) {
+	c.peerConnectedSubscribers = append(c.peerConnectedSubscribers, sub)
+}
+
+func (c *PhysicalCommunicator) notifyPeerConnected(event *transport_event.PeerConnectedEvent) {
+	for _, sub := range c.peerConnectedSubscribers {
+		//sub.GetNewIncomingMessageEventChannel() <- message
+		<-goffchan.NewTimeoutSenderShort(sub.GetPeerConnectedEventChannel(), event, "peer connected"+sub.Name()).C
+		//sub.GetNewIncomingMessageEventChannel() <- message
+	}
+}
+
+cpCommunityManager.AddSubscriberPeerJoinedEvent(cpOgEngine)
+
+myNewIncomingMessageEventChan chan *transport_event.IncomingLetter // subscribe to NewIncomingMessageEvent
+
+
+
+func (o *OgEngine) PeerJoinedEventChannel() chan *og_interface.PeerJoinedEvent {
+	panic("implement me")
+}

@@ -29,9 +29,9 @@ package archive
 //		return
 //	}
 //	log.WithField("dkg data", request).WithField("from peer ", peerId).Debug("got genesis pub key")
-//	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
-//	s := crypto.NewSigner(pk.Type)
-//	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
+//	pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
+//	s := ogcrypto.NewSigner(pk.Type)
+//	ok := s.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 //	if !ok {
 //		log.Warn("verify signature failed")
 //		return
@@ -51,9 +51,9 @@ package archive
 //		return
 //	}
 //	log.WithField("dkg data", request).WithField("from peer ", peerId).Debug("got dkg")
-//	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
-//	s := crypto.NewSigner(pk.Type)
-//	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
+//	pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
+//	s := ogcrypto.NewSigner(pk.Type)
+//	ok := s.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 //	if !ok {
 //		log.Warn("verify signature failed")
 //		return
@@ -74,9 +74,9 @@ package archive
 //		return
 //	}
 //	log.WithField("dkg response data", request).WithField("from peer ", peerId).Debug("got dkg response")
-//	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
-//	s := crypto.NewSigner(pk.Type)
-//	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
+//	pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
+//	s := ogcrypto.NewSigner(pk.Type)
+//	ok := s.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 //	if !ok {
 //		log.Warn("verify signature failed")
 //		return
@@ -98,9 +98,9 @@ package archive
 //		return
 //	}
 //	log.WithField("data", request).WithField("from peer ", peerId).Debug("got dkg bls sigsets")
-//	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
-//	s := crypto.NewSigner(pk.Type)
-//	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
+//	pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
+//	s := ogcrypto.NewSigner(pk.Type)
+//	ok := s.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 //	if !ok {
 //		log.WithField("pkbls ", hex.EncodeToString(request.PkBls)).WithField("pk ", hex.EncodeToString(request.PublicKey)).WithField(
 //			"sig ", hex.EncodeToString(request.Signature)).Warn("verify signature failed")
@@ -134,9 +134,9 @@ package archive
 //	}
 //	seq := request.Value.(*bft.SequencerProposal).Sequencer
 //	log.WithField("data", request).WithField("from peer ", peerId).Debug("got bft proposal data")
-//	pk := crypto.PublicKeyFromBytes(a.cryptoType, seq.PublicKey)
-//	s := crypto.NewSigner(pk.Type)
-//	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
+//	pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, seq.PublicKey)
+//	s := ogcrypto.NewSigner(pk.Type)
+//	ok := s.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 //	if !ok {
 //		log.WithField("pub ", seq.PublicKey[0:5]).WithField("sig ", hex.EncodeToString(request.Signature)).WithField("request ", request).Warn("verify MessageProposal  signature failed")
 //		return
@@ -175,9 +175,9 @@ package archive
 //		return
 //	}
 //	log.WithField("data", request).WithField("from peer ", peerId).Debug("got bft PreVote data")
-//	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
-//	s := crypto.NewSigner(pk.Type)
-//	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
+//	pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
+//	s := ogcrypto.NewSigner(pk.Type)
+//	ok := s.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 //	if !ok {
 //		log.WithField("request ", request).Warn("verify signature failed")
 //		return
@@ -212,9 +212,9 @@ package archive
 //		return
 //	}
 //	log.WithField("data", request).WithField("from peer ", peerId).Debug("got bft PreCommit data")
-//	pk := crypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
-//	s := crypto.NewSigner(pk.Type)
-//	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
+//	pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, request.PublicKey)
+//	s := ogcrypto.NewSigner(pk.Type)
+//	ok := s.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, request.Signature), request.SignatureTargets())
 //	if !ok {
 //		log.WithField("request ", request).Warn("verify signature failed")
 //		return
@@ -242,7 +242,7 @@ package archive
 //		log.Debug("term change  not started yet")
 //		return
 //	}
-//	s := crypto.NewSigner(a.cryptoType)
+//	s := ogcrypto.NewSigner(a.cryptoType)
 //
 //	//send  genesis term change
 //	tc := a.term.GetGenesisTermChange()
@@ -272,11 +272,11 @@ package archive
 //	}
 //	tc := response.TermChange
 //	log.WithField("data", response).WithField("from  peer ", peerId).Debug("got term chan")
-//	s := crypto.NewSigner(a.cryptoType)
+//	s := ogcrypto.NewSigner(a.cryptoType)
 //
-//	pk := crypto.PublicKeyFromBytes(a.cryptoType, tc.PublicKey)
+//	pk := ogcrypto.PublicKeyFromBytes(a.cryptoType, tc.PublicKey)
 //
-//	ok := s.Verify(pk, crypto.SignatureFromBytes(a.cryptoType, tc.Signature), tc.SignatureTargets())
+//	ok := s.Verify(pk, ogcrypto.SignatureFromBytes(a.cryptoType, tc.Signature), tc.SignatureTargets())
 //	if !ok {
 //		log.WithField("request ", response).Warn("verify signature failed")
 //		return

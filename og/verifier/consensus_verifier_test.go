@@ -2,8 +2,7 @@ package verifier
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/crypto"
-
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
@@ -12,10 +11,10 @@ func TestConsensusVerifier_Verify(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
 	tx := archive.RandomTx()
 	//fmt.Println(tx)
-	pub, priv := crypto.Signer.RandomKeyPair()
+	pub, priv := og_interface.Signer.RandomKeyPair()
 	tx.From = nil
 	fmt.Println(tx.SignatureTargets())
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes
+	tx.Signature = og_interface.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes
 	tx.SetHash(tx.CalcTxHash())
 	tx.From = nil
 	//fmt.Println(tx,"hehe")

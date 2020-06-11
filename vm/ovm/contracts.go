@@ -19,13 +19,13 @@ package ovm
 import (
 	"crypto/sha256"
 	"errors"
+	math2 "github.com/annchain/OG/arefactor/common/math"
+	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
 	common2 "github.com/annchain/OG/common"
 	"math/big"
 
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/crypto/bn256"
+	"github.com/annchain/OG/arefactor/ogcrypto/bn256"
 	"github.com/annchain/OG/vm/eth/common"
-	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/eth/params"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"golang.org/x/crypto/ripemd160"
@@ -99,18 +99,18 @@ func (c *ecrecover) Run(input []byte) ([]byte, error) {
 	v := input[63] - 27
 
 	// tighter sig s values input homestead only apply to tx sigs
-	if !common.AllZero(input[32:63]) || !crypto.ValidateSignatureValues(v, r, s, false) {
+	if !common.AllZero(input[32:63]) || !crypto2.ValidateSignatureValues(v, r, s, false) {
 		return nil, nil
 	}
 	// v needs to be at the end for libsecp256k1
-	pubKey, err := crypto.Ecrecover(input[:32], append(input[64:128], v))
+	pubKey, err := crypto2.Ecrecover(input[:32], append(input[64:128], v))
 	// make sure the public key is a valid one
 	if err != nil {
 		return nil, nil
 	}
 
 	// the first byte of pubkey is bitcoin heritage
-	return common.LeftPadBytes(crypto.Keccak256(pubKey[1:])[12:], 32), nil
+	return common.LeftPadBytes(crypto2.Keccak256(pubKey[1:])[12:], 32), nil
 }
 
 // SHA256 implemented as a native contract.
@@ -197,7 +197,7 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 	adjExpLen.Add(adjExpLen, big.NewInt(int64(msb)))
 
 	// Calculate the gas cost of the operation
-	gas := new(big.Int).Set(math.BigMax(modLen, baseLen))
+	gas := new(big.Int).Set(math2.BigMax(modLen, baseLen))
 	switch {
 	case gas.Cmp(big64) <= 0:
 		gas.Mul(gas, gas)
@@ -212,11 +212,11 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 			new(big.Int).Sub(new(big.Int).Mul(big480, gas), big199680),
 		)
 	}
-	gas.Mul(gas, math.BigMax(adjExpLen, big1))
+	gas.Mul(gas, math2.BigMax(adjExpLen, big1))
 	gas.Div(gas, new(big.Int).SetUint64(params.ModExpQuadCoeffDiv))
 
 	if gas.BitLen() > 64 {
-		return math.MaxUint64
+		return math2.BiggerUint64
 	}
 	return gas.Uint64()
 }

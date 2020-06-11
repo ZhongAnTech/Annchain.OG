@@ -3,12 +3,12 @@ package og
 import "github.com/annchain/OG/arefactor/og/types"
 
 type Ledger interface {
-	CurrentHeight() int
+	CurrentHeight() int64
 	CurrentCommittee() *Committee
 }
 
 type DefaultLedger struct {
-	height  int
+	height  int64
 	genesis *Genesis
 }
 
@@ -41,7 +41,7 @@ func (d *DefaultLedger) StaticSetup() {
 	}
 }
 
-func (d *DefaultLedger) CurrentHeight() int {
+func (d *DefaultLedger) CurrentHeight() int64 {
 	return d.height
 }
 

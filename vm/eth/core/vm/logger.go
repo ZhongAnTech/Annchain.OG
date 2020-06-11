@@ -19,10 +19,10 @@ package vm
 import (
 	"encoding/hex"
 	"fmt"
+	math2 "github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/vm/eth/common/hexutil"
-	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/annchain/OG/vm/instruction"
 	vmtypes "github.com/annchain/OG/vm/types"
 	"io"
@@ -74,9 +74,9 @@ type StructLog struct {
 
 // overrides for gencodec
 type structLogMarshaling struct {
-	Stack       []*math.HexOrDecimal256
-	Gas         math.HexOrDecimal64
-	GasCost     math.HexOrDecimal64
+	Stack       []*math2.HexOrDecimal256
+	Gas         math2.HexOrDecimal64
+	GasCost     math2.HexOrDecimal64
 	Memory      hexutil.Bytes
 	OpName      string `json:"opName"` // adds call to OpName() in MarshalJSON
 	ErrorString string `json:"error"`  // adds call to ErrorString() in MarshalJSON
@@ -220,7 +220,7 @@ func WriteTrace(writer io.Writer, logs []StructLog) {
 		if len(log.Stack) > 0 {
 			fmt.Fprintln(writer, "Stack:")
 			for i := len(log.Stack) - 1; i >= 0; i-- {
-				s := fmt.Sprintf("%08d  %x", len(log.Stack)-i-1, math.PaddedBigBytes(log.Stack[i], 32))
+				s := fmt.Sprintf("%08d  %x", len(log.Stack)-i-1, math2.PaddedBigBytes(log.Stack[i], 32))
 				if omitZero {
 					s = strings.Replace(s, "00", "__", -1)
 				}

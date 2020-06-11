@@ -18,7 +18,7 @@ package archive_test
 //	"fmt"
 //	"github.com/annchain/OG/account"
 //	"github.com/annchain/OG/common"
-//	"github.com/annchain/OG/common/crypto"
+//	"github.com/annchain/OG/common/ogcrypto"
 //	"github.com/annchain/OG/consensus/annsensus/test"
 //	"github.com/annchain/OG/og/message"
 //	"github.com/annchain/OG/types"
@@ -78,7 +78,7 @@ package archive_test
 //}
 //
 //type sendMsgToChanFunc func(addr common.Address, mdg test.TestMsg)
-//type sendMsgByPubKeyFunc func(pub *crypto.PublicKey, msg test.TestMsg)
+//type sendMsgByPubKeyFunc func(pub *ogcrypto.PublicKey, msg test.TestMsg)
 //
 //func newtestHub(id common.Address, peers []common.Address, sendMsgToChan sendMsgToChanFunc, sendMsgByPubKey sendMsgByPubKeyFunc, as *TestAnnSensus) *TestHub {
 //	return &TestHub{
@@ -115,7 +115,7 @@ package archive_test
 //	return nil
 //}
 //
-//func (t *TestHub) AnonymousSendMessage(messageType message.typesType, message p2p_message.Message, anyNomousPubKey *crypto.PublicKey) {
+//func (t *TestHub) AnonymousSendMessage(messageType message.typesType, message p2p_message.Message, anyNomousPubKey *ogcrypto.PublicKey) {
 //	tMsg := test.TestMsg{
 //		MessageType: messageType,
 //		Message:     message,
@@ -164,7 +164,7 @@ package archive_test
 //	cp.GetBase().PublicKey = as.MyAccount.PublicKey.KeyBytes
 //	cp.GetBase().AccountNonce = uint64(as.dkg.GetId() * 10)
 //	cp.Issuer = &as.MyAccount.Address
-//	s := crypto.NewSigner(as.cryptoType)
+//	s := ogcrypto.NewSigner(as.cryptoType)
 //	cp.GetBase().Signature = s.Sign(as.MyAccount.PrivateKey, cp.SignatureTargets()).KeyBytes
 //	cp.GetBase().Weight = uint64(rand.Int31n(100)%10 + 3)
 //	cp.Height = uint64(as.dkg.TermId + 3)
@@ -258,7 +258,7 @@ package archive_test
 //			msg.MessageType).WithField("msg ", resp).WithField("len ", len(data)).Trace("send msg")
 //		return
 //	}
-//	sendMsgByPubKey := func(pub *crypto.PublicKey, msg test.TestMsg) {
+//	sendMsgByPubKey := func(pub *ogcrypto.PublicKey, msg test.TestMsg) {
 //		data, err := msg.MarshalMsg(nil)
 //		if err != nil {
 //			panic(err)
@@ -277,8 +277,8 @@ package archive_test
 //	}
 //
 //	var accounts []account.Account
-//	var pks []crypto.PublicKey
-//	signer := crypto.NewSigner(crypto.CryptoTypeSecp256k1)
+//	var pks []ogcrypto.PublicKey
+//	signer := ogcrypto.NewSigner(ogcrypto.CryptoTypeSecp256k1)
 //	for j := 0; j < n; j++ {
 //		pub, priv := signer.RandomKeyPair()
 //		account := account.Account{
@@ -292,7 +292,7 @@ package archive_test
 //	}
 //
 //	for j := 0; j < n; j++ {
-//		as := NewAnnSensus(4, false, crypto.CryptoTypeSecp256k1, true, n,
+//		as := NewAnnSensus(4, false, ogcrypto.CryptoTypeSecp256k1, true, n,
 //			pks, "test.json", false)
 //		a := TestAnnSensus{
 //			AnnSensus: as,

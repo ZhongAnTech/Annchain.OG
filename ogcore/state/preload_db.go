@@ -2,8 +2,8 @@ package state
 
 import (
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types/token"
 	vmtypes "github.com/annchain/OG/vm/types"
@@ -170,7 +170,7 @@ func (pd *PreloadDB) GetCode(addr common.Address) []byte {
 
 func (pd *PreloadDB) SetCode(addr common.Address, code []byte) {
 	state := pd.getOrCreateStateObject(addr)
-	state.SetCode(crypto.Keccak256Hash(code), code)
+	state.SetCode(ogcrypto.Keccak256Hash(code), code)
 }
 
 func (pd *PreloadDB) GetCodeSize(addr common.Address) int {

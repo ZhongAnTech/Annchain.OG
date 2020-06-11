@@ -15,6 +15,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
@@ -71,7 +72,7 @@ func getkey() (priv crypto.PrivateKey, pub crypto.PublicKey, addr common.Address
 }
 
 func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address, nonce int, enableSPO bool, tokenName string) rpc.NewPublicOfferingRequest {
-	//pub, priv := crypto.Signer.RandomKeyPair()
+	//pub, priv := ogcrypto.Signer.RandomKeyPair()
 	//from:= pub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(8888888)
@@ -90,7 +91,7 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 			TokenName: tokenName,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
+	tx.Signature = og_interface.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
@@ -113,7 +114,7 @@ func generateTokenPublishing(priv crypto.PrivateKey, pub crypto.PublicKey, from 
 }
 
 func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address, tokenId int32, nonce int) rpc.NewPublicOfferingRequest {
-	//pub, priv := crypto.Signer.RandomKeyPair()
+	//pub, priv := ogcrypto.Signer.RandomKeyPair()
 	//from:= pub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(0)
@@ -133,7 +134,7 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 			TokenId: tokenId,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
+	tx.Signature = og_interface.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	if !ok {
@@ -157,7 +158,7 @@ func destroyRequest(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Ad
 }
 
 func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address, tokenId int32, nonce int) rpc.NewPublicOfferingRequest {
-	//pub, priv := crypto.Signer.RandomKeyPair()
+	//pub, priv := ogcrypto.Signer.RandomKeyPair()
 	//from:= pub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String())
 	value := math.NewBigInt(100000)
@@ -177,7 +178,7 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 			TokenId: tokenId,
 		},
 	}
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
+	tx.Signature = og_interface.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	target := tx.SignatureTargets()
@@ -203,7 +204,7 @@ func secondPublicOffering(priv crypto.PrivateKey, pub crypto.PublicKey, from com
 }
 
 func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address, tokenId int32, nonce int) rpc.NewTxRequest {
-	topub, _ := crypto.Signer.RandomKeyPair()
+	topub, _ := og_interface.Signer.RandomKeyPair()
 	to := topub.Address()
 	fmt.Println(pub.String(), priv.String(), from.String(), to.String())
 
@@ -218,7 +219,7 @@ func transfer(priv crypto.PrivateKey, pub crypto.PublicKey, from common.Address,
 		Value:   math.NewBigInt(66),
 		To:      to,
 	}
-	tx.Signature = crypto.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
+	tx.Signature = og_interface.Signer.Sign(priv, tx.SignatureTargets()).SignatureBytes[:]
 	v := verifier.TxFormatVerifier{}
 	ok := v.VerifySignature(&tx)
 	target := tx.SignatureTargets()

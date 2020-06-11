@@ -17,16 +17,16 @@
 package onode
 
 import (
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/types/msg"
 	"testing"
 
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/p2p/enr"
 )
 
 func newLocalNodeForTesting() (*LocalNode, *DB) {
 	db, _ := OpenDB("")
-	key, _ := crypto.GenerateKey()
+	key, _ := ogcrypto.GenerateKey()
 	return NewLocalNode(db, key), db
 }
 
@@ -70,7 +70,7 @@ func TestLocalNodeSeqPersist(t *testing.T) {
 
 	// Create a new instance with a different node key on the same database.
 	// This should reset the sequence number.
-	key, _ := crypto.GenerateKey()
+	key, _ := ogcrypto.GenerateKey()
 	ln3 := NewLocalNode(db, key)
 	if s := ln3.Node().Seq(); s != 1 {
 		t.Fatalf("wrong seq %d on instance with changed key, want 1", s)

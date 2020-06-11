@@ -17,7 +17,7 @@ package archive
 //	"fmt"
 //	"github.com/annchain/OG/account"
 //	"github.com/annchain/OG/common"
-//	"github.com/annchain/OG/common/crypto"
+//	"github.com/annchain/OG/common/ogcrypto"
 //	"github.com/annchain/OG/common/hexutil"
 //	"github.com/annchain/OG/consensus/dkg"
 //	"github.com/annchain/OG/consensus/term"
@@ -69,7 +69,7 @@ package archive
 //}
 //
 //func getRandomAccount() *account.Account {
-//	_, priv := crypto.Signer.RandomKeyPair()
+//	_, priv := ogcrypto.Signer.RandomKeyPair()
 //	return account.NewAccount(priv.String())
 //}
 //

@@ -3,7 +3,7 @@ package annsensus
 import (
 	"bytes"
 	"errors"
-	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/consensus/bft"
 	"github.com/annchain/OG/og/account"
 	"github.com/sirupsen/logrus"
@@ -177,7 +177,7 @@ func (b *TrustfulBftAdapter) VerifyParnterIdentity(signedMsg *AnnsensusMessageBf
 }
 
 func (b *TrustfulBftAdapter) VerifyMessageSignature(outMsg bft.BftMessage, publicKey []byte, signature []byte) error {
-	ok := crypto.VerifySignature(publicKey, outMsg.SignatureTargets(), signature)
+	ok := ogcrypto.VerifySignature(publicKey, outMsg.SignatureTargets(), signature)
 	if !ok {
 		return errors.New("signature invalid")
 	}

@@ -23,7 +23,7 @@ func (z *BouncerMessage) FromBytes(bts []byte) error {
 	return nil
 }
 
-func (z *BouncerMessage) GetType() int {
+func (z *BouncerMessage) GetTypeValue() int {
 	return 1
 }
 

@@ -16,8 +16,8 @@ package archive
 import (
 	"fmt"
 	types2 "github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/og/types"
 	"strings"
@@ -73,7 +73,7 @@ func (t *RawTx) Tx() *Tx {
 		TokenId:      t.TokenId,
 	}
 	if !CanRecoverPubFromSig {
-		tx.SetSender(crypto.Signer.AddressFromPubKeyBytes(tx.PublicKey))
+		tx.SetSender(og_interface.Signer.AddressFromPubKeyBytes(tx.PublicKey))
 	}
 	return tx
 }
@@ -89,7 +89,7 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 		StateRoot:      t.StateRoot,
 	}
 	if !CanRecoverPubFromSig {
-		addr := crypto.Signer.AddressFromPubKeyBytes(tx.PublicKey)
+		addr := og_interface.Signer.AddressFromPubKeyBytes(tx.PublicKey)
 		tx.Issuer = &addr
 	}
 	return tx
@@ -109,7 +109,7 @@ func (t *RawActionTx) ActionTx() *ActionTx {
 	}
 
 	if !CanRecoverPubFromSig {
-		addr := crypto.Signer.AddressFromPubKeyBytes(tx.PublicKey)
+		addr := og_interface.Signer.AddressFromPubKeyBytes(tx.PublicKey)
 		tx.From = &addr
 	}
 	return tx

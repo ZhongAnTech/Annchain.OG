@@ -1,7 +1,9 @@
 package ovm
 
 import (
+	math2 "github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
 	vmtypes "github.com/annchain/OG/vm/types"
 
@@ -9,7 +11,6 @@ import (
 
 	"errors"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
 	"math/big"
 	"strings"
 )
@@ -142,7 +143,7 @@ func (l *LayerStateDB) GetBalance(addr common.Address) *math.BigInt {
 			panic("address not exists")
 		}
 	}
-	return math.NewBigIntFromBigInt(common.Big0)
+	return math.NewBigIntFromBigInt(math2.Big0)
 }
 
 func (l *LayerStateDB) GetNonce(addr common.Address) uint64 {
@@ -192,7 +193,7 @@ func (l *LayerStateDB) GetCode(addr common.Address) []byte {
 func (l *LayerStateDB) SetCode(addr common.Address, code []byte) {
 	if so := l.GetStateObject(addr); so != nil {
 		so.Code = code
-		so.CodeHash = crypto.Keccak256Hash(code)
+		so.CodeHash = ogcrypto.Keccak256Hash(code)
 		so.DirtyCode = true
 		l.SetStateObject(addr, so)
 	} else {

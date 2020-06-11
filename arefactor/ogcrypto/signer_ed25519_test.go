@@ -33,7 +33,7 @@ func TestSigner(t *testing.T) {
 
 	fmt.Println(hex.Dump(priv.KeyBytes))
 	address := og.AddressFromPublicKey(&pub)
-	fmt.Println(hex.Dump(address))
+	fmt.Println(hex.Dump(address.Bytes()))
 
 	fmt.Printf("%x\n", priv.KeyBytes[:])
 	fmt.Printf("%x\n", pub.KeyBytes[:])

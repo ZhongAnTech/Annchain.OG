@@ -1,7 +1,5 @@
 package og_interface
 
-import "github.com/annchain/OG/arefactor/og/types"
-
 // sync
 
 type UnknownManager interface {
@@ -36,7 +34,7 @@ func (u UnknownHeight) GetValue() interface{} {
 }
 
 type UnknownHash struct {
-	value types.Hash
+	value Hash
 }
 
 func (u UnknownHash) GetType() UnknownType {

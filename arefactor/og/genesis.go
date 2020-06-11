@@ -1,8 +1,10 @@
 package og
 
-import "github.com/annchain/OG/arefactor/og/types"
+import (
+	"github.com/annchain/OG/arefactor/og_interface"
+)
 
 type Genesis struct {
-	RootSequencerHash types.Hash
+	RootSequencerHash og_interface.Hash
 	FirstCommittee    *Committee
 }

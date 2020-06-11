@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/hexutil"
-	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/ogcrypto_interface"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ripemd160"
@@ -29,7 +29,7 @@ func SignatureValues(sig []byte) (r, s, v *big.Int, err error) {
 	return r, s, v, nil
 }
 
-func PublicKeyFromSignature(sighash types.Hash, signature *ogcrypto_interface.Signature) (pubKey ogcrypto_interface.PublicKey, err error) {
+func PublicKeyFromSignature(sighash og_interface.Hash, signature *ogcrypto_interface.Signature) (pubKey ogcrypto_interface.PublicKey, err error) {
 	// only some signature types can be used to recover pubkey
 	R, S, Vb, err := SignatureValues(signature.SignatureBytes)
 	if err != nil {
@@ -55,7 +55,7 @@ func PublicKeyFromSignature(sighash types.Hash, signature *ogcrypto_interface.Si
 	sigBytes[64] = V
 	// recover the public key from the signature
 	//pub, err := Ecrecover(sighash.Bytes[:], sigBytes)
-	pub, err := Ecrecover(sighash, sigBytes)
+	pub, err := Ecrecover(sighash.Bytes(), sigBytes)
 	if err != nil {
 		logrus.WithError(err).Debug("sigBytes verify failed")
 	}

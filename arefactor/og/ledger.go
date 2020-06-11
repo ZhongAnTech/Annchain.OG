@@ -1,6 +1,8 @@
 package og
 
-import "github.com/annchain/OG/arefactor/og/types"
+import (
+	"github.com/annchain/OG/arefactor/og_interface"
+)
 
 type Ledger interface {
 	CurrentHeight() int64
@@ -15,8 +17,11 @@ type DefaultLedger struct {
 // StaticSetup supposely will load ledger from disk.
 func (d *DefaultLedger) StaticSetup() {
 	d.height = 1
+	rootHash := &og_interface.Hash32{}
+	rootHash.FromHexNoError("0x00")
+
 	d.genesis = &Genesis{
-		RootSequencerHash: types.HexToHashNoError("0x00"),
+		RootSequencerHash: rootHash,
 		FirstCommittee: &Committee{
 			Peers: []*PeerMember{
 				{

@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/math"
-	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -49,14 +49,16 @@ func Keccak256(data ...[]byte) []byte {
 
 // Keccak256Hash calculates and returns the Keccak256 hash of the input data,
 // converting it to an internal Hash data structure.
-func Keccak256Hash(data ...[]byte) (h types.Hash) {
+func Keccak256Hash(data ...[]byte) (h og_interface.Hash) {
 	d := sha3.NewLegacyKeccak256()
 	for _, b := range data {
 		d.Write(b)
 	}
 
 	b := d.Sum([]byte{})
-	return b
+	result := &og_interface.Hash32{}
+	result.FromBytes(b)
+	return result
 }
 
 // Keccak512 calculates and returns the Keccak512 hash of the input data.

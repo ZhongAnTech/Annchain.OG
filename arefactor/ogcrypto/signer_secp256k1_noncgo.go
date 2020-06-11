@@ -105,7 +105,7 @@ func (s *SignerSecp256k1) Decrypt(p ogcrypto_interface.PrivateKey, ct []byte) (m
 	prive, err := ToECDSA(p.KeyBytes)
 	ecisesPriv := ecies.ImportECDSA(prive)
 	return ecisesPriv.Decrypt(ct, nil, nil)
-	return nil, nil
+	//return nil, nil
 }
 
 const sigLength int = 64

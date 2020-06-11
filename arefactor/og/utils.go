@@ -2,13 +2,13 @@ package og
 
 import (
 	"bytes"
-	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/ogcrypto_interface"
 	"github.com/annchain/OG/common/crypto"
 	"golang.org/x/crypto/ripemd160"
 )
 
-func AddressFromPublicKey(p *ogcrypto_interface.PublicKey) types.Address {
+func AddressFromPublicKey(p *ogcrypto_interface.PublicKey) og_interface.Address {
 	switch p.Type {
 	case ogcrypto_interface.CryptoTypeSecp256k1:
 		return AddressFromPublicKeySecp256K1(p)
@@ -19,16 +19,21 @@ func AddressFromPublicKey(p *ogcrypto_interface.PublicKey) types.Address {
 	}
 }
 
-func AddressFromPublicKeyEd25519(pubKey *ogcrypto_interface.PublicKey) types.Address {
+func AddressFromPublicKeyEd25519(pubKey *ogcrypto_interface.PublicKey) og_interface.Address {
 	var w bytes.Buffer
 	w.Write([]byte{byte(pubKey.Type)})
 	w.Write(pubKey.KeyBytes)
 	hasher := ripemd160.New()
 	hasher.Write(w.Bytes())
 	result := hasher.Sum(nil)
-	return types.BytesToAddress(result)
+
+	address := &og_interface.Address20{}
+	address.FromBytes(result)
+	return address
 }
 
-func AddressFromPublicKeySecp256K1(pubKey *ogcrypto_interface.PublicKey) types.Address {
-	return types.BytesToAddress(crypto.Keccak256((pubKey.KeyBytes)[1:])[12:])
+func AddressFromPublicKeySecp256K1(pubKey *ogcrypto_interface.PublicKey) og_interface.Address {
+	address := &og_interface.Address20{}
+	address.FromBytes(crypto.Keccak256((pubKey.KeyBytes)[1:])[12:])
+	return address
 }

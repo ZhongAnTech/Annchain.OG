@@ -16,15 +16,14 @@ package core
 import (
 	"container/heap"
 	"fmt"
+	"github.com/annchain/OG/arefactor_core/core/state"
+	"github.com/annchain/OG/arefactor_core/types"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/core/state"
-	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/common/math"
+	//"github.com/annchain/OG/types/tx_types"
+	log "github.com/sirupsen/logrus"
 	"sort"
 	"sync"
-
-	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
-	log "github.com/sirupsen/logrus"
 )
 
 type AccountFlowSet struct {
@@ -54,7 +53,7 @@ func (a *AccountFlowSet) Add(tx types.Txi) {
 		af = NewAccountFlow(state.NewBalanceSet())
 	}
 	if tx.GetType() == types.TxBaseTypeNormal {
-		txn := tx.(*tx_types.Tx)
+		txn := tx.(*types.Tx)
 		if af.balances[txn.TokenId] == nil {
 			blc := a.ledger.GetBalance(txn.Sender(), txn.TokenId)
 			af.balances[txn.TokenId] = NewBalanceState(blc)
@@ -201,7 +200,7 @@ func (af *AccountFlow) Add(tx types.Txi) error {
 		af.txlist.Put(tx)
 		return nil
 	}
-	txnormal := tx.(*tx_types.Tx)
+	txnormal := tx.(*types.Tx)
 	if af.balances[txnormal.TokenId] == nil {
 		af.txlist.Put(tx)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())
@@ -230,7 +229,7 @@ func (af *AccountFlow) Remove(txToRemove types.Txi) error {
 		af.txlist.Remove(nonce)
 		return nil
 	}
-	txnormal := tx.(*tx_types.Tx)
+	txnormal := tx.(*types.Tx)
 	if af.balances[txnormal.TokenId] == nil {
 		af.txlist.Remove(nonce)
 		return fmt.Errorf("accountflow not exists for addr: %s", tx.Sender().Hex())

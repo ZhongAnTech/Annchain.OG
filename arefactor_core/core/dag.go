@@ -16,6 +16,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/arefactor_core/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/status"
@@ -27,10 +28,10 @@ import (
 	// "fmt"
 	"sync"
 
+	"github.com/annchain/OG/arefactor_core/core/state"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/types"
+	//"github.com/annchain/OG/types"
 	evm "github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/annchain/OG/vm/ovm"
 	vmtypes "github.com/annchain/OG/vm/types"
@@ -45,7 +46,7 @@ var (
 
 	DefaultGasLimit = uint64(10000000000)
 
-	DefaultCoinbase = common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
+	DefaultCoinbase, _ = common.HexToAddress("0x1234567812345678AABBCCDDEEFF998877665544")
 )
 
 type DagConfig struct {
@@ -62,8 +63,8 @@ type Dag struct {
 	preloadDB *state.PreloadDB
 	statedb   *state.StateDB
 
-	genesis         *tx_types.Sequencer
-	latestSequencer *tx_types.Sequencer
+	genesis         *types.Sequencer
+	latestSequencer *types.Sequencer
 
 	txcached *txcached
 
@@ -143,7 +144,7 @@ func (dag *Dag) StateDatabase() *state.StateDB {
 }
 
 // Init inits genesis sequencer and genesis state of the network.
-func (dag *Dag) Init(genesis *tx_types.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
+func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[common.Address]*math.BigInt) error {
 	if genesis.Height != 0 {
 		return fmt.Errorf("invalheight genesis: height is not zero")
 	}
@@ -214,7 +215,7 @@ func (dag *Dag) LoadLastState() (bool, common.Hash) {
 }
 
 // Genesis returns the genesis tx of dag
-func (dag *Dag) Genesis() *tx_types.Sequencer {
+func (dag *Dag) Genesis() *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -222,7 +223,7 @@ func (dag *Dag) Genesis() *tx_types.Sequencer {
 }
 
 // LatestSequencer returns the latest sequencer stored in dag
-func (dag *Dag) LatestSequencer() *tx_types.Sequencer {
+func (dag *Dag) LatestSequencer() *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -302,7 +303,7 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx tx_types.Tx
+		var tx types.Tx
 		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -311,7 +312,7 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 		return &tx
 	}
 	if bytes.Equal(prefix, contentPrefixSequencer) {
-		var sq tx_types.Sequencer
+		var sq types.Sequencer
 		_, err := sq.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx  error")
@@ -319,33 +320,33 @@ func (dag *Dag) getTestTx(hash common.Hash) types.Txi {
 		}
 		return &sq
 	}
-	if bytes.Equal(prefix, contentPrefixCampaign) {
-		var cp tx_types.Campaign
-		_, err := cp.UnmarshalMsg(data)
-		if err != nil {
-			log.WithError(err).Warn("unmarshal camp error")
-			return nil
-		}
-		return &cp
-	}
-	if bytes.Equal(prefix, contentPrefixTermChg) {
-		var tc tx_types.TermChange
-		_, err := tc.UnmarshalMsg(data)
-		if err != nil {
-			log.WithError(err).Warn("unmarshal termchg error")
-			return nil
-		}
-		return &tc
-	}
-	if bytes.Equal(prefix, contentPrefixArchive) {
-		var ac tx_types.Archive
-		_, err := ac.UnmarshalMsg(data)
-		if err != nil {
-			log.WithError(err).Warn("unmarshal archive error")
-			return nil
-		}
-		return &ac
-	}
+	//if bytes.Equal(prefix, contentPrefixCampaign) {
+	//	var cp tx_types.Campaign
+	//	_, err := cp.UnmarshalMsg(data)
+	//	if err != nil {
+	//		log.WithError(err).Warn("unmarshal camp error")
+	//		return nil
+	//	}
+	//	return &cp
+	//}
+	//if bytes.Equal(prefix, contentPrefixTermChg) {
+	//	var tc tx_types.TermChange
+	//	_, err := tc.UnmarshalMsg(data)
+	//	if err != nil {
+	//		log.WithError(err).Warn("unmarshal termchg error")
+	//		return nil
+	//	}
+	//	return &tc
+	//}
+	//if bytes.Equal(prefix, contentPrefixArchive) {
+	//	var ac tx_types.Archive
+	//	_, err := ac.UnmarshalMsg(data)
+	//	if err != nil {
+	//		log.WithError(err).Warn("unmarshal archive error")
+	//		return nil
+	//	}
+	//	return &ac
+	//}
 	log.Warn("unknown prefix")
 	return nil
 }
@@ -431,7 +432,7 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	return dag.getTxis(*hashs)
 }
 
-func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *tx_types.Sequencer) {
+func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *types.Sequencer) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
@@ -443,7 +444,7 @@ func (dag *Dag) GetTestTxisByNumber(height uint64) (types.Txis, *tx_types.Sequen
 	//if len(data) == 0 {
 	//	 log.Warnf("sequencer with SeqHeight %d not found", height)
 	//}
-	var seq tx_types.Sequencer
+	var seq types.Sequencer
 	_, err := seq.UnmarshalMsg(data)
 	if err != nil {
 		log.WithError(err).Warn("unmarsahl error")
@@ -501,27 +502,27 @@ func (dag *Dag) GetReceipt(hash common.Hash) *Receipt {
 	return dag.accessor.ReadReceipt(seqid, hash)
 }
 
-func (dag *Dag) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
+func (dag *Dag) GetSequencerByHash(hash common.Hash) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *tx_types.Sequencer:
+	case *types.Sequencer:
 		return tx
 	default:
 		return nil
 	}
 }
 
-func (dag *Dag) GetSequencerByHeight(height uint64) *tx_types.Sequencer {
+func (dag *Dag) GetSequencerByHeight(height uint64) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getSequencerByHeight(height)
 }
 
-func (dag *Dag) getSequencerByHeight(height uint64) *tx_types.Sequencer {
+func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
 	if height == 0 {
 		return dag.genesis
 	}
@@ -553,13 +554,13 @@ func (dag *Dag) getSequencerHashByHeight(height uint64) *common.Hash {
 	return &hash
 }
 
-func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *tx_types.Sequencer {
+func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	tx := dag.getTx(hash)
 	switch tx := tx.(type) {
-	case *tx_types.Sequencer:
+	case *types.Sequencer:
 		if tx.Height != seqHeight {
 			log.Warn("seq height mismatch ")
 			return nil
@@ -570,23 +571,23 @@ func (dag *Dag) GetSequencer(hash common.Hash, seqHeight uint64) *tx_types.Seque
 	}
 }
 
-func (dag *Dag) GetConfirmTime(seqHeight uint64) *types.ConfirmTime {
-
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-	return dag.getConfirmTime(seqHeight)
-}
-
-func (dag *Dag) getConfirmTime(seqHeight uint64) *types.ConfirmTime {
-	if seqHeight == 0 {
-		return nil
-	}
-	cf := dag.accessor.readConfirmTime(seqHeight)
-	if cf == nil {
-		log.Warn("ConfirmTime not found")
-	}
-	return cf
-}
+//func (dag *Dag) GetConfirmTime(seqHeight uint64) *types.ConfirmTime {
+//
+//	dag.mu.RLock()
+//	defer dag.mu.RUnlock()
+//	return dag.getConfirmTime(seqHeight)
+//}
+//
+//func (dag *Dag) getConfirmTime(seqHeight uint64) *types.ConfirmTime {
+//	if seqHeight == 0 {
+//		return nil
+//	}
+//	cf := dag.accessor.readConfirmTime(seqHeight)
+//	if cf == nil {
+//		log.Warn("ConfirmTime not found")
+//	}
+//	return cf
+//}
 
 func (dag *Dag) GetTxsHashesByNumber(Height uint64) *common.Hashes {
 	dag.mu.RLock()
@@ -868,21 +869,21 @@ func (dag *Dag) push(batch *PushBatch) error {
 
 	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash())
 
-	// TODO: confirm time is for tps calculation, delete later.
-	cf := types.ConfirmTime{
-		SeqHeight:   batch.Seq.Height,
-		TxNum:       uint64(len(txhashes)),
-		ConfirmTime: time.Now().Format(time.RFC3339Nano),
-	}
-	dag.writeConfirmTime(&cf)
+	//// TODO: confirm time is for tps calculation, delete later.
+	//cf := types.ConfirmTime{
+	//	SeqHeight:   batch.Seq.Height,
+	//	TxNum:       uint64(len(txhashes)),
+	//	ConfirmTime: time.Now().Format(time.RFC3339Nano),
+	//}
+	//dag.writeConfirmTime(&cf)
 
 	// send consensus related txs.
 	if len(consTxs) != 0 && dag.OnConsensusTXConfirmed != nil && !status.NodeStopped {
 		log.WithField("txs ", consTxs).Trace("sending consensus txs")
-		goroutine.New(func() {
+		go func() {
 			dag.OnConsensusTXConfirmed <- consTxs
 			log.WithField("txs ", consTxs).Trace("sent consensus txs")
-		})
+		}()
 	}
 	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash())
 	log.WithField("height", batch.Seq.Height).WithField("txs number ", len(txhashes)).Info("new height")
@@ -890,21 +891,21 @@ func (dag *Dag) push(batch *PushBatch) error {
 	return nil
 }
 
-func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
-	return dag.accessor.writeConfirmTime(cf)
-}
+//func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
+//	return dag.accessor.writeConfirmTime(cf)
+//}
 
-func (dag *Dag) TestWriteConfirmTIme(cf *types.ConfirmTime) error {
-	dag.mu.Lock()
-	defer dag.mu.Unlock()
-	dag.latestSequencer = tx_types.RandomSequencer()
-	dag.latestSequencer.Height = cf.SeqHeight
-	return dag.writeConfirmTime(cf)
-}
-
-func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
-	return dag.accessor.readConfirmTime(seqHeight)
-}
+//func (dag *Dag) TestWriteConfirmTIme(cf *types.ConfirmTime) error {
+//	dag.mu.Lock()
+//	defer dag.mu.Unlock()
+//	dag.latestSequencer = tx_types.RandomSequencer()
+//	dag.latestSequencer.Height = cf.SeqHeight
+//	return dag.writeConfirmTime(cf)
+//}
+//
+//func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
+//	return dag.accessor.readConfirmTime(seqHeight)
+//}
 
 // WriteTransaction write the tx or sequencer into ogdb. It first writes
 // the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
@@ -1166,7 +1167,7 @@ func (tc *txcached) add(tx types.Txi) {
 }
 
 type PushBatch struct {
-	Seq *tx_types.Sequencer
+	Seq *types.Sequencer
 	Txs types.Txis
 }
 

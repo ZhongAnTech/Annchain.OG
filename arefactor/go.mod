@@ -13,6 +13,7 @@ require (
 	github.com/libp2p/go-libp2p v0.9.2
 	github.com/libp2p/go-libp2p-core v0.5.6
 	github.com/libp2p/go-libp2p-swarm v0.2.6
+	github.com/minio/sha256-simd v0.1.1
 	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.6.0

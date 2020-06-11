@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -47,8 +48,8 @@ func (o *OgEngine) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.
 
 func (o *OgEngine) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range o.newOutgoingMessageSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
-		subscriber.NewOutgoingMessageEventChannel() <- event
+		goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing"+subscriber.Name())
+		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
 }
 
@@ -82,9 +83,11 @@ func (o *OgEngine) loop() {
 	timer := time.NewTimer(time.Second * time.Duration(EngineCheckIntervalSeconds))
 
 	for {
-		logrus.Trace("ogEngine loop round start")
 		if !timer.Stop() {
-			<-timer.C
+			select {
+			case <-timer.C:
+			default:
+			}
 		}
 		timer.Reset(time.Second * time.Duration(EngineCheckIntervalSeconds))
 		select {

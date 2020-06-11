@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"errors"
 	"github.com/annchain/OG/arefactor/common/math"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
@@ -135,6 +136,10 @@ func (b *BlockByBlockSyncer) eventLoop() {
 	}
 }
 
+func (b *BlockByBlockSyncer) needSync() bool {
+	return b.knownMaxHeight > b.Ledger.CurrentHeight()+MaxTolerantHeightDiff
+}
+
 func (b *BlockByBlockSyncer) sync() {
 	timer := time.NewTimer(time.Second * time.Duration(SyncCheckIntervalSeconds))
 	for {
@@ -154,9 +159,7 @@ func (b *BlockByBlockSyncer) sync() {
 			toSync = true
 		case <-timer.C:
 			// start sync because of check interval
-			if b.knownMaxHeight > b.Ledger.CurrentHeight()+MaxTolerantHeightDiff {
-				toSync = true
-			}
+			toSync = true
 		}
 
 		if !toSync {
@@ -193,8 +196,12 @@ func (b *BlockByBlockSyncer) pickUpRandomSourcePeer(height int64) (peerId string
 }
 
 func (b *BlockByBlockSyncer) startSyncOnce() {
+	if !b.needSync() {
+		logrus.Debug("no need to sync")
+		return
+	}
 	// send one sync message to random one
-	height := b.Ledger.CurrentHeight()
+	height := b.Ledger.CurrentHeight() + 1
 	peerId, err := b.pickUpRandomSourcePeer(height)
 	if err != nil {
 		logrus.WithError(err).Warn("we known a higher height but we failed to pick up source peer")
@@ -226,6 +233,36 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 			logrus.WithField("type", "OgMessageHeightSyncRequest").WithError(err).Warn("bad message")
 		}
 		//TODO: fetch data and return
+		content := b.Ledger.GetBlock(m.Height).(*IntArrayBlockContent)
+		if content == nil {
+			return
+		}
+
+		messageContent := &message.MessageContentInt{
+			Values: content.Values,
+		}
+
+		// inner data
+		resp := &message.OgMessageHeightSyncResponse{
+			Height:      m.Height,
+			Offset:      0,
+			HasNextPage: false,
+			Resources: []message.MessageContentResource{
+				{
+					ResourceType:    message.ResourceTypeInt,
+					ResourceContent: messageContent.ToBytes(),
+				},
+			},
+		}
+		// letter
+		letterOut := &transport_interface.OutgoingLetter{
+			Msg:            resp,
+			SendType:       transport_interface.SendTypeUnicast,
+			CloseAfterSent: false,
+			EndReceivers:   []string{letter.From},
+		}
+
+		b.notifyNewOutgoingMessage(letterOut)
 
 	case message.OgMessageTypeHeightSyncResponse:
 		m := &message.OgMessageHeightSyncResponse{}
@@ -234,5 +271,22 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 			logrus.WithField("type", "OgMessageHeightSyncResponse").WithError(err).Warn("bad message")
 		}
 		// TODO: solve this height and start the next
+		// TODO: verify signature
+		for _, resource := range m.Resources {
+			if resource.ResourceType != message.ResourceTypeInt {
+				panic("invalid resource type")
+			}
+			messageContent := &message.MessageContentInt{}
+			err := messageContent.FromBytes(resource.ResourceContent)
+			utilfuncs.PanicIfError(err, "parse content")
+
+			bc := &IntArrayBlockContent{
+				Values: messageContent.Values,
+			}
+			b.Ledger.AddBlock(m.Height, bc)
+			// TODO: announce event
+		}
+		b.startSyncOnce()
+
 	}
 }

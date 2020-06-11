@@ -94,6 +94,10 @@ func (o OgMessageType) String() string {
 		return "OgMessageTypeHeightRequest"
 	case OgMessageTypeHeightResponse:
 		return "OgMessageTypeHeightResponse"
+	case OgMessageTypeHeightSyncRequest:
+		return "OgMessageTypeHeightSyncRequest"
+	case OgMessageTypeHeightSyncResponse:
+		return "OgMessageTypeHeightSyncResponse"
 	default:
 		return "Unknown Message " + strconv.Itoa(int(o))
 	}

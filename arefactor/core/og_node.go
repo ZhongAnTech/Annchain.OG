@@ -49,15 +49,18 @@ func (n *OgNode) Setup() {
 		Controller: cpController,
 		Port:       viper.GetInt("rpc.port"),
 	}
+
 	cpRpc.InitDefault()
 
 	// ledger implementation
-	ledger := &og.DefaultLedger{}
+	ledger := &og.IntArrayLedger{}
+	ledger.InitDefault()
 	ledger.StaticSetup()
 
 	cpSyncer := &og.BlockByBlockSyncer{
 		Ledger: ledger,
 	}
+	cpSyncer.InitDefault()
 
 	// OG engine
 	cpOgEngine := &og.OgEngine{

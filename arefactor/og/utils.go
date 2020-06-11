@@ -3,8 +3,8 @@ package og
 import (
 	"bytes"
 	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/arefactor/ogcrypto_interface"
-	"github.com/annchain/OG/common/crypto"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -34,6 +34,6 @@ func AddressFromPublicKeyEd25519(pubKey *ogcrypto_interface.PublicKey) og_interf
 
 func AddressFromPublicKeySecp256K1(pubKey *ogcrypto_interface.PublicKey) og_interface.Address {
 	address := &og_interface.Address20{}
-	address.FromBytes(crypto.Keccak256((pubKey.KeyBytes)[1:])[12:])
+	address.FromBytes(ogcrypto.Keccak256((pubKey.KeyBytes)[1:])[12:])
 	return address
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"sync"
@@ -49,8 +50,8 @@ func (b *BlockByBlockSyncer) AddSubscriberNewOutgoingMessageEvent(transport *tra
 
 func (d *BlockByBlockSyncer) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range d.newOutgoingMessageSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
-		subscriber.NewOutgoingMessageEventChannel() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing "+subscriber.Name()).C
+		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
 }
 
@@ -67,10 +68,14 @@ func (b *BlockByBlockSyncer) EventChannelPeerLeft() chan *og_interface.PeerLeftE
 }
 
 func (b *BlockByBlockSyncer) InitDefault() {
-	b.syncTriggerChan = make(chan bool)
 	b.peerHeights = make(map[string]int64)
+
+	b.syncTriggerChan = make(chan bool)
+	b.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
 	b.myNewHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEvent)
 	b.myPeerLeftEventChan = make(chan *og_interface.PeerLeftEvent)
+
+	b.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 	b.quit = make(chan bool)
 }
 
@@ -134,20 +139,24 @@ func (b *BlockByBlockSyncer) sync() {
 	timer := time.NewTimer(time.Second * time.Duration(SyncCheckIntervalSeconds))
 	for {
 		if !timer.Stop() {
-			<-timer.C
+			select {
+			case <-timer.C:
+			default:
+			}
 		}
 		timer.Reset(time.Second * time.Duration(SyncCheckIntervalSeconds))
-
 		toSync := false
 		select {
+		case <-b.quit:
+			return
 		case <-b.syncTriggerChan:
 			// start sync because we find a higher height or we received a height update
 			toSync = true
 		case <-timer.C:
+			// start sync because of check interval
 			if b.knownMaxHeight > b.Ledger.CurrentHeight()+MaxTolerantHeightDiff {
 				toSync = true
 			}
-		default:
 		}
 
 		if !toSync {
@@ -219,11 +228,11 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 		//TODO: fetch data and return
 
 	case message.OgMessageTypeHeightSyncResponse:
-		// TODO: solve this height and start the next
 		m := &message.OgMessageHeightSyncResponse{}
 		err := m.FromBytes(letter.Msg.ContentBytes)
 		if err != nil {
 			logrus.WithField("type", "OgMessageHeightSyncResponse").WithError(err).Warn("bad message")
 		}
+		// TODO: solve this height and start the next
 	}
 }

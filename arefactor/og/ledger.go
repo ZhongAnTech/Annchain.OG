@@ -16,7 +16,14 @@ import (
 	"strings"
 )
 
+type BlockContentType int
+
+const (
+	BlockContentTypeInt BlockContentType = iota
+)
+
 type BlockContent interface {
+	GetType() BlockContentType
 	String() string
 	GetHash() og_interface.Hash
 }
@@ -24,10 +31,16 @@ type BlockContent interface {
 type Ledger interface {
 	CurrentHeight() int64
 	CurrentCommittee() *Committee
+	GetBlock(height int64) BlockContent
+	AddBlock(height int64, block BlockContent)
 }
 
 type IntArrayBlockContent struct {
 	Values []int
+}
+
+func (i IntArrayBlockContent) GetType() BlockContentType {
+	return BlockContentTypeInt
 }
 
 func (i IntArrayBlockContent) String() string {
@@ -49,16 +62,24 @@ type IntArrayLedger struct {
 	blockContents map[int64]BlockContent // height-content
 }
 
+func (d *IntArrayLedger) AddBlock(height int64, block BlockContent) {
+	d.blockContents[height] = block
+	d.height = math.BiggerInt64(height, d.height)
+}
+
+func (d *IntArrayLedger) GetBlock(height int64) BlockContent {
+	return d.blockContents[height]
+}
+
 func (d *IntArrayLedger) AddRandomBlock(height int64) {
 	size := 1 + rand.Intn(50)
 	vs := make([]int, size)
 	for i := 0; i < size; i++ {
 		vs[i] = rand.Intn(100000)
 	}
-	d.blockContents[height] = &IntArrayBlockContent{
+	d.AddBlock(height, &IntArrayBlockContent{
 		Values: vs,
-	}
-	d.height = math.BiggerInt64(height, d.height)
+	})
 }
 
 func (d *IntArrayLedger) InitDefault() {

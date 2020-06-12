@@ -415,14 +415,14 @@ func (c *PhysicalCommunicator) pickOneAndConnect() {
 	peerId := peerIds[rand.Intn(len(peerIds))]
 
 	// start a stream
-	//logrus.WithField("address", c.node.Peerstore().PeerInfo(peerId).String()).
-	//WithField("peerId", peerId).
-	//Trace("connecting peer")
+	logrus.WithField("address", c.node.Peerstore().PeerInfo(peerId).String()).
+		WithField("peerId", peerId).
+		Trace("connecting peer")
 
 	s, err := c.node.NewStream(context.Background(), peerId, protocol.ID(c.ProtocolId))
 	if err != nil {
 		if err != swarm.ErrDialBackoff {
-			//logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
+			logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
 		}
 		return
 	}

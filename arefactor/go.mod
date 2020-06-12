@@ -8,7 +8,7 @@ require (
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/gin-gonic/gin v1.5.0
 	github.com/latifrons/goffchan v1.0.0
-	github.com/latifrons/soccerdash v1.1.1
+	github.com/latifrons/soccerdash v1.1.2
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f
 	github.com/libp2p/go-libp2p v0.9.2
 	github.com/libp2p/go-libp2p-core v0.5.6

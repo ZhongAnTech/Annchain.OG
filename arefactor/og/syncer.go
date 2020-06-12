@@ -16,8 +16,8 @@ import (
 	"time"
 )
 
-const SyncCheckIntervalSeconds int = 10 // max check interval for syncing a height
-const MaxTolerantHeightDiff = 1         // syncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxHeight
+const SyncCheckIntervalSeconds int = 1 // max check interval for syncing a height
+const MaxTolerantHeightDiff = 0        // syncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxHeight
 
 type DefaultUnknownManager struct {
 	Unknowns list.List
@@ -51,7 +51,7 @@ func (b *BlockByBlockSyncer) AddSubscriberNewOutgoingMessageEvent(transport *tra
 
 func (d *BlockByBlockSyncer) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range d.newOutgoingMessageSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing "+subscriber.Name()).C
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing syncer"+subscriber.Name()).C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
 }
@@ -232,6 +232,7 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 		if err != nil {
 			logrus.WithField("type", "OgMessageHeightSyncRequest").WithError(err).Warn("bad message")
 		}
+		logrus.WithField("height", m.Height).WithField("from", letter.From).Info("received sync request")
 		//TODO: fetch data and return
 		content := b.Ledger.GetBlock(m.Height).(*IntArrayBlockContent)
 		if content == nil {
@@ -265,11 +266,14 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 		b.notifyNewOutgoingMessage(letterOut)
 
 	case message.OgMessageTypeHeightSyncResponse:
+
 		m := &message.OgMessageHeightSyncResponse{}
 		err := m.FromBytes(letter.Msg.ContentBytes)
 		if err != nil {
 			logrus.WithField("type", "OgMessageHeightSyncResponse").WithError(err).Warn("bad message")
 		}
+		logrus.WithField("from", letter.From).Info("received height sync response")
+
 		// TODO: solve this height and start the next
 		// TODO: verify signature
 		for _, resource := range m.Resources {
@@ -286,7 +290,11 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 			b.Ledger.AddBlock(m.Height, bc)
 			// TODO: announce event
 		}
-		b.startSyncOnce()
+		logrus.WithField("height", m.Height).Info("height updated")
 
+		select {
+		case b.syncTriggerChan <- true:
+		default:
+		}
 	}
 }

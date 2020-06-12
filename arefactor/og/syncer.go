@@ -17,7 +17,7 @@ import (
 )
 
 const SyncCheckIntervalSeconds int = 1 // max check interval for syncing a height
-const MaxTolerantHeightDiff = 0        // syncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxHeight
+const MaxTolerantHeightDiff = 0        // syncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxPeerHeight
 
 type DefaultUnknownManager struct {
 	Unknowns list.List
@@ -28,10 +28,10 @@ func (d *DefaultUnknownManager) Enqueue(task og_interface.Unknown) {
 }
 
 type BlockByBlockSyncer struct {
-	Ledger         Ledger
-	peerHeights    map[string]int64
-	knownMaxHeight int64
-	unknownManager og_interface.UnknownManager
+	Ledger             Ledger
+	peerHeights        map[string]int64
+	knownMaxPeerHeight int64
+	unknownManager     og_interface.UnknownManager
 
 	syncTriggerChan               chan bool
 	myNewHeightDetectedEventChan  chan *og_interface.NewHeightDetectedEvent
@@ -81,7 +81,7 @@ func (b *BlockByBlockSyncer) InitDefault() {
 }
 
 func (b *BlockByBlockSyncer) Start() {
-	b.knownMaxHeight = b.Ledger.CurrentHeight()
+	b.knownMaxPeerHeight = b.Ledger.CurrentHeight()
 	go b.eventLoop()
 	go b.sync()
 }
@@ -98,7 +98,7 @@ func (b *BlockByBlockSyncer) updateKnownPeerHeight(peerId string, height int64) 
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	// refresh our target
-	b.knownMaxHeight = math.BiggerInt64(b.knownMaxHeight, height)
+	b.knownMaxPeerHeight = math.BiggerInt64(b.knownMaxPeerHeight, height)
 	b.peerHeights[peerId] = height
 
 }
@@ -119,7 +119,7 @@ func (b *BlockByBlockSyncer) eventLoop() {
 			return
 		case event := <-b.myNewHeightDetectedEventChan:
 			// record this peer so that we may sync from it in the future.
-			if event.Height > b.knownMaxHeight {
+			if event.Height > b.knownMaxPeerHeight {
 				b.updateKnownPeerHeight(event.PeerId, event.Height)
 				// write or not write (already syncing).
 				select {
@@ -137,7 +137,7 @@ func (b *BlockByBlockSyncer) eventLoop() {
 }
 
 func (b *BlockByBlockSyncer) needSync() bool {
-	return b.knownMaxHeight > b.Ledger.CurrentHeight()+MaxTolerantHeightDiff
+	return b.knownMaxPeerHeight > b.Ledger.CurrentHeight()+MaxTolerantHeightDiff
 }
 
 func (b *BlockByBlockSyncer) sync() {
@@ -166,8 +166,8 @@ func (b *BlockByBlockSyncer) sync() {
 			continue
 		}
 		logrus.WithFields(logrus.Fields{
-			"myHeight":       b.Ledger.CurrentHeight(),
-			"knownMaxHeight": b.knownMaxHeight,
+			"myHeight":           b.Ledger.CurrentHeight(),
+			"knownMaxPeerHeight": b.knownMaxPeerHeight,
 		}).Debug("start sync")
 		b.startSyncOnce()
 	}
@@ -234,10 +234,12 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 		}
 		logrus.WithField("height", m.Height).WithField("from", letter.From).Info("received sync request")
 		//TODO: fetch data and return
-		content := b.Ledger.GetBlock(m.Height).(*IntArrayBlockContent)
-		if content == nil {
+		value := b.Ledger.GetBlock(m.Height)
+		if value == nil {
 			return
 		}
+
+		content := value.(*IntArrayBlockContent)
 
 		messageContent := &message.MessageContentInt{
 			Values: content.Values,

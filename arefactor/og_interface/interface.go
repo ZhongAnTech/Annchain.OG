@@ -29,3 +29,6 @@ type NewHeightDetectedEventSubscriber interface {
 	Name() string
 	NewHeightDetectedEventChannel() chan *NewHeightDetectedEvent
 }
+
+type AccountProvider interface {
+}

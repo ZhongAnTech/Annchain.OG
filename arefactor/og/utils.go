@@ -2,6 +2,7 @@ package og
 
 import (
 	"bytes"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/arefactor/ogcrypto_interface"
@@ -36,4 +37,8 @@ func AddressFromPublicKeySecp256K1(pubKey *ogcrypto_interface.PublicKey) og_inte
 	address := &og_interface.Address20{}
 	address.FromBytes(ogcrypto.Keccak256((pubKey.KeyBytes)[1:])[12:])
 	return address
+}
+
+func GenerateAccount() types.OgAccount {
+
 }

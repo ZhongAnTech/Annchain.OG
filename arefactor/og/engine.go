@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const EngineCheckIntervalSeconds = 5
+const EngineCheckIntervalSeconds = 1
 
 type OgEngine struct {
 	Ledger           Ledger
@@ -48,7 +48,7 @@ func (o *OgEngine) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.
 
 func (o *OgEngine) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range o.newOutgoingMessageSubscribers {
-		goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing"+subscriber.Name())
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing engine"+subscriber.Name()).C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
 }
@@ -59,8 +59,8 @@ func (o *OgEngine) AddSubscriberNewHeightDetectedEvent(sub og_interface.NewHeigh
 
 func (o *OgEngine) notifyNewHeightDetected(event *og_interface.NewHeightDetectedEvent) {
 	for _, subscriber := range o.newHeightDetectedSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
-		subscriber.NewHeightDetectedEventChannel() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewHeightDetectedEventChannel(), event, "heightdetected"+subscriber.Name()).C
+		//subscriber.NewHeightDetectedEventChannel() <- event
 	}
 }
 

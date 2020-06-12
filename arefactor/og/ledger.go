@@ -116,7 +116,10 @@ func (d *IntArrayLedger) StaticSetup() {
 			Version: 1,
 		},
 	}
-	//d.AddRandomBlock(1)
+	//for i := 1; i < 10000; i ++{
+	//	d.AddRandomBlock(int64(i))
+	//}
+
 	//d.AddRandomBlock(2)
 	//d.AddRandomBlock(3)
 	//d.AddRandomBlock(4)

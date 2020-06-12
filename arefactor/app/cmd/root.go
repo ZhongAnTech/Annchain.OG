@@ -56,7 +56,7 @@ func init() {
 	// log
 	rootCmd.PersistentFlags().BoolP("log-stdout", "", true, "Whether the log will be printed to stdout")
 	rootCmd.PersistentFlags().BoolP("log-file", "", false, "Whether the log will be printed to file")
-	rootCmd.PersistentFlags().StringP("log-level", "v", "trace", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
+	rootCmd.PersistentFlags().StringP("log-level", "v", "debug", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
 	rootCmd.PersistentFlags().BoolP("log-line-number", "n", false, "Whether the log will contain line number")
 
 	rootCmd.PersistentFlags().BoolP("multifile_by_level", "m", false, "multifile_by_level")

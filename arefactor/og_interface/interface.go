@@ -26,5 +26,6 @@ type NewHeightDetectedEvent struct {
 }
 
 type NewHeightDetectedEventSubscriber interface {
+	Name() string
 	NewHeightDetectedEventChannel() chan *NewHeightDetectedEvent
 }

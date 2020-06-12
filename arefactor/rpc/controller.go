@@ -9,6 +9,7 @@ import (
 
 type RpcController struct {
 	CpDefaultCommunityManager *og.DefaultCommunityManager
+	Ledger                    *og.IntArrayLedger
 }
 
 func (rpc *RpcController) NewRouter() *gin.Engine {
@@ -29,6 +30,7 @@ func (rpc *RpcController) NewRouter() *gin.Engine {
 func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("/", rpc.writeListOfEndpoints)
 	router.GET("debug", rpc.Debug)
+	router.GET("generate", rpc.GenerateBlock)
 	return router
 }
 
@@ -49,4 +51,9 @@ func (rpc *RpcController) Debug(c *gin.Context) {
 
 	rpc.CpDefaultCommunityManager.SendPing(addr)
 	Response(c, http.StatusOK, nil, "YES")
+}
+
+func (rpc *RpcController) GenerateBlock(c *gin.Context) {
+	rpc.Ledger.AddRandomBlock(rpc.Ledger.CurrentHeight() + 1)
+	Response(c, http.StatusOK, nil, rpc.Ledger.CurrentHeight()+1)
 }

@@ -32,7 +32,8 @@ func (o *OgEngine) handleHeightResponse(letter *transport_interface.IncomingLett
 		logrus.WithField("theirHeight", m.Height).
 			WithField("myHeight", o.CurrentHeight()).
 			WithField("from", letter.From).Debug("detected a new height but is not higher than mine")
-		return
+		// still need to register this height in the syncer
+		//return
 	}
 	// found a height that is higher that ours. Announce a new height received event
 	logrus.WithField("height", m.Height).WithField("from", letter.From).Debug("detected a new height")

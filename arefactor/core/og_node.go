@@ -41,9 +41,16 @@ func (n *OgNode) Setup() {
 	cpCommunityManager.InitDefault()
 	cpCommunityManager.StaticSetup()
 
+	// ledger implementation
+	ledger := &og.IntArrayLedger{}
+	ledger.InitDefault()
+	ledger.StaticSetup()
+
 	cpController := &rpc.RpcController{
+		Ledger:                    ledger,
 		CpDefaultCommunityManager: cpCommunityManager,
 	}
+
 	// rpc
 	cpRpc := &rpc.RpcServer{
 		Controller: cpController,
@@ -51,11 +58,6 @@ func (n *OgNode) Setup() {
 	}
 
 	cpRpc.InitDefault()
-
-	// ledger implementation
-	ledger := &og.IntArrayLedger{}
-	ledger.InitDefault()
-	ledger.StaticSetup()
 
 	cpSyncer := &og.BlockByBlockSyncer{
 		Ledger: ledger,

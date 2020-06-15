@@ -20,9 +20,11 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/math"
-	"github.com/annchain/OG/arefactor/ogcrypto/ecies"
-	"github.com/annchain/OG/arefactor/ogcrypto/secp256k1"
-	"github.com/annchain/OG/arefactor/ogcrypto_interface"
+	"github.com/annchain/OG/arefactor/ogcrypto"
+	"github.com/annchain/OG/deprecated"
+	"github.com/annchain/OG/deprecated/ogcrypto/ecies"
+	"github.com/annchain/OG/deprecated/ogcrypto/secp256k1"
+	"github.com/annchain/OG/deprecated/ogcrypto_interface"
 	ecdsabtcec "github.com/btcsuite/btcd/btcec"
 	"github.com/sirupsen/logrus"
 )
@@ -39,7 +41,7 @@ func (s *SignerSecp256k1) Sign(privKey ogcrypto_interface.PrivateKey, msg []byte
 	if err != nil {
 		fmt.Println(fmt.Sprintf("ToECDSA error: %v. priv bytes: %x", err, privKey.KeyBytes))
 	}
-	hash := Sha256(msg)
+	hash := deprecated.Sha256(msg)
 	if len(hash) != 32 {
 		logrus.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash))
 		return ogcrypto_interface.Signature{}
@@ -48,17 +50,17 @@ func (s *SignerSecp256k1) Sign(privKey ogcrypto_interface.PrivateKey, msg []byte
 	defer zeroBytes(seckey)
 	sig, _ := secp256k1.Sign(hash, seckey)
 
-	return SignatureFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, sig)
+	return deprecated.SignatureFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, sig)
 }
 
 func (s *SignerSecp256k1) PubKey(privKey ogcrypto_interface.PrivateKey) ogcrypto_interface.PublicKey {
 	_, ecdsapub := ecdsabtcec.PrivKeyFromBytes(ecdsabtcec.S256(), privKey.KeyBytes)
 	pub := FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
-	return PublicKeyFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, pub[:])
+	return deprecated.PublicKeyFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, pub[:])
 }
 
 func (s *SignerSecp256k1) PublicKeyFromBytes(b []byte) ogcrypto_interface.PublicKey {
-	return PublicKeyFromBytes(s.GetCryptoType(), b)
+	return deprecated.PublicKeyFromBytes(s.GetCryptoType(), b)
 }
 
 func (s *SignerSecp256k1) Verify(pubKey ogcrypto_interface.PublicKey, signature ogcrypto_interface.Signature, msg []byte) bool {
@@ -69,14 +71,14 @@ func (s *SignerSecp256k1) Verify(pubKey ogcrypto_interface.PublicKey, signature 
 	//fmt.Println(fmt.Sprintf("msg: %x", msg))
 	//fmt.Println(fmt.Sprintf("sig: %x", sig))
 
-	return secp256k1.VerifySignature(pubKey.KeyBytes, Sha256(msg), sig)
+	return secp256k1.VerifySignature(pubKey.KeyBytes, deprecated.Sha256(msg), sig)
 }
 
 func (s *SignerSecp256k1) RandomKeyPair() (publicKey ogcrypto_interface.PublicKey, privateKey ogcrypto_interface.PrivateKey) {
 	privKeyBytes := [32]byte{}
-	copy(privKeyBytes[:], CRandBytes(32))
+	copy(privKeyBytes[:], ogcrypto.CRandBytes(32))
 
-	privateKey = PrivateKeyFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, privKeyBytes[:])
+	privateKey = deprecated.PrivateKeyFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, privKeyBytes[:])
 	publicKey = s.PubKey(privateKey)
 	return
 }

@@ -2,7 +2,6 @@ package types
 
 import (
 	"github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/ogcrypto_interface"
 )
 
 type OgTx struct {
@@ -15,7 +14,7 @@ type OgTx struct {
 	TokenId     int32
 	PublicKey   []byte
 	Data        []byte
-	Signature   ogcrypto_interface.Signature
+	Signature   []byte
 }
 
 type OgSequencer struct {

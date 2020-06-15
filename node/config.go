@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/io"
-	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/crypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/discv5"
 	"github.com/annchain/OG/p2p/nat"
@@ -65,7 +65,7 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 		if err != nil {
 			panic(fmt.Sprintf("get nodekey error %v ", err))
 		}
-		key, err := ogcrypto.ToECDSA(keyByte)
+		key, err := ogcrypto2.ToECDSA(keyByte)
 		if err != nil {
 			panic(fmt.Sprintf("get nodekey error %v ", err))
 		}
@@ -75,11 +75,11 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 	// Use any specifically configured key.
 
 	keyFile := io.FixPrefixPath(dataDir, datadirPrivateKey)
-	if key, err := ogcrypto.LoadECDSA(keyFile); err == nil {
+	if key, err := ogcrypto2.LoadECDSA(keyFile); err == nil {
 		return key
 	}
 	// No persistent key found, generate and store a new one.
-	key, err := ogcrypto.GenerateKey()
+	key, err := ogcrypto2.GenerateKey()
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate node key: %v", err))
 	}
@@ -87,10 +87,10 @@ func getNodePrivKey() *ecdsa.PrivateKey {
 		log.Error(fmt.Sprintf("failed to persist node key: %v", err))
 		return key
 	}
-	if err := ogcrypto.SaveECDSA(keyFile, key); err != nil {
+	if err := ogcrypto2.SaveECDSA(keyFile, key); err != nil {
 		log.Error(fmt.Sprintf("failed to persist node key: %v", err))
 	}
-	data := ogcrypto.FromECDSA(key)
+	data := ogcrypto2.FromECDSA(key)
 	viper.SetDefault("p2p.node_key", hex.EncodeToString(data))
 	return key
 }

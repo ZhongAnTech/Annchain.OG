@@ -19,7 +19,7 @@ package discover
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"math/rand"
 
 	"net"
@@ -56,7 +56,7 @@ func testPingReplace(t *testing.T, newNodeIsResponding, lastInBucketIsResponding
 	<-tab.initDone
 
 	// Fill up the sender's bucket.
-	pingKey, _ := ogcrypto.HexToECDSA("45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")
+	pingKey, _ := ogcrypto2.HexToECDSA("45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")
 	pingSender := wrapNode(onode.NewV4(&pingKey.PublicKey, net.IP{}, 99, 99))
 	last := fillBucket(tab, pingSender)
 
@@ -586,7 +586,7 @@ func quickcfg() *quick.Config {
 }
 
 func newkey() *ecdsa.PrivateKey {
-	key, err := ogcrypto.GenerateKey()
+	key, err := ogcrypto2.GenerateKey()
 	if err != nil {
 		panic("couldn't generate key: " + err.Error())
 	}

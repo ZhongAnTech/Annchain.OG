@@ -3,8 +3,8 @@ package state
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	tkType "github.com/annchain/OG/types/token"
 	"sync"
 	"time"
@@ -17,16 +17,16 @@ import (
 
 var (
 	// emptyStateRoot is the known hash of an empty state trie entry.
-	emptyStateRoot = ogcrypto.Keccak256Hash(nil)
+	emptyStateRoot = ogcrypto2.Keccak256Hash(nil)
 
 	// emptyStateHash is the known hash of an empty state trie.
 	emptyStateHash = types.Hash{}
 
 	// emptyCode is the known hash of the empty EVM bytecode.
-	emptyCode = ogcrypto.Keccak256Hash(nil)
+	emptyCode = ogcrypto2.Keccak256Hash(nil)
 
 	// emptyCodeHash is the known hash of the empty EVM bytecode.
-	emptyCodeHash = ogcrypto.Keccak256Hash(nil)
+	emptyCodeHash = ogcrypto2.Keccak256Hash(nil)
 )
 
 type StateDBConfig struct {
@@ -435,7 +435,7 @@ func (sd *StateDB) setStateObject(addr common.Address, stobj *StateObject) {
 
 func (sd *StateDB) SetCode(addr common.Address, code []byte) {
 	stobj := sd.getOrCreateStateObject(addr)
-	stobj.SetCode(ogcrypto.Keccak256Hash(code), code)
+	stobj.SetCode(ogcrypto2.Keccak256Hash(code), code)
 }
 
 func (sd *StateDB) SetState(addr common.Address, key, value types.Hash) {

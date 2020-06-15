@@ -16,7 +16,7 @@ package cmd
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/p2p/onode"
 	"github.com/spf13/cobra"
 	"net"
@@ -44,11 +44,11 @@ func genONode(cmd *cobra.Command, args []string) {
 
 func genBootONode(port int) (nodekey string, node string) {
 
-	key, err := ogcrypto.GenerateKey()
+	key, err := ogcrypto2.GenerateKey()
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate ephemeral node key: %v", err))
 	}
-	nodekey = hex.EncodeToString(ogcrypto.FromECDSA(key))
+	nodekey = hex.EncodeToString(ogcrypto2.FromECDSA(key))
 	node = onode.NewV4(&key.PublicKey, net.ParseIP(bootUrl), port, port).String()
 
 	return

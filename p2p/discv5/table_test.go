@@ -20,7 +20,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"math/rand"
 
 	"net"
@@ -328,7 +328,7 @@ func gen(typ interface{}, rand *rand.Rand) interface{} {
 }
 
 func newkey() *ecdsa.PrivateKey {
-	key, err := ogcrypto.GenerateKey()
+	key, err := ogcrypto2.GenerateKey()
 	if err != nil {
 		panic("couldn't generate key: " + err.Error())
 	}

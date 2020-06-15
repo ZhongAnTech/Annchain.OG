@@ -19,7 +19,7 @@ package trie
 import (
 	"bytes"
 	crand "crypto/rand"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	mrand "math/rand"
 	"testing"
 	"time"
@@ -48,7 +48,7 @@ func makeProvers(trie *Trie) []func(key []byte) *ethdb.MemDatabase {
 		proof := ethdb.NewMemDatabase()
 		if it := NewIterator(trie.NodeIterator(key)); it.Next() && bytes.Equal(key, it.Key) {
 			for _, p := range it.Prove() {
-				proof.Put(ogcrypto.Keccak256(p), p)
+				proof.Put(ogcrypto2.Keccak256(p), p)
 			}
 		}
 		return proof
@@ -111,7 +111,7 @@ func TestBadProof(t *testing.T) {
 			proof.Delete(key)
 
 			mutateByte(val)
-			proof.Put(ogcrypto.Keccak256(val), val)
+			proof.Put(ogcrypto2.Keccak256(val), val)
 
 			if _, _, err := VerifyProof(root, kv.k, proof); err == nil {
 				t.Fatalf("prover %d: expected proof to fail for key %x", i, kv.k)

@@ -19,6 +19,7 @@ import (
 	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/debug/debuglog"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/og/downloader"
 	core2 "github.com/annchain/OG/ogcore/ledger"
 	"github.com/annchain/OG/ogcore/pool"
@@ -31,7 +32,7 @@ import (
 )
 
 var (
-	testBankKey, _ = ogcrypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testBankKey, _ = ogcrypto2.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	testBank       = ogcrypto.PubkeyToAddress(testBankKey.PublicKey)
 	testNetworkId  = uint64(101)
 )

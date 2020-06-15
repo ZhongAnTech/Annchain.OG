@@ -3,8 +3,8 @@ package ovm
 import (
 	math2 "github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	vmtypes "github.com/annchain/OG/vm/types"
 
 	"fmt"
@@ -193,7 +193,7 @@ func (l *LayerStateDB) GetCode(addr common.Address) []byte {
 func (l *LayerStateDB) SetCode(addr common.Address, code []byte) {
 	if so := l.GetStateObject(addr); so != nil {
 		so.Code = code
-		so.CodeHash = ogcrypto.Keccak256Hash(code)
+		so.CodeHash = ogcrypto2.Keccak256Hash(code)
 		so.DirtyCode = true
 		l.SetStateObject(addr, so)
 	} else {

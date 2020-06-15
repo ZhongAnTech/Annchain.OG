@@ -18,8 +18,8 @@ package discover
 import (
 	"crypto/ecdsa"
 	"errors"
-	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/p2p/onode"
 	"math/big"
 	"net"
@@ -44,7 +44,7 @@ func encodePubkey(key *ecdsa.PublicKey) EncPubkey {
 }
 
 func decodePubkey(e EncPubkey) (*ecdsa.PublicKey, error) {
-	p := &ecdsa.PublicKey{Curve: crypto2.S256(), X: new(big.Int), Y: new(big.Int)}
+	p := &ecdsa.PublicKey{Curve: ogcrypto.S256(), X: new(big.Int), Y: new(big.Int)}
 	half := len(e) / 2
 	p.X.SetBytes(e[:half])
 	p.Y.SetBytes(e[half:])
@@ -55,13 +55,13 @@ func decodePubkey(e EncPubkey) (*ecdsa.PublicKey, error) {
 }
 
 func (e EncPubkey) id() onode.ID {
-	return onode.ID(crypto2.Keccak256Hash(e[:]).Bytes)
+	return onode.ID(ogcrypto.Keccak256Hash(e[:]).Bytes)
 }
 
 // recoverNodeKey computes the public key used to sign the
 // given hash from the signature.
 func recoverNodeKey(hash, sig []byte) (key EncPubkey, err error) {
-	pubkey, err := crypto2.Ecrecover(hash, sig)
+	pubkey, err := ogcrypto.Ecrecover(hash, sig)
 	if err != nil {
 		return key, err
 	}

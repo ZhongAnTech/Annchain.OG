@@ -19,8 +19,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/annchain/OG/arefactor/ogcrypto"
-	"github.com/annchain/OG/arefactor/ogcrypto/ecies"
+	"github.com/annchain/OG/deprecated"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
+	"github.com/annchain/OG/deprecated/ogcrypto/ecies"
 
 	"math/big"
 	"testing"
@@ -28,9 +29,9 @@ import (
 
 func NewSigner(cryptoType CryptoType) ISigner {
 	if cryptoType == CryptoTypeEd25519 {
-		return &ogcrypto.SignerEd25519{}
+		return &ogcrypto2.SignerEd25519{}
 	} else if cryptoType == CryptoTypeSecp256k1 {
-		return &ogcrypto.SignerSecp256k1{}
+		return &ogcrypto2.SignerSecp256k1{}
 	}
 	return nil
 }
@@ -62,19 +63,19 @@ func TestPrivateKey_Decrypt(t *testing.T) {
 	y, _ := big.NewInt(0).SetString("86240112990591864153796259798532127250481760794327649797956296817696385215375", 0)
 	D, _ := big.NewInt(0).SetString("112339918029554102382967166016087130388477159317095521880422462723592214463164", 0)
 	ecdsapub := ecdsa.PublicKey{
-		Curve: ogcrypto.S256(),
+		Curve: ogcrypto2.S256(),
 		X:     x,
 		Y:     y,
 	}
 	ecdsapriv := ecdsa.PrivateKey{ecdsapub, D}
 	fmt.Println(ecdsapriv)
-	pk := ogcrypto.PublicKeyFromBytes(CryptoTypeSecp256k1, ogcrypto.FromECDSAPub(&ecdsapub))
-	sk := ogcrypto.PrivateKeyFromBytes(CryptoTypeSecp256k1, ogcrypto.FromECDSA(&ecdsapriv))
+	pk := deprecated.PublicKeyFromBytes(CryptoTypeSecp256k1, ogcrypto2.FromECDSAPub(&ecdsapub))
+	sk := deprecated.PrivateKeyFromBytes(CryptoTypeSecp256k1, ogcrypto2.FromECDSA(&ecdsapriv))
 
 	//priv:= PrivateKey{PublicKey{}}
 	msg := []byte("hello og  this is a secret msg , no one knows wipkhfdii75438048584653543543skj76895804iri4356345h" +
 		"ufidurehfkkjfri566878798y5rejiodijfjioi;454646855455uiyrsduihfi54sdodoootoprew5468rre")
-	pub2, err := ogcrypto.UnmarshalPubkey(pk.KeyBytes)
+	pub2, err := ogcrypto2.UnmarshalPubkey(pk.KeyBytes)
 	if err != nil {
 		panic(err)
 	}
@@ -87,7 +88,7 @@ func TestPrivateKey_Decrypt(t *testing.T) {
 	cf, err := ecies.Encrypt(rand.Reader, eciesPub, msg, nil, nil)
 	//cf, err := pk.Encrypt(msg)
 	fmt.Println(len(cf), hex.EncodeToString(cf), err)
-	prive, err := ogcrypto.ToECDSA(sk.KeyBytes)
+	prive, err := ogcrypto2.ToECDSA(sk.KeyBytes)
 	fmt.Println(prive)
 	ecisesPriv := ecies.ImportECDSA(prive)
 	fmt.Println(ecisesPriv)

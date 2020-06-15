@@ -1,10 +1,12 @@
 package og
 
-import "github.com/annchain/OG/arefactor/ogcrypto_interface"
+import (
+	"github.com/libp2p/go-libp2p-core/crypto"
+)
 
 type PeerMember struct {
-	PeerId    string                       // node peer id to connect to peers
-	PublicKey ogcrypto_interface.PublicKey // account public key to verify messages
+	PeerId    string        // node peer id to connect to peers
+	PublicKey crypto.PubKey // account public key to verify messages
 }
 
 type Committee struct {

@@ -19,6 +19,7 @@ import (
 	"crypto/cipher"
 	crand "crypto/rand"
 	"encoding/hex"
+	"github.com/annchain/OG/deprecated"
 	"io"
 	"sync"
 )
@@ -82,7 +83,7 @@ func (ri *randInfo) MixEntropy(seedBytes []byte) {
 	ri.mtx.Lock()
 	defer ri.mtx.Unlock()
 	// Make new ri.seedBytes
-	hashBytes := Sha256(seedBytes)
+	hashBytes := deprecated.Sha256(seedBytes)
 	hashBytes32 := [32]byte{}
 	copy(hashBytes32[:], hashBytes)
 	ri.seedBytes = xorBytes32(ri.seedBytes, hashBytes32)

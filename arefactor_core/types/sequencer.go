@@ -16,6 +16,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/kyber/v3/util/random"
 	"math/rand"
@@ -30,20 +31,20 @@ import (
 type Sequencer struct {
 	// TODO: need more states in sequencer to differentiate multiple chains
 	TxBase
-	Issuer         *common.Address
+	Issuer         og_types.Address
 	BlsJointSig    hexutil.Bytes
 	BlsJointPubKey hexutil.Bytes
-	StateRoot      common.Hash
+	StateRoot      og_types.Hash
 	Proposing      bool `msg:"-"` // is the sequencer is proposal ,did't commit yet ,use this flag to avoid bls sig verification failed
 }
 
 //msgp:tuple SequencerJson
 type SequencerJson struct {
 	TxBaseJson
-	Issuer         *common.Address `json:"issuer"`
-	BlsJointSig    hexutil.Bytes   `json:"bls_joint_sig"`
-	BlsJointPubKey hexutil.Bytes   `json:"bls_joint_pub_key"`
-	Proposing      bool            `msg:"-",json:"-"`
+	Issuer         og_types.Address `json:"issuer"`
+	BlsJointSig    hexutil.Bytes    `json:"bls_joint_sig"`
+	BlsJointPubKey hexutil.Bytes    `json:"bls_joint_pub_key"`
+	Proposing      bool             `msg:"-",json:"-"`
 }
 
 func (s *Sequencer) ToSmallCaseJson() ([]byte, error) {
@@ -80,35 +81,35 @@ type BlsSigSet struct {
 type Sequencers []*Sequencer
 
 func SampleSequencer() *Sequencer {
-	from, _ := common.HexToAddress("0x33")
-	hash1, _ := common.HexToHash("0xCCDD")
-	hash2, _ := common.HexToHash("0xEEFF")
+	from, _ := og_types.HexToAddress20("0x33")
+	hash1, _ := og_types.HexToHash32("0xCCDD")
+	hash2, _ := og_types.HexToHash32("0xEEFF")
 
 	return &Sequencer{
 		TxBase: TxBase{
 			Height:       12,
-			ParentsHash:  common.Hashes{hash1, hash2},
+			ParentsHash:  []og_types.Hash{hash1, hash2},
 			Type:         TxBaseTypeSequencer,
 			AccountNonce: 234,
 		},
-		Issuer: &from,
+		Issuer: from,
 	}
 }
 
 func RandomSequencer() *Sequencer {
 	id := uint64(rand.Int63n(1000))
-	from := common.RandomAddress()
+	from := og_types.RandomAddress20()
 	r := random.New()
 	seq := &Sequencer{
 		TxBase: TxBase{
-			Hash:         common.RandomHash(),
+			Hash:         og_types.RandomHash32(),
 			Height:       id,
-			ParentsHash:  common.Hashes{common.RandomHash(), common.RandomHash()},
+			ParentsHash:  []og_types.Hash{og_types.RandomHash32(), og_types.RandomHash32()},
 			Type:         TxBaseTypeSequencer,
 			AccountNonce: uint64(rand.Int63n(50000)),
 			Weight:       uint64(rand.Int31n(2000)),
 		},
-		Issuer: &from,
+		Issuer: from,
 	}
 	seq.BlsJointSig = make([]byte, 64)
 	seq.BlsJointPubKey = make([]byte, 128)
@@ -132,15 +133,15 @@ func (t *Sequencer) SignatureTargets() []byte {
 	return w.Bytes()
 }
 
-func (t *Sequencer) Sender() common.Address {
-	return *t.Issuer
-}
-
-func (t *Sequencer) GetSender() *common.Address {
+func (t *Sequencer) Sender() og_types.Address {
 	return t.Issuer
 }
 
-func (t *Sequencer) Parents() common.Hashes {
+func (t *Sequencer) GetSender() og_types.Address {
+	return t.Issuer
+}
+
+func (t *Sequencer) Parents() []og_types.Hash {
 	return t.ParentsHash
 }
 
@@ -235,20 +236,20 @@ func (c *Sequencer) RawTxi() RawTxi {
 	return nil
 }
 
-func (t *Sequencer) SetSender(addr common.Address) {
-	t.Issuer = &addr
+func (t *Sequencer) SetSender(addr og_types.Address) {
+	t.Issuer = addr
 }
 
-func (s *Sequencer) GetParentSeqHash() common.Hash {
+func (s *Sequencer) GetParentSeqHash() og_types.Hash {
 	// TODO
 	// not implemented yet!
-	return common.Hash{}
+	return &og_types.Hash32{}
 }
 
-func (s *Sequencer) GetConfirmSeqHash() common.Hash {
+func (s *Sequencer) GetConfirmSeqHash() og_types.Hash {
 	// TODO
 	// not implemented yet!
-	return common.Hash{}
+	return &og_types.Hash32{}
 }
 
 type SequencerMsg struct {

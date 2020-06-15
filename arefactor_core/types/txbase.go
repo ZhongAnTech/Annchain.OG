@@ -3,9 +3,10 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"golang.org/x/crypto/sha3"
+
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 )
 
 //go:generate msgp
@@ -62,8 +63,8 @@ func (t TxBaseType) String() string {
 //msgp:tuple TxBase
 type TxBase struct {
 	Type         TxBaseType
-	Hash         common.Hash
-	ParentsHash  common.Hashes
+	Hash         og_types.Hash
+	ParentsHash  []og_types.Hash
 	AccountNonce uint64
 	Height       uint64
 	PublicKey    PublicKey //
@@ -77,18 +78,18 @@ type TxBase struct {
 
 //msgp:tuple TxBaseJson
 type TxBaseJson struct {
-	Type         TxBaseType    `json:"type"`
-	Hash         common.Hash   `json:"hash"`
-	ParentsHash  common.Hashes `json:"parents_hash"`
-	AccountNonce uint64        `json:"account_nonce"`
-	Height       uint64        `json:"height"`
-	PublicKey    PublicKey     `json:"public_key"`
-	Signature    hexutil.Bytes `json:"signature"`
-	MineNonce    uint64        `json:"mine_nonce"`
-	Weight       uint64        `json:"weight"`
-	inValid      bool          `json:"in_valid"`
-	Version      byte          `json:"version"`
-	verified     verifiedType  `json:"-"`
+	Type         TxBaseType      `json:"type"`
+	Hash         og_types.Hash   `json:"hash"`
+	ParentsHash  []og_types.Hash `json:"parents_hash"`
+	AccountNonce uint64          `json:"account_nonce"`
+	Height       uint64          `json:"height"`
+	PublicKey    PublicKey       `json:"public_key"`
+	Signature    hexutil.Bytes   `json:"signature"`
+	MineNonce    uint64          `json:"mine_nonce"`
+	Weight       uint64          `json:"weight"`
+	inValid      bool            `json:"in_valid"`
+	Version      byte            `json:"version"`
+	verified     verifiedType    `json:"-"`
 }
 
 func (t *TxBase) ToSmallCase() *TxBaseJson {
@@ -143,7 +144,7 @@ func (t *TxBase) GetWeight() uint64 {
 	return t.Weight
 }
 
-func (t *TxBase) GetTxHash() common.Hash {
+func (t *TxBase) GetTxHash() og_types.Hash {
 	return t.Hash
 }
 
@@ -151,11 +152,11 @@ func (t *TxBase) GetNonce() uint64 {
 	return t.AccountNonce
 }
 
-func (t *TxBase) Parents() common.Hashes {
+func (t *TxBase) Parents() []og_types.Hash {
 	return t.ParentsHash
 }
 
-func (t *TxBase) SetHash(hash common.Hash) {
+func (t *TxBase) SetHash(hash og_types.Hash) {
 	t.Hash = hash
 }
 
@@ -163,7 +164,7 @@ func (t *TxBase) String() string {
 	return fmt.Sprintf("%d-[%.10s]-%dw", t.Height, t.GetTxHash().Hex(), t.Weight)
 }
 
-func (t *TxBase) CalcTxHash() (hash common.Hash) {
+func (t *TxBase) CalcTxHash() (hash og_types.Hash) {
 	w := NewBinaryWriter()
 
 	for _, ancestor := range t.ParentsHash {
@@ -174,18 +175,18 @@ func (t *TxBase) CalcTxHash() (hash common.Hash) {
 	w.Write(t.CalcMinedHash().Bytes)
 
 	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
+	hash.FromBytes(result[0:])
 	return
 }
 
-func (t *TxBase) CalcMinedHash() (hash common.Hash) {
+func (t *TxBase) CalcMinedHash() (hash og_types.Hash) {
 	w := NewBinaryWriter()
 	if !CanRecoverPubFromSig {
 		w.Write(t.PublicKey)
 	}
 	w.Write(t.Signature, t.MineNonce)
 	result := sha3.Sum256(w.Bytes())
-	hash.MustSetBytes(result[0:], common.PaddingNone)
+	hash.FromBytes(result[0:])
 	return
 }
 

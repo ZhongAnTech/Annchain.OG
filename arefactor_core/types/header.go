@@ -15,7 +15,7 @@ package types
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"strings"
 )
 
@@ -23,7 +23,7 @@ import (
 
 //msgp:tuple SequencerHeader
 type SequencerHeader struct {
-	Hash   common.Hash
+	Hash   og_types.Hash
 	Height uint64
 }
 
@@ -34,7 +34,7 @@ func (s *SequencerHeader) SequencerId() uint64 {
 	return s.Height
 }
 
-func (s *SequencerHeader) GetHash() common.Hash {
+func (s *SequencerHeader) GetHash() og_types.Hash {
 	return s.Hash
 }
 
@@ -56,7 +56,7 @@ func (s *SequencerHeader) StringFull() string {
 	return fmt.Sprintf("%d-[%s]", s.GetHeight(), s.GetHash().Hex())
 }
 
-func NewSequencerHead(hash common.Hash, height uint64) *SequencerHeader {
+func NewSequencerHead(hash og_types.Hash, height uint64) *SequencerHeader {
 	return &SequencerHeader{
 		Hash:   hash,
 		Height: height,

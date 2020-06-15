@@ -17,15 +17,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types/tx_types"
 
-	//"github.com/annchain/OG/common/goroutine"
+	//"github.com/annchain/OG/common"
+
+	"github.com/annchain/OG/arefactor_core/types"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
-	//"github.com/annchain/OG/types"
-	//"github.com/annchain/OG/types/tx_types"
-	"github.com/annchain/OG/arefactor_core/types"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
@@ -73,25 +72,25 @@ func receiptKey(seqID uint64) []byte {
 	return append(prefixReceiptKey, encodeUint64(seqID)...)
 }
 
-func transactionKey(hash common.Hash) []byte {
-	return append(prefixTransactionKey, hash.ToBytes()...)
+func transactionKey(hash og_types.Hash) []byte {
+	return append(prefixTransactionKey, hash.Bytes()...)
 }
 
 func confirmTimeKey(SeqHeight uint64) []byte {
 	return append(prefixConfirmtime, encodeUint64(SeqHeight)...)
 }
 
-func txHashFlowKey(addr common.Address, nonce uint64) []byte {
-	keybody := append(addr.ToBytes(), encodeUint64(nonce)...)
+func txHashFlowKey(addr og_types.Address, nonce uint64) []byte {
+	keybody := append(addr.Bytes(), encodeUint64(nonce)...)
 	return append(prefixTxHashFlowKey, keybody...)
 }
 
-func addrLatestNonceKey(addr common.Address) []byte {
-	return append(prefixAddrLatestNonceKey, addr.ToBytes()...)
+func addrLatestNonceKey(addr og_types.Address) []byte {
+	return append(prefixAddrLatestNonceKey, addr.Bytes()...)
 }
 
-func addressBalanceKey(addr common.Address) []byte {
-	return append(prefixAddressBalanceKey, addr.ToBytes()...)
+func addressBalanceKey(addr og_types.Address) []byte {
+	return append(prefixAddressBalanceKey, addr.Bytes()...)
 }
 
 func seqHeightKey(seqID uint64) []byte {
@@ -237,21 +236,21 @@ func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *types.Sequencer) e
 // TODO
 // this is a temp function. The latest state root should be stored
 // in latest sequencer.
-func (da *Accessor) ReadLastStateRoot() common.Hash {
+func (da *Accessor) ReadLastStateRoot() og_types.Hash {
 	rootbyte, _ := da.db.Get(stateRootKey())
-	return common.BytesToHash(rootbyte)
+	return og_types.BytesToHash32(rootbyte)
 }
 
 // WriteLastStateRoot write latest state root into db.
 // TODO
 // this is a temp function. The latest state root should be stored
 // in latest sequencer.
-func (da *Accessor) WriteLastStateRoot(putter *Putter, root common.Hash) error {
-	return da.db.Put(stateRootKey(), root.ToBytes())
+func (da *Accessor) WriteLastStateRoot(putter *Putter, root og_types.Hash) error {
+	return da.db.Put(stateRootKey(), root.Bytes())
 }
 
 // ReadTransaction get tx or sequencer from ogdb.
-func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
+func (da *Accessor) ReadTransaction(hash og_types.Hash) types.Txi {
 	data, _ := da.db.Get(transactionKey(hash))
 	if len(data) == 0 {
 		return nil
@@ -318,18 +317,18 @@ func (da *Accessor) ReadTransaction(hash common.Hash) types.Txi {
 }
 
 // ReadTxByNonce get tx from db by sender's address and nonce.
-func (da *Accessor) ReadTxByNonce(addr common.Address, nonce uint64) types.Txi {
+func (da *Accessor) ReadTxByNonce(addr og_types.Address, nonce uint64) types.Txi {
 	data, _ := da.db.Get(txHashFlowKey(addr, nonce))
 	if len(data) == 0 {
 		return nil
 	}
-	hash := common.BytesToHash(data)
+	hash := og_types.BytesToHash32(data)
 	return da.ReadTransaction(hash)
 }
 
 // WriteTxHashByNonce writes tx hash into db and construct key with address and nonce.
-func (da *Accessor) WriteTxHashByNonce(putter *Putter, addr common.Address, nonce uint64, hash common.Hash) error {
-	data := hash.ToBytes()
+func (da *Accessor) WriteTxHashByNonce(putter *Putter, addr og_types.Address, nonce uint64, hash og_types.Hash) error {
+	data := hash.Bytes()
 	var err error
 	key := txHashFlowKey(addr, nonce)
 	err = da.put(putter, key, data)
@@ -340,7 +339,7 @@ func (da *Accessor) WriteTxHashByNonce(putter *Putter, addr common.Address, nonc
 }
 
 // ReadAddrLatestNonce get latest nonce of an address
-func (da *Accessor) ReadAddrLatestNonce(addr common.Address) (uint64, error) {
+func (da *Accessor) ReadAddrLatestNonce(addr og_types.Address) (uint64, error) {
 	has, _ := da.HasAddrLatestNonce(addr)
 	if !has {
 		return 0, fmt.Errorf("not exists")
@@ -357,7 +356,7 @@ func (da *Accessor) ReadAddrLatestNonce(addr common.Address) (uint64, error) {
 }
 
 // HasAddrLatestNonce returns true if addr already sent some txs.
-func (da *Accessor) HasAddrLatestNonce(addr common.Address) (bool, error) {
+func (da *Accessor) HasAddrLatestNonce(addr og_types.Address) (bool, error) {
 	return da.db.Has(addrLatestNonceKey(addr))
 }
 
@@ -401,7 +400,7 @@ func (da *Accessor) WriteReceipts(putter *Putter, seqID uint64, receipts Receipt
 }
 
 // ReadReceipt try get receipt by tx hash and seqID.
-func (da *Accessor) ReadReceipt(seqID uint64, hash common.Hash) *Receipt {
+func (da *Accessor) ReadReceipt(seqID uint64, hash og_types.Hash) *Receipt {
 	bundleBytes, _ := da.db.Get(receiptKey(seqID))
 	if len(bundleBytes) == 0 {
 		return nil
@@ -457,12 +456,12 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 }
 
 // DeleteTransaction delete the tx or sequencer.
-func (da *Accessor) DeleteTransaction(hash common.Hash) error {
+func (da *Accessor) DeleteTransaction(hash og_types.Hash) error {
 	return da.db.Delete(transactionKey(hash))
 }
 
 // ReadBalance get the balance of an address.
-func (da *Accessor) ReadBalance(addr common.Address) *math.BigInt {
+func (da *Accessor) ReadBalance(addr og_types.Address) *math.BigInt {
 	data, _ := da.db.Get(addressBalanceKey(addr))
 	if len(data) == 0 {
 		return math.NewBigInt(0)
@@ -477,7 +476,7 @@ func (da *Accessor) ReadBalance(addr common.Address) *math.BigInt {
 
 // SetBalance write the balance of an address into ogdb.
 // Data will be overwritten if it already exist in db.
-func (da *Accessor) SetBalance(putter *Putter, addr common.Address, value *math.BigInt) error {
+func (da *Accessor) SetBalance(putter *Putter, addr og_types.Address, value *math.BigInt) error {
 	if value.Value.Abs(value.Value).Cmp(value.Value) != 0 {
 		return fmt.Errorf("the value of the balance must be positive!")
 	}
@@ -490,13 +489,13 @@ func (da *Accessor) SetBalance(putter *Putter, addr common.Address, value *math.
 }
 
 // DeleteBalance delete the balance of an address.
-func (da *Accessor) DeleteBalance(addr common.Address) error {
+func (da *Accessor) DeleteBalance(addr og_types.Address) error {
 	return da.db.Delete(addressBalanceKey(addr))
 }
 
 // AddBalance adds an amount of value to the address balance. Note that AddBalance
 // doesn't hold any locks so upper level program must manage this.
-func (da *Accessor) AddBalance(putter *Putter, addr common.Address, amount *math.BigInt) error {
+func (da *Accessor) AddBalance(putter *Putter, addr og_types.Address, amount *math.BigInt) error {
 	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
 		return fmt.Errorf("add amount must be positive!")
 	}
@@ -511,7 +510,7 @@ func (da *Accessor) AddBalance(putter *Putter, addr common.Address, amount *math
 
 // SubBalance subs an amount of value to the address balance. Note that SubBalance
 // doesn't hold any locks so upper level program must manage this.
-func (da *Accessor) SubBalance(putter *Putter, addr common.Address, amount *math.BigInt) error {
+func (da *Accessor) SubBalance(putter *Putter, addr og_types.Address, amount *math.BigInt) error {
 	if amount.Value.Abs(amount.Value).Cmp(amount.Value) != 0 {
 		return fmt.Errorf("add amount must be positive!")
 	}
@@ -554,12 +553,12 @@ func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *types.Sequencer)
 
 // ReadIndexedTxHashs get a list of txs that is confirmed by the sequencer that
 // holds the id 'SeqHeight'.
-func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) (*common.Hashes, error) {
+func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) ([]og_types.Hash, error) {
 	data, _ := da.db.Get(txIndexKey(SeqHeight))
 	if len(data) == 0 {
 		return nil, fmt.Errorf("tx hashs with seq height %d not found", SeqHeight)
 	}
-	var hashs common.Hashes
+	var hashs []og_types.Hash
 	_, err := hashs.UnmarshalMsg(data)
 	if err != nil {
 		return nil, err
@@ -569,7 +568,7 @@ func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) (*common.Hashes, error)
 
 // WriteIndexedTxHashs stores a list of tx hashs. These related hashs are all
 // confirmed by sequencer that holds the id 'SeqHeight'.
-func (da *Accessor) WriteIndexedTxHashs(putter *Putter, SeqHeight uint64, hashs *common.Hashes) error {
+func (da *Accessor) WriteIndexedTxHashs(putter *Putter, SeqHeight uint64, hashs []og_types.Hash) error {
 	data, err := hashs.MarshalMsg(nil)
 	if err != nil {
 		return err

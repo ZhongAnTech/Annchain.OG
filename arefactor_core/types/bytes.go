@@ -1,5 +1,14 @@
 package types
 
+func GetUInt16(b []byte, pos int) uint16 {
+	return uint16(b[pos]) | uint16(b[pos+1])<<8
+}
+
+func SetUInt16(b []byte, pos int, i uint16) {
+	b[pos] = byte(i)
+	b[pos+1] = byte(i >> 8)
+}
+
 func GetInt16(b []byte, pos int) int16 {
 	return int16(b[pos]) | int16(b[pos+1])<<8
 }

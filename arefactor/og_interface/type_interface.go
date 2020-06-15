@@ -6,6 +6,8 @@ type FixLengthBytes interface {
 	FromHex(s string) error
 	FromHexNoError(s string)
 	Bytes() []byte
+	Hex() string
+	Cmp(FixLengthBytes) int
 }
 
 type Address interface {

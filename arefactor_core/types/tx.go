@@ -15,13 +15,14 @@ package types
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
 	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
+
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 )
 
 //go:generate msgp
@@ -32,8 +33,8 @@ type Txs []*Tx
 //msgp:tuple Tx
 type Tx struct {
 	TxBase
-	From    *common.Address
-	To      common.Address
+	From    og_types.Address
+	To      og_types.Address
 	Value   *math.BigInt
 	TokenId int32
 	Data    []byte
@@ -52,44 +53,43 @@ func (t *Tx) String() string {
 	if t.GetSender() == nil {
 		return fmt.Sprintf("%s-[nil]-%d-Tx", t.TxBase.String(), t.AccountNonce)
 	} else {
-		return fmt.Sprintf("%s-[%.10s]-%d-Tx", t.TxBase.String(), t.Sender().String(), t.AccountNonce)
+		return fmt.Sprintf("%s-[%.10s]-%d-Tx", t.TxBase.String(), t.Sender().AddressShortString(), t.AccountNonce)
 	}
 
 }
 
 func SampleTx() *Tx {
 	v, _ := math.NewBigIntFromString("-1234567890123456789012345678901234567890123456789012345678901234567890", 10)
-	from, _ := common.HexToAddress("0x99")
-	to, _ := common.HexToAddress("0x88")
+	from, _ := og_types.HexToAddress20("0x99")
+	to, _ := og_types.HexToAddress20("0x88")
 
-	hash1, _ := common.HexToHash("0xCCDD")
-	hash2, _ := common.HexToHash("0xEEFF")
+	hash1, _ := og_types.HexToHash32("0xCCDD")
+	hash2, _ := og_types.HexToHash32("0xEEFF")
 
 	return &Tx{
 		TxBase: TxBase{
 			Height:       12,
-			ParentsHash:  common.Hashes{hash1, hash2},
+			ParentsHash:  []og_types.Hash{hash1, hash2},
 			Type:         TxBaseTypeNormal,
 			AccountNonce: 234,
 		},
-		From:  &from,
+		From:  from,
 		To:    to,
 		Value: v,
 	}
 }
 
 func RandomTx() *Tx {
-	from := common.RandomAddress()
 	return &Tx{TxBase: TxBase{
-		Hash:         common.RandomHash(),
+		Hash:         og_types.RandomHash32(),
 		Height:       uint64(rand.Int63n(1000)),
-		ParentsHash:  common.Hashes{common.RandomHash(), common.RandomHash()},
+		ParentsHash:  []og_types.Hash{og_types.RandomHash32(), og_types.RandomHash32()},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: uint64(rand.Int63n(50000)),
 		Weight:       uint64(rand.Int31n(2000)),
 	},
-		From:  &from,
-		To:    common.RandomAddress(),
+		From:  og_types.RandomAddress20(),
+		To:    og_types.RandomAddress20(),
 		Value: math.NewBigInt(rand.Int63()),
 	}
 }
@@ -107,23 +107,23 @@ func (t *Tx) SignatureTargets() []byte {
 	return w.Bytes()
 }
 
-func (t *Tx) Sender() common.Address {
-	return *t.From
-}
-
-func (t *Tx) GetSender() *common.Address {
+func (t *Tx) Sender() og_types.Address {
 	return t.From
 }
 
-func (t *Tx) SetSender(addr common.Address) {
-	t.From = &addr
+func (t *Tx) GetSender() og_types.Address {
+	return t.From
+}
+
+func (t *Tx) SetSender(addr og_types.Address) {
+	t.From = addr
 }
 
 func (t *Tx) GetValue() *math.BigInt {
 	return t.Value
 }
 
-func (t *Tx) Parents() common.Hashes {
+func (t *Tx) Parents() []og_types.Hash {
 	return t.ParentsHash
 }
 

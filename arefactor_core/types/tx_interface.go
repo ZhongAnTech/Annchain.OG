@@ -15,6 +15,7 @@
 package types
 
 import (
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/tinylib/msgp/msgp"
 	"strings"
@@ -28,13 +29,13 @@ type Txi interface {
 	GetType() TxBaseType
 	GetHeight() uint64
 	GetWeight() uint64
-	GetTxHash() common.Hash
+	GetTxHash() og_types.Hash
 	GetNonce() uint64
-	Parents() common.Hashes // Parents returns the common.Hash of txs that it directly proves.
-	SetHash(h common.Hash)
+	Parents() []og_types.Hash // Parents returns the common.Hash of txs that it directly proves.
+	SetHash(h og_types.Hash)
 	String() string
-	CalcTxHash() common.Hash    // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
-	CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
+	CalcTxHash() og_types.Hash    // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
+	CalcMinedHash() og_types.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 	CalculateWeight(parents Txis) uint64
 
 	SetInValid(b bool)
@@ -42,9 +43,9 @@ type Txi interface {
 
 	// implemented by each tx type
 	GetBase() *TxBase
-	Sender() common.Address
-	GetSender() *common.Address
-	SetSender(addr common.Address)
+	Sender() og_types.Address
+	GetSender() og_types.Address
+	SetSender(addr og_types.Address)
 	Dump() string             // For logger dump
 	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
@@ -67,13 +68,13 @@ type RawTxi interface {
 	GetType() TxBaseType
 	GetHeight() uint64
 	GetWeight() uint64
-	GetTxHash() common.Hash
+	GetTxHash() og_types.Hash
 	GetNonce() uint64
 	Parents() common.Hashes // Parents returns the hash of txs that it directly proves.
-	SetHash(h common.Hash)
+	SetHash(h og_types.Hash)
 	String() string
-	CalcTxHash() common.Hash    // TxHash returns a full tx hash (parents sealed by PoW stage 2)
-	CalcMinedHash() common.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
+	CalcTxHash() og_types.Hash    // TxHash returns a full tx hash (parents sealed by PoW stage 2)
+	CalcMinedHash() og_types.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 	CalculateWeight(parents Txis) uint64
 
 	Txi() Txi

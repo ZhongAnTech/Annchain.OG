@@ -20,8 +20,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	math2 "github.com/annchain/OG/arefactor/common/math"
-	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
 	common2 "github.com/annchain/OG/common"
+	"github.com/annchain/OG/deprecated/ogcrypto"
 	"math/big"
 
 	"github.com/annchain/OG/arefactor/ogcrypto/bn256"
@@ -100,18 +100,18 @@ func (c *ecrecover) Run(input []byte) ([]byte, error) {
 	v := input[63] - 27
 
 	// tighter sig s values input homestead only apply to tx sigs
-	if !vmcommon.AllZero(input[32:63]) || !crypto2.ValidateSignatureValues(v, r, s, false) {
+	if !vmcommon.AllZero(input[32:63]) || !ogcrypto.ValidateSignatureValues(v, r, s, false) {
 		return nil, nil
 	}
 	// v needs to be at the end for libsecp256k1
-	pubKey, err := crypto2.Ecrecover(input[:32], append(input[64:128], v))
+	pubKey, err := ogcrypto.Ecrecover(input[:32], append(input[64:128], v))
 	// make sure the public key is a valid one
 	if err != nil {
 		return nil, nil
 	}
 
 	// the first byte of pubkey is bitcoin heritage
-	return common.LeftPadBytes(crypto2.Keccak256(pubKey[1:])[12:], 32), nil
+	return common.LeftPadBytes(ogcrypto.Keccak256(pubKey[1:])[12:], 32), nil
 }
 
 // SHA256 implemented as a native contract.

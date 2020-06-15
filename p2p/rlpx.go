@@ -30,7 +30,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
+	"github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"hash"
 	"io"
@@ -40,8 +40,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/arefactor/ogcrypto/ecies"
 	"github.com/annchain/OG/common/bitutil"
+	"github.com/annchain/OG/deprecated/ogcrypto/ecies"
 	"github.com/golang/snappy"
 	"golang.org/x/crypto/sha3"
 )
@@ -252,12 +252,12 @@ func (h *encHandshake) secrets(auth, authResp []byte) (secrets, error) {
 	}
 
 	// derive base secrets from ephemeral key agreement
-	sharedSecret := crypto2.Keccak256(ecdheSecret, crypto2.Keccak256(h.respNonce, h.initNonce))
-	aesSecret := crypto2.Keccak256(ecdheSecret, sharedSecret)
+	sharedSecret := ogcrypto.Keccak256(ecdheSecret, ogcrypto.Keccak256(h.respNonce, h.initNonce))
+	aesSecret := ogcrypto.Keccak256(ecdheSecret, sharedSecret)
 	s := secrets{
 		Remote: h.remote,
 		AES:    aesSecret,
-		MAC:    crypto2.Keccak256(ecdheSecret, aesSecret),
+		MAC:    ogcrypto.Keccak256(ecdheSecret, aesSecret),
 	}
 
 	// setup sha3 instances for the MACs
@@ -320,7 +320,7 @@ func (h *encHandshake) makeAuthMsg(prv *ecdsa.PrivateKey) (*AuthMsgV4, error) {
 		return nil, err
 	}
 	// Generate random keypair to for ECDH.
-	h.randomPrivKey, err = ecies.GenerateKey(rand.Reader, crypto2.S256(), nil)
+	h.randomPrivKey, err = ecies.GenerateKey(rand.Reader, ogcrypto.S256(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -330,14 +330,14 @@ func (h *encHandshake) makeAuthMsg(prv *ecdsa.PrivateKey) (*AuthMsgV4, error) {
 		return nil, err
 	}
 	signed := xor(token, h.initNonce)
-	signature, err := crypto2.Sign(signed, h.randomPrivKey.ExportECDSA())
+	signature, err := ogcrypto.Sign(signed, h.randomPrivKey.ExportECDSA())
 	if err != nil {
 		return nil, err
 	}
 
 	msg := new(AuthMsgV4)
 	copy(msg.Signature[:], signature)
-	copy(msg.InitiatorPubkey[:], crypto2.FromECDSAPub(&prv.PublicKey)[1:])
+	copy(msg.InitiatorPubkey[:], ogcrypto.FromECDSAPub(&prv.PublicKey)[1:])
 	copy(msg.Nonce[:], h.initNonce)
 	msg.Version = 4
 	return msg, nil
@@ -396,7 +396,7 @@ func (h *encHandshake) handleAuthMsg(msg *AuthMsgV4, prv *ecdsa.PrivateKey) erro
 	// Generate random keypair for ECDH.
 	// If a private key is already set, use it instead of generating one (for testing).
 	if h.randomPrivKey == nil {
-		h.randomPrivKey, err = ecies.GenerateKey(rand.Reader, crypto2.S256(), nil)
+		h.randomPrivKey, err = ecies.GenerateKey(rand.Reader, ogcrypto.S256(), nil)
 		if err != nil {
 			return err
 		}
@@ -408,7 +408,7 @@ func (h *encHandshake) handleAuthMsg(msg *AuthMsgV4, prv *ecdsa.PrivateKey) erro
 		return err
 	}
 	signedMsg := xor(token, h.initNonce)
-	remoteRandomPub, err := crypto2.Ecrecover(signedMsg, msg.Signature[:])
+	remoteRandomPub, err := ogcrypto.Ecrecover(signedMsg, msg.Signature[:])
 	if err != nil {
 		return err
 	}
@@ -433,7 +433,7 @@ func (h *encHandshake) makeAuthResp() (msg *AuthRespV4, err error) {
 func (msg *AuthMsgV4) sealPlain(h *encHandshake) ([]byte, error) {
 	buf := make([]byte, authMsgLen)
 	n := copy(buf, msg.Signature[:])
-	n += copy(buf[n:], crypto2.Keccak256(exportPubkey(&h.randomPrivKey.PublicKey)))
+	n += copy(buf[n:], ogcrypto.Keccak256(exportPubkey(&h.randomPrivKey.PublicKey)))
 	n += copy(buf[n:], msg.InitiatorPubkey[:])
 	n += copy(buf[n:], msg.Nonce[:])
 	buf[n] = 0 // token-flag
@@ -637,7 +637,7 @@ func importPublicKey(pubKey []byte) (*ecies.PublicKey, error) {
 		return nil, fmt.Errorf("invalid public key length %v (expect 64/65)", len(pubKey))
 	}
 	// TODO: fewer pointless conversions
-	pub, err := crypto2.UnmarshalPubkey(pubKey65)
+	pub, err := ogcrypto.UnmarshalPubkey(pubKey65)
 	if err != nil {
 		return nil, err
 	}

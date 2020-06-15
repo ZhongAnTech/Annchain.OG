@@ -3,7 +3,7 @@ package genesis_account
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"io/ioutil"
 	"testing"
 )
@@ -28,7 +28,7 @@ type secretGenesis struct {
 }
 
 func TestAccount(t *testing.T) {
-	signer := ogcrypto.SignerSecp256k1{}
+	signer := ogcrypto2.SignerSecp256k1{}
 	var se secretGenesis
 	var ge genesis
 	for i := 0; i < 7; i++ {
@@ -77,7 +77,7 @@ func TestAccount(t *testing.T) {
 }
 
 func TestNewAccount(t *testing.T) {
-	signer := ogcrypto.SignerSecp256k1{}
+	signer := ogcrypto2.SignerSecp256k1{}
 	pub, priv := signer.RandomKeyPair()
 	if err != nil {
 		t.Fatal(err)

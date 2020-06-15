@@ -2,7 +2,7 @@ package onode
 
 import (
 	"crypto/ecdsa"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/types/msg"
 	"github.com/tinylib/msgp/msgp"
 )
@@ -14,7 +14,7 @@ func (v Secp256k1) ENRKey() string { return "secp256k1" }
 
 // EncodeRLP implements rlp.Encoder.
 func (v Secp256k1) MarshalMsg(b []byte) ([]byte, error) {
-	key := ogcrypto.CompressPubkey((*ecdsa.PublicKey)(&v))
+	key := ogcrypto2.CompressPubkey((*ecdsa.PublicKey)(&v))
 	keyBytes := msg.Bytes(key)
 	return keyBytes.MarshalMsg(b)
 }
@@ -26,7 +26,7 @@ func (v *Secp256k1) UnmarshalMsg(b []byte) ([]byte, error) {
 	if err != nil {
 		return d, err
 	}
-	pk, err := ogcrypto.DecompressPubkey(keyBytes)
+	pk, err := ogcrypto2.DecompressPubkey(keyBytes)
 	if err != nil {
 		return d, err
 	}
@@ -40,7 +40,7 @@ func (v *Secp256k1) DecodeMsg(en *msgp.Reader) (err error) {
 	if err != nil {
 		return err
 	}
-	pk, err := ogcrypto.DecompressPubkey(keyBytes)
+	pk, err := ogcrypto2.DecompressPubkey(keyBytes)
 	if err != nil {
 		return err
 	}
@@ -49,13 +49,13 @@ func (v *Secp256k1) DecodeMsg(en *msgp.Reader) (err error) {
 }
 
 func (v Secp256k1) EncodeMsg(en *msgp.Writer) (err error) {
-	key := ogcrypto.CompressPubkey((*ecdsa.PublicKey)(&v))
+	key := ogcrypto2.CompressPubkey((*ecdsa.PublicKey)(&v))
 	keyBytes := msg.Bytes(key)
 	return keyBytes.EncodeMsg(en)
 }
 
 func (v Secp256k1) Msgsize() int {
-	key := ogcrypto.CompressPubkey((*ecdsa.PublicKey)(&v))
+	key := ogcrypto2.CompressPubkey((*ecdsa.PublicKey)(&v))
 	keyBytes := msg.Bytes(key)
 	return keyBytes.Msgsize()
 }

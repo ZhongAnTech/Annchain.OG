@@ -17,8 +17,8 @@ import (
 	"fmt"
 	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/og/types"
 
 	"testing"
@@ -48,7 +48,7 @@ func (a *AllOkVerifier) Independent() bool {
 }
 
 func Init() *OGTxCreator {
-	og_interface.Signer = &ogcrypto.SignerEd25519{}
+	og_interface.Signer = &ogcrypto2.SignerEd25519{}
 	txc := OGTxCreator{
 		TipGenerator:       &dummyTxPoolRandomTx{},
 		Miner:              &miner.PoWMiner{},
@@ -130,7 +130,7 @@ func sampleTxi(selfHash string, parentsHash []string, baseType types.TxBaseType)
 }
 
 func TestBuildDag(t *testing.T) {
-	og_interface.Signer = &ogcrypto.SignerEd25519{}
+	og_interface.Signer = &ogcrypto2.SignerEd25519{}
 	logrus.SetLevel(logrus.DebugLevel)
 	pool := &dummyTxPoolMiniTx{}
 	pool.Init()

@@ -29,7 +29,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/sirupsen/logrus"
 	mrand "math/rand"
 	"net"
@@ -250,7 +250,7 @@ func (tab *Table) LookupRandom() []*onode.Node {
 // not need to be an actual node identifier.
 func (tab *Table) lookup(targetKey EncPubkey, refreshIfEmpty bool) []*node {
 	var (
-		targetHash     = ogcrypto.Keccak256Hash(targetKey[:])
+		targetHash     = ogcrypto2.Keccak256Hash(targetKey[:])
 		target         = onode.ID(targetHash.Bytes)
 		asked          = make(map[onode.ID]bool)
 		seen           = make(map[onode.ID]bool)

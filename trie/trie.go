@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/metrics"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +31,7 @@ var (
 	emptyRoot = types.HexToHashNoError("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 
 	// emptyState is the known hash of an empty state trie entry.
-	emptyState = ogcrypto.Keccak256Hash(nil)
+	emptyState = ogcrypto2.Keccak256Hash(nil)
 )
 
 var (

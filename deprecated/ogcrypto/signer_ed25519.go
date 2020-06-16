@@ -15,8 +15,9 @@ package ogcrypto
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/ogcrypto/extra25519"
-	"github.com/annchain/OG/arefactor/ogcrypto_interface"
+	"github.com/annchain/OG/deprecated"
+	"github.com/annchain/OG/deprecated/ogcrypto/extra25519"
+	"github.com/annchain/OG/deprecated/ogcrypto_interface"
 	"github.com/annchain/kyber/v3/encrypt/ecies"
 	"github.com/annchain/kyber/v3/group/edwards25519"
 	"github.com/sirupsen/logrus"
@@ -37,16 +38,16 @@ func (s *SignerEd25519) CanRecoverPubFromSig() bool {
 
 func (s *SignerEd25519) Sign(privKey ogcrypto_interface.PrivateKey, msg []byte) ogcrypto_interface.Signature {
 	signatureBytes := ed25519.Sign(privKey.KeyBytes, msg)
-	return SignatureFromBytes(ogcrypto_interface.CryptoTypeEd25519, signatureBytes)
+	return deprecated.SignatureFromBytes(ogcrypto_interface.CryptoTypeEd25519, signatureBytes)
 }
 
 func (s *SignerEd25519) PubKey(privKey ogcrypto_interface.PrivateKey) ogcrypto_interface.PublicKey {
 	pubkey := ed25519.PrivateKey(privKey.KeyBytes).Public()
-	return PublicKeyFromBytes(ogcrypto_interface.CryptoTypeEd25519, []byte(pubkey.(ed25519.PublicKey)))
+	return deprecated.PublicKeyFromBytes(ogcrypto_interface.CryptoTypeEd25519, []byte(pubkey.(ed25519.PublicKey)))
 }
 
 func (s *SignerEd25519) PublicKeyFromBytes(b []byte) ogcrypto_interface.PublicKey {
-	return PublicKeyFromBytes(s.GetCryptoType(), b)
+	return deprecated.PublicKeyFromBytes(s.GetCryptoType(), b)
 }
 
 func (s *SignerEd25519) Verify(pubKey ogcrypto_interface.PublicKey, signature ogcrypto_interface.Signature, msg []byte) bool {
@@ -64,8 +65,8 @@ func (s *SignerEd25519) RandomKeyPair() (publicKey ogcrypto_interface.PublicKey,
 	if err != nil {
 		panic(err)
 	}
-	publicKey = PublicKeyFromBytes(ogcrypto_interface.CryptoTypeEd25519, public)
-	privateKey = PrivateKeyFromBytes(ogcrypto_interface.CryptoTypeEd25519, private)
+	publicKey = deprecated.PublicKeyFromBytes(ogcrypto_interface.CryptoTypeEd25519, public)
+	privateKey = deprecated.PrivateKeyFromBytes(ogcrypto_interface.CryptoTypeEd25519, private)
 	return
 }
 

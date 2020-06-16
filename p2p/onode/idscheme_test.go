@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"math/big"
 	"testing"
 
@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	privkey, _ = ogcrypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	privkey, _ = ogcrypto2.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	pubkey     = &privkey.PublicKey
 )
 

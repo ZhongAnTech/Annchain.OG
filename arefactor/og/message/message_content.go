@@ -12,11 +12,13 @@ const (
 	ResourceTypeSequencer
 	ResourceTypeArchive
 	ResourceTypeAction
+	ResourceTypeInt
 )
 
 var ResourceTypeStrings = map[ResourceType]string{
 	ResourceTypeTx:        "RTx",
-	ResourceTypeSequencer: "RSq",
+	ResourceTypeSequencer: "RTs",
+	ResourceTypeInt:       "RTi",
 }
 
 //go:generate msgp
@@ -84,6 +86,27 @@ func (z *MessageContentSequencer) ToBytes() []byte {
 }
 
 func (z *MessageContentSequencer) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//msgp MessageContentInt
+type MessageContentInt struct {
+	Values []int
+}
+
+func (z *MessageContentInt) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *MessageContentInt) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err

@@ -16,8 +16,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/og_interface"
-	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/spf13/cobra"
 )
 
@@ -51,9 +51,9 @@ func accountInit() {
 func accountGen(cmd *cobra.Command, args []string) {
 	var signer og_interface.ISigner
 	if algorithm == "secp256k1" || algorithm == "s" {
-		signer = &crypto2.SignerSecp256k1{}
+		signer = &ogcrypto.SignerSecp256k1{}
 	} else if algorithm == "ed25519" || algorithm == "e" {
-		signer = &crypto2.SignerEd25519{}
+		signer = &ogcrypto.SignerEd25519{}
 	} else {
 		fmt.Println("unknown ogcrypto algorithm", algorithm)
 		return

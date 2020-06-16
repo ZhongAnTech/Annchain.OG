@@ -6,11 +6,14 @@ import (
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"math/rand"
+	"time"
 )
 
 var Protocol = "og/1.0.0"
+var PingCheckIntervalSeconds = 1
 
 type CommunityManager interface {
 }
@@ -23,6 +26,8 @@ type DefaultCommunityManager struct {
 	PhysicalCommunicator  *transport.PhysicalCommunicator
 	KnownPeerListFilePath string
 
+	// TODO: peer management. currently all peers are inited at the beginning.
+	// active peer list should be
 	peers             []string
 	knownPeersAddress []string
 
@@ -68,8 +73,8 @@ func (d *DefaultCommunityManager) AddSubscriberNewOutgoingMessageEvent(sub trans
 
 func (d *DefaultCommunityManager) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range d.newOutgoingMessageSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
-		subscriber.NewOutgoingMessageEventChannel() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing community manager"+subscriber.Name()).C
+		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
 }
 
@@ -79,8 +84,8 @@ func (d *DefaultCommunityManager) AddSubscriberPeerJoinedEvent(sub og_interface.
 
 func (d *DefaultCommunityManager) notifyPeerJoined(event *og_interface.PeerJoinedEvent) {
 	for _, subscriber := range d.peerJoinedEventSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
-		subscriber.EventChannelPeerJoined() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.EventChannelPeerJoined(), event, "peerjoined").C
+		//subscriber.EventChannelPeerJoined() <- event
 	}
 }
 
@@ -90,8 +95,8 @@ func (d *DefaultCommunityManager) AddSubscriberPeerLeftEvent(sub og_interface.Pe
 
 func (d *DefaultCommunityManager) notifyPeerLeft(event *og_interface.PeerLeftEvent) {
 	for _, subscriber := range d.peerLeftEventSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
-		subscriber.EventChannelPeerLeft() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.EventChannelPeerLeft(), event, "peerleft").C
+		//subscriber.EventChannelPeerLeft() <- event
 	}
 }
 
@@ -115,10 +120,17 @@ func (d *DefaultCommunityManager) loop() {
 	for _, peerAddress := range d.knownPeersAddress {
 		d.PhysicalCommunicator.SuggestConnection(peerAddress)
 	}
+	// check random peer every 5 seconds
+	ticker := time.NewTicker(time.Duration(PingCheckIntervalSeconds) * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-d.quit:
 			return
+		case <-ticker.C:
+			// pickup random peer and senc ping
+			d.SendPing("")
 		case incomingLetter := <-d.myNewIncomingMessageEventChannel:
 			logrus.WithField("c", "DefaultCommunityManager").
 				WithField("from", incomingLetter.From).
@@ -135,6 +147,7 @@ func (d *DefaultCommunityManager) loop() {
 			d.handlePeerConnected(event)
 		case event := <-d.myPeerDisconnectedEventChannel:
 			d.handlePeerDisconnected(event)
+
 		}
 	}
 }

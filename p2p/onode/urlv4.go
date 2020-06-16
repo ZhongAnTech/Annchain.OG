@@ -21,7 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/p2p/dns"
 	"net"
 	"net/url"
@@ -162,7 +162,7 @@ func parsePubkey(in string) (*ecdsa.PublicKey, error) {
 		return nil, fmt.Errorf("wrong length, want %d hex chars", 128)
 	}
 	b = append([]byte{0x4}, b...)
-	return ogcrypto.UnmarshalPubkey(b)
+	return ogcrypto2.UnmarshalPubkey(b)
 }
 
 func (n *Node) v4URL() string {
@@ -175,7 +175,7 @@ func (n *Node) v4URL() string {
 	n.Load((*Secp256k1)(&key))
 	switch {
 	case scheme == "v4" || key != ecdsa.PublicKey{}:
-		nodeid = fmt.Sprintf("%x", ogcrypto.FromECDSAPub(&key)[1:])
+		nodeid = fmt.Sprintf("%x", ogcrypto2.FromECDSAPub(&key)[1:])
 	default:
 		nodeid = fmt.Sprintf("%s.%x", scheme, n.Id[:])
 	}
@@ -198,5 +198,5 @@ func PubkeyToIDV4(key *ecdsa.PublicKey) ID {
 	e := make([]byte, 64)
 	math.ReadBits(key.X, e[:len(e)/2])
 	math.ReadBits(key.Y, e[len(e)/2:])
-	return ID(ogcrypto.Keccak256Hash(e).Bytes)
+	return ID(ogcrypto2.Keccak256Hash(e).Bytes)
 }

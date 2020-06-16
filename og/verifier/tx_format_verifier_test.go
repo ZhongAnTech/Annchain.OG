@@ -3,8 +3,8 @@ package verifier
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/og_interface"
-	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/og/types/archive"
 
@@ -13,7 +13,7 @@ import (
 )
 
 type TestSigner struct {
-	crypto2.SignerSecp256k1
+	ogcrypto.SignerSecp256k1
 }
 
 func (s *TestSigner) CanRecoverPubFromSig() bool {

@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/annchain/OG/arefactor/bouncer"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/OG/common/io"
@@ -13,10 +14,10 @@ import (
 
 // OgNode is the basic entry point for all modules to start.
 type SampleNode struct {
-	components              []Component
-	transportIdentityHolder *transport.DefaultTransportIdentityHolder
-	cpTransport             *transport.PhysicalCommunicator
-	cpBouncer               *bouncer.Bouncer
+	components             []Component
+	transportAccountHolder og.TransportAccountHolder
+	cpTransport            *transport.PhysicalCommunicator
+	cpBouncer              *bouncer.Bouncer
 }
 
 // InitDefault only set necessary data structures.
@@ -28,11 +29,17 @@ func (n *SampleNode) InitDefault() {
 func (n *SampleNode) Setup() {
 	// load private info
 	// check if file exists
-	n.transportIdentityHolder = &transport.DefaultTransportIdentityHolder{
-		KeyFile: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "network.key")),
+	n.transportAccountHolder = &og.LocalTransportAccountHolder{
+		PrivateGenerator:   &og.DefaultPrivateGenerator{},
+		NetworkIdConverter: &og.OgNetworkIdConverter{},
+		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
+		CryptoType:         transport_interface.CryptoTypeSecp256k1,
+		Account:            nil,
 	}
 
-	cpTransport := getTransport(n.transportIdentityHolder)
+	// low level transport (libp2p)
+	cpTransport := getTransport(n.transportAccountHolder)
+
 	cpPerformanceMonitor := getPerformanceMonitor()
 
 	// bouncer

@@ -17,6 +17,7 @@ import (
 	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/og/protocol/dagmessage"
 	"github.com/annchain/OG/og/types"
 	core2 "github.com/annchain/OG/ogcore/ledger"
@@ -29,7 +30,7 @@ import (
 )
 
 var (
-	testKey, _  = ogcrypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testKey, _  = ogcrypto2.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	testAddress = ogcrypto.PubkeyToAddress(testKey.PublicKey)
 )
 

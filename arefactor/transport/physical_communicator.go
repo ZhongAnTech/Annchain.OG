@@ -100,7 +100,8 @@ func (c *PhysicalCommunicator) InitDefault() {
 func (c *PhysicalCommunicator) Start() {
 	// start consuming queue
 	go c.Listen()
-	go c.mainLoop()
+	go c.mainLoopSend()
+	go c.mainLoopReceive()
 	go c.peerDiscovery()
 }
 
@@ -117,7 +118,7 @@ func (c *PhysicalCommunicator) peerDiscovery() {
 	}
 }
 
-func (c *PhysicalCommunicator) mainLoop() {
+func (c *PhysicalCommunicator) mainLoopSend() {
 	c.initWait.Wait()
 	for {
 		select {
@@ -127,12 +128,22 @@ func (c *PhysicalCommunicator) mainLoop() {
 		case outgoingLetter := <-c.outgoingChannel:
 			logrus.WithField("outgoingLetter", outgoingLetter).Trace("physical communicator got a request from outgoing channel")
 			c.handleOutgoing(outgoingLetter)
-		case incomingLetter := <-c.incomingChannel:
-			c.NetworkReporter.Report("receive", incomingLetter)
-			c.notifyNewIncomingMessage(incomingLetter)
 		case event := <-c.ioEventChannel:
 			logrus.WithField("reason", event.Reason).WithError(event.Err).Trace("physical got neighbour down event")
 			c.handlePeerError(event.Neighbour)
+		}
+	}
+}
+func (c *PhysicalCommunicator) mainLoopReceive() {
+	c.initWait.Wait()
+	for {
+		select {
+		case <-c.quit:
+			// TODO: close all peers
+			return
+		case incomingLetter := <-c.incomingChannel:
+			c.NetworkReporter.Report("receive", incomingLetter)
+			c.notifyNewIncomingMessage(incomingLetter)
 		}
 	}
 }
@@ -404,14 +415,14 @@ func (c *PhysicalCommunicator) pickOneAndConnect() {
 	peerId := peerIds[rand.Intn(len(peerIds))]
 
 	// start a stream
-	//logrus.WithField("address", c.node.Peerstore().PeerInfo(peerId).String()).
-	//WithField("peerId", peerId).
-	//Trace("connecting peer")
+	logrus.WithField("address", c.node.Peerstore().PeerInfo(peerId).String()).
+		WithField("peerId", peerId).
+		Trace("connecting peer")
 
 	s, err := c.node.NewStream(context.Background(), peerId, protocol.ID(c.ProtocolId))
 	if err != nil {
 		if err != swarm.ErrDialBackoff {
-			//logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
+			logrus.WithField("stream", s).WithError(err).Warn("error on starting stream")
 		}
 		return
 	}

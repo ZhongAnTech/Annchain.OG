@@ -19,7 +19,7 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"errors"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"math/rand"
 	"net"
 	"reflect"
@@ -58,7 +58,7 @@ func (c *testTransport) doEncHandshake(prv *ecdsa.PrivateKey, dialDest *ecdsa.Pu
 }
 
 func (c *testTransport) doProtoHandshake(our *ProtoHandshake) (*ProtoHandshake, error) {
-	pubkey := ogcrypto.FromECDSAPub(c.rpub)[1:]
+	pubkey := ogcrypto2.FromECDSAPub(c.rpub)[1:]
 	return &ProtoHandshake{ID: pubkey, Name: "test"}, nil
 }
 
@@ -419,7 +419,7 @@ func TestServerPeerLimits(t *testing.T) {
 	var tp = &setupTransport{
 		pubkey: &clientkey.PublicKey,
 		phs: ProtoHandshake{
-			ID: ogcrypto.FromECDSAPub(&clientkey.PublicKey)[1:],
+			ID: ogcrypto2.FromECDSAPub(&clientkey.PublicKey)[1:],
 			// Force "DiscUselessPeer" due to unmatching caps
 			// Caps: []Cap{discard.cap()},
 		},
@@ -523,13 +523,13 @@ func TestServerSetupConn(t *testing.T) {
 			wantCloseErr: errors.New("foo"),
 		},
 		{
-			tt:           &setupTransport{pubkey: srvpub, phs: ProtoHandshake{ID: ogcrypto.FromECDSAPub(srvpub)[1:]}},
+			tt:           &setupTransport{pubkey: srvpub, phs: ProtoHandshake{ID: ogcrypto2.FromECDSAPub(srvpub)[1:]}},
 			flags:        inboundConn,
 			wantCalls:    "doEncHandshake,close,",
 			wantCloseErr: DiscSelf,
 		},
 		{
-			tt:           &setupTransport{pubkey: clientpub, phs: ProtoHandshake{ID: ogcrypto.FromECDSAPub(clientpub)[1:]}},
+			tt:           &setupTransport{pubkey: clientpub, phs: ProtoHandshake{ID: ogcrypto2.FromECDSAPub(clientpub)[1:]}},
 			flags:        inboundConn,
 			wantCalls:    "doEncHandshake,doProtoHandshake,close,",
 			wantCloseErr: DiscUselessPeer,
@@ -598,7 +598,7 @@ func (c *setupTransport) ReadMsg() (Msg, error) {
 }
 
 func newkey() *ecdsa.PrivateKey {
-	key, err := ogcrypto.GenerateKey()
+	key, err := ogcrypto2.GenerateKey()
 	if err != nil {
 		panic("couldn't generate key: " + err.Error())
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	math2 "github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
@@ -89,7 +89,7 @@ func (m *MemoryStateDB) GetCode(addr common.Address) []byte {
 func (m *MemoryStateDB) SetCode(addr common.Address, code []byte) {
 	if v, ok := m.soLedger[addr]; ok {
 		v.Code = code
-		v.CodeHash = ogcrypto.Keccak256Hash(code)
+		v.CodeHash = ogcrypto2.Keccak256Hash(code)
 		v.DirtyCode = true
 	}
 }

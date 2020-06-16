@@ -19,7 +19,7 @@ package discv5
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"math/big"
 	"math/rand"
 	"net"
@@ -194,7 +194,7 @@ func TestHexID(t *testing.T) {
 func TestNodeID_recover(t *testing.T) {
 	prv := newkey()
 	hash := make([]byte, 32)
-	sig, err := ogcrypto.Sign(hash, prv)
+	sig, err := ogcrypto2.Sign(hash, prv)
 	if err != nil {
 		t.Fatalf("signing error: %v", err)
 	}

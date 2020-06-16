@@ -3,7 +3,7 @@ package core
 import (
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/rpc"
-	"github.com/annchain/OG/arefactor/transport"
+	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/OG/common/io"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -12,8 +12,8 @@ import (
 
 // OgNode is the basic entry point for all modules to start.
 type OgNode struct {
-	components              []Component
-	transportIdentityHolder *transport.DefaultTransportIdentityHolder
+	components             []Component
+	transportAccountHolder og.TransportAccountHolder
 }
 
 // InitDefault only set necessary data structures.
@@ -25,12 +25,16 @@ func (n *OgNode) InitDefault() {
 func (n *OgNode) Setup() {
 	// load private info
 	// check if file exists
-	n.transportIdentityHolder = &transport.DefaultTransportIdentityHolder{
-		KeyFile: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "network.key")),
+	n.transportAccountHolder = &og.LocalTransportAccountHolder{
+		PrivateGenerator:   &og.DefaultPrivateGenerator{},
+		NetworkIdConverter: &og.OgNetworkIdConverter{},
+		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
+		CryptoType:         transport_interface.CryptoTypeSecp256k1,
+		Account:            nil,
 	}
 
 	// low level transport (libp2p)
-	cpTransport := getTransport(n.transportIdentityHolder)
+	cpTransport := getTransport(n.transportAccountHolder)
 	cpPerformanceMonitor := getPerformanceMonitor()
 
 	// peer relationship management
@@ -41,23 +45,28 @@ func (n *OgNode) Setup() {
 	cpCommunityManager.InitDefault()
 	cpCommunityManager.StaticSetup()
 
+	// ledger implementation
+	ledger := &og.IntArrayLedger{}
+	ledger.InitDefault()
+	ledger.StaticSetup()
+
 	cpController := &rpc.RpcController{
+		Ledger:                    ledger,
 		CpDefaultCommunityManager: cpCommunityManager,
 	}
+
 	// rpc
 	cpRpc := &rpc.RpcServer{
 		Controller: cpController,
 		Port:       viper.GetInt("rpc.port"),
 	}
-	cpRpc.InitDefault()
 
-	// ledger implementation
-	ledger := &og.DefaultLedger{}
-	ledger.StaticSetup()
+	cpRpc.InitDefault()
 
 	cpSyncer := &og.BlockByBlockSyncer{
 		Ledger: ledger,
 	}
+	cpSyncer.InitDefault()
 
 	// OG engine
 	cpOgEngine := &og.OgEngine{

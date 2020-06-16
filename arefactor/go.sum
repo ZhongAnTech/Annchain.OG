@@ -291,6 +291,8 @@ github.com/latifrons/goffchan v1.0.0 h1:jbm8QC9TLWGd90hiyToyQZbbrInAB+QocZnZr0rQ
 github.com/latifrons/goffchan v1.0.0/go.mod h1:C3NhA5qQMICmFR98piDBFgZ+dn3VkYR5XYzsdrvsofc=
 github.com/latifrons/soccerdash v1.1.1 h1:vls4PoDiVuYGJBOisbtirx2cshwUVcINGxqO5MkIFrE=
 github.com/latifrons/soccerdash v1.1.1/go.mod h1:V/ms76rwU5C9ILh+8CB5QYJKz1So9UKe0PYDJh6fpks=
+github.com/latifrons/soccerdash v1.1.2 h1:yGTcePI/QcnsNvqk7Miv8Qp2QrWRTxP7ZBR2USmRGX4=
+github.com/latifrons/soccerdash v1.1.2/go.mod h1:V/ms76rwU5C9ILh+8CB5QYJKz1So9UKe0PYDJh6fpks=
 github.com/leodido/go-urn v1.1.0 h1:Sm1gr51B1kKyfD2BlRcLSiEkffoG96g6TPv6eRoEiB8=
 github.com/leodido/go-urn v1.1.0/go.mod h1:+cyI34gQWZcE1eQU7NVgKkkzdXDQHr1dBMtdAPozLkw=
 github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 h1:0iQektZGS248WXmGIYOwRXSQhD4qn3icjMpuxwO7qlo=

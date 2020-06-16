@@ -18,11 +18,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	og_types "github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common"
 
 	//"github.com/annchain/OG/common"
 
-	"github.com/annchain/OG/arefactor_core/types"
+	"github.com/annchain/OG/arefactor/types"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
 	log "github.com/sirupsen/logrus"
@@ -558,18 +559,30 @@ func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) ([]og_types.Hash, error
 	if len(data) == 0 {
 		return nil, fmt.Errorf("tx hashs with seq height %d not found", SeqHeight)
 	}
-	var hashs []og_types.Hash
-	_, err := hashs.UnmarshalMsg(data)
+
+	data, arrLen, err := marshaller.UnMarshalIMarshallerArrayHeader(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal tx hashes arr header error: %v", err)
 	}
-	return &hashs, nil
+	hashs := make([]og_types.Hash, arrLen)
+	for i := 0; i < arrLen; i++ {
+		hash := &og_types.Hash32{}
+		data, err = hash.UnMarshalMsg(data)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal tx hash error: %v", err)
+		}
+	}
+	return hashs, nil
 }
 
 // WriteIndexedTxHashs stores a list of tx hashs. These related hashs are all
 // confirmed by sequencer that holds the id 'SeqHeight'.
 func (da *Accessor) WriteIndexedTxHashs(putter *Putter, SeqHeight uint64, hashs []og_types.Hash) error {
-	data, err := hashs.MarshalMsg(nil)
+	hashsI := make([]marshaller.IMarshaller, len(hashs))
+	for i := range hashsI {
+		hashsI[i] = hashs[i]
+	}
+	data, err := marshaller.MarshalIMarshallerArray(hashsI)
 	if err != nil {
 		return err
 	}

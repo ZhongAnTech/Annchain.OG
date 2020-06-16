@@ -2,8 +2,10 @@ package og_interface
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"github.com/annchain/OG/arefactor/common/hexutil"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common/math"
 	"math/big"
 	"math/rand"
@@ -55,6 +57,32 @@ func (a *Hash32) FromHexNoError(s string) {
 
 func (a *Hash32) Cmp(another FixLengthBytes) int {
 	return BytesCmp(a, another)
+}
+
+// marshalling part
+
+func (a *Hash32) MsgSize() int {
+	return Hash32Length
+}
+
+func (a *Hash32) MarshalMsg() ([]byte, error) {
+	data := marshaller.InitIMarshallerBytes(Hash32Length)
+	data, pos := marshaller.EncodeIMarshallerHeader(data, 0, Hash32Length)
+	copy(data[pos:], a[:])
+	return data, nil
+}
+
+func (a *Hash32) UnMarshalMsg(data []byte) ([]byte, error) {
+	data, msgLen, err := marshaller.DecodeIMarshallerHeader(data)
+	if err != nil {
+		return data, fmt.Errorf("get marshaller header error: %v", err)
+	}
+
+	if len(data) < Hash32Length || msgLen != Hash32Length {
+		return data, fmt.Errorf("bytes not enough for hash32, should be: %d, get: %d, msgLen: %d", Hash32Length, len(data), msgLen)
+	}
+	copy(a[:], data[:Hash32Length])
+	return data[Hash32Length:], nil
 }
 
 func BytesToHash32(b []byte) *Hash32 {

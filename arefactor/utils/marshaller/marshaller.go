@@ -3,7 +3,7 @@ package marshaller
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/math"
-	"github.com/annchain/OG/arefactor_core/types"
+	"github.com/annchain/OG/arefactor/types"
 )
 
 const (
@@ -87,7 +87,23 @@ func calIMarshallerSize(im IMarshaller) int {
 	return sz
 }
 
-func encodeIMarshallerHeader(b []byte, pos int, msgSize int) ([]byte, int) {
+func InitIMarshallerBytes(msgSize int) []byte {
+	headerLen := 0
+	if msgSize <= math.MaxUint8 {
+		headerLen = 2
+	} else if msgSize <= math.MaxUint16 {
+		headerLen = 3
+	} else if msgSize <= math.MaxUint32 {
+		headerLen = 5
+	} else {
+		// size should not be larger than 2^32-1
+		panic("size should less than 2^32-1")
+	}
+
+	return make([]byte, headerLen+msgSize)
+}
+
+func EncodeIMarshallerHeader(b []byte, pos int, msgSize int) ([]byte, int) {
 
 	if msgSize <= math.MaxUint8 {
 		b[pos] = muint8
@@ -112,7 +128,7 @@ func encodeIMarshallerHeader(b []byte, pos int, msgSize int) ([]byte, int) {
 	return b, pos
 }
 
-func decodeIMarshallerHeader(b []byte) ([]byte, int, error) {
+func DecodeIMarshallerHeader(b []byte) ([]byte, int, error) {
 	lead := b[0]
 	switch lead {
 	case muint8:

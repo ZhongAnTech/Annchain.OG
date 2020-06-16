@@ -15,6 +15,7 @@ package core
 
 import (
 	"fmt"
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/status"
@@ -25,7 +26,8 @@ import (
 	"sync/atomic"
 
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
+	//"github.com/annchain/OG/types"
+	"github.com/annchain/OG/arefactor/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,7 +46,7 @@ const (
 
 type Ledger interface {
 	GetTx(hash common.Hash) types.Txi
-	GetBalance(addr common.Address, tokenID int32) *math.BigInt
+	GetBalance(addr og_types.Address, tokenID int32) *math.BigInt
 	GetLatestNonce(addr common.Address) (uint64, error)
 }
 

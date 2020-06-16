@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -28,26 +29,26 @@ import (
 
 //msgp:tuple AccountData
 type AccountData struct {
-	Address  common.Address
+	Address  og_types.Address
 	Balances BalanceSet
 	Nonce    uint64
-	Root     common.Hash
+	Root     og_types.Hash
 	CodeHash []byte
 }
 
 func NewAccountData() AccountData {
 	return AccountData{
-		Address:  common.Address{},
+		Address:  &og_types.Address20{},
 		Balances: NewBalanceSet(),
 		Nonce:    0,
-		Root:     common.Hash{},
+		Root:     &og_types.Hash32{},
 		CodeHash: []byte{},
 	}
 }
 
 type StateObject struct {
-	address     common.Address
-	addressHash common.Hash
+	address     og_types.Address
+	addressHash og_types.Hash
 	data        AccountData
 
 	dbErr error
@@ -56,14 +57,14 @@ type StateObject struct {
 	dirtycode bool
 	suicided  bool // TODO suicided is useless now.
 
-	committedStorage map[common.Hash]common.Hash
-	dirtyStorage     map[common.Hash]common.Hash
+	committedStorage map[og_types.Hash]og_types.Hash
+	dirtyStorage     map[og_types.Hash]og_types.Hash
 
 	trie Trie
 	db   StateDBInterface
 }
 
-func NewStateObject(addr common.Address, db StateDBInterface) *StateObject {
+func NewStateObject(addr og_types.Address, db StateDBInterface) *StateObject {
 	a := AccountData{}
 	a.Address = addr
 	a.Balances = NewBalanceSet()
@@ -74,8 +75,8 @@ func NewStateObject(addr common.Address, db StateDBInterface) *StateObject {
 	s := &StateObject{}
 	s.address = addr
 	s.addressHash = crypto.Keccak256Hash(addr.ToBytes())
-	s.committedStorage = make(map[common.Hash]common.Hash)
-	s.dirtyStorage = make(map[common.Hash]common.Hash)
+	s.committedStorage = make(map[og_types.Hash]og_types.Hash)
+	s.dirtyStorage = make(map[og_types.Hash]og_types.Hash)
 	s.data = a
 	s.db = db
 	return s
@@ -121,7 +122,7 @@ func (s *StateObject) SubBalance(tokenID int32, decrement *math.BigInt) {
 
 func (s *StateObject) SetBalance(tokenID int32, balance *math.BigInt) {
 	s.db.AppendJournal(&balanceChange{
-		account: &s.address,
+		account: s.address,
 		tokenID: tokenID,
 		prev:    s.data.Balances[tokenID],
 	})
@@ -183,7 +184,7 @@ func (s *StateObject) SetState(db Database, key, value common.Hash) {
 	s.setState(key, value)
 }
 
-func (s *StateObject) setState(key, value common.Hash) {
+func (s *StateObject) setState(key, value og_types.Hash) {
 	s.dirtyStorage[key] = value
 }
 
@@ -211,7 +212,7 @@ func (s *StateObject) SetCode(codehash common.Hash, code []byte) {
 	s.setCode(codehash, code)
 }
 
-func (s *StateObject) setCode(codehash common.Hash, code []byte) {
+func (s *StateObject) setCode(codehash og_types.Hash, code []byte) {
 	s.code = code
 	s.data.CodeHash = codehash.ToBytes()
 	s.dirtycode = true

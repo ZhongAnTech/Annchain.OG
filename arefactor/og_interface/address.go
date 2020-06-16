@@ -57,6 +57,12 @@ func (a *Address20) Cmp(another FixLengthBytes) int {
 	return BytesCmp(a, another)
 }
 
+func BytesToAddress20(b []byte) (*Address20, error) {
+	a := &Address20{}
+	a.FromBytes(b)
+	return a, nil
+}
+
 func HexToAddress20(hex string) (*Address20, error) {
 	a := &Address20{}
 	err := a.FromHex(hex)

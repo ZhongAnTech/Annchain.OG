@@ -15,11 +15,14 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	og_types "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
+
+	"github.com/annchain/OG/arefactor/common"
+	ogtypes "github.com/annchain/OG/arefactor/og_interface"
+	//"github.com/annchain/OG/common/crypto"
+	crypto "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
 	log "github.com/sirupsen/logrus"
 	"github.com/tinylib/msgp/msgp"
@@ -29,26 +32,26 @@ import (
 
 //msgp:tuple AccountData
 type AccountData struct {
-	Address  og_types.Address
+	Address  ogtypes.Address
 	Balances BalanceSet
 	Nonce    uint64
-	Root     og_types.Hash
+	Root     ogtypes.Hash
 	CodeHash []byte
 }
 
 func NewAccountData() AccountData {
 	return AccountData{
-		Address:  &og_types.Address20{},
+		Address:  &ogtypes.Address20{},
 		Balances: NewBalanceSet(),
 		Nonce:    0,
-		Root:     &og_types.Hash32{},
+		Root:     &ogtypes.Hash32{},
 		CodeHash: []byte{},
 	}
 }
 
 type StateObject struct {
-	address     og_types.Address
-	addressHash og_types.Hash
+	address     ogtypes.Address
+	addressHash ogtypes.Hash
 	data        AccountData
 
 	dbErr error
@@ -57,26 +60,26 @@ type StateObject struct {
 	dirtycode bool
 	suicided  bool // TODO suicided is useless now.
 
-	committedStorage map[og_types.Hash]og_types.Hash
-	dirtyStorage     map[og_types.Hash]og_types.Hash
+	committedStorage map[ogtypes.Hash]ogtypes.Hash
+	dirtyStorage     map[ogtypes.Hash]ogtypes.Hash
 
 	trie Trie
 	db   StateDBInterface
 }
 
-func NewStateObject(addr og_types.Address, db StateDBInterface) *StateObject {
+func NewStateObject(addr ogtypes.Address, db StateDBInterface) *StateObject {
 	a := AccountData{}
 	a.Address = addr
 	a.Balances = NewBalanceSet()
 	a.Nonce = 0
-	a.CodeHash = emptyCodeHash.ToBytes()
+	a.CodeHash = emptyCodeHash.Bytes()
 	a.Root = emptyStateRoot
 
 	s := &StateObject{}
 	s.address = addr
-	s.addressHash = crypto.Keccak256Hash(addr.ToBytes())
-	s.committedStorage = make(map[og_types.Hash]og_types.Hash)
-	s.dirtyStorage = make(map[og_types.Hash]og_types.Hash)
+	s.addressHash = ogtypes.BytesToHash32(crypto.Keccak256Hash(addr.Bytes()))
+	s.committedStorage = make(map[ogtypes.Hash]ogtypes.Hash)
+	s.dirtyStorage = make(map[ogtypes.Hash]ogtypes.Hash)
 	s.data = a
 	s.db = db
 	return s
@@ -139,7 +142,7 @@ func (s *StateObject) GetNonce() uint64 {
 
 func (s *StateObject) SetNonce(nonce uint64) {
 	s.db.AppendJournal(&nonceChange{
-		account: &s.address,
+		account: s.address,
 		prev:    s.data.Nonce,
 	})
 	s.setNonce(nonce)
@@ -149,7 +152,7 @@ func (s *StateObject) setNonce(nonce uint64) {
 	s.data.Nonce = nonce
 }
 
-func (s *StateObject) GetState(db Database, key common.Hash) common.Hash {
+func (s *StateObject) GetState(db Database, key ogtypes.Hash) ogtypes.Hash {
 	value, ok := s.dirtyStorage[key]
 	if ok {
 		return value
@@ -157,34 +160,34 @@ func (s *StateObject) GetState(db Database, key common.Hash) common.Hash {
 	return s.GetCommittedState(db, key)
 }
 
-func (s *StateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
+func (s *StateObject) GetCommittedState(db Database, key ogtypes.Hash) ogtypes.Hash {
 	value, ok := s.committedStorage[key]
 	if ok {
 		return value
 	}
 	// load state from trie db.
-	b, err := s.openTrie(db).TryGet(key.ToBytes())
+	b, err := s.openTrie(db).TryGet(key.Bytes())
 	if err != nil {
-		log.Errorf("get from trie db error: %v, key: %x", err, key.ToBytes())
+		log.Errorf("get from trie db error: %v, key: %x", err, key.Bytes())
 		s.setError(err)
 	}
 
-	value = common.BytesToHash(b)
+	value = ogtypes.BytesToHash32(b)
 	s.committedStorage[key] = value
 
 	return value
 }
 
-func (s *StateObject) SetState(db Database, key, value common.Hash) {
+func (s *StateObject) SetState(db Database, key, value ogtypes.Hash) {
 	s.db.AppendJournal(&storageChange{
-		account:  &s.address,
+		account:  s.address,
 		key:      key,
 		prevalue: s.GetState(db, key),
 	})
 	s.setState(key, value)
 }
 
-func (s *StateObject) setState(key, value og_types.Hash) {
+func (s *StateObject) setState(key, value ogtypes.Hash) {
 	s.dirtyStorage[key] = value
 }
 
@@ -192,7 +195,7 @@ func (s *StateObject) GetCode(db Database) []byte {
 	if s.code != nil {
 		return s.code
 	}
-	if bytes.Equal(s.GetCodeHash().ToBytes(), emptyCodeHash.ToBytes()) {
+	if bytes.Equal(s.GetCodeHash().Bytes(), emptyCodeHash.Bytes()) {
 		return nil
 	}
 	code, err := db.ContractCode(s.addressHash, s.GetCodeHash())
@@ -203,30 +206,30 @@ func (s *StateObject) GetCode(db Database) []byte {
 	return s.code
 }
 
-func (s *StateObject) SetCode(codehash common.Hash, code []byte) {
+func (s *StateObject) SetCode(codehash ogtypes.Hash, code []byte) {
 	s.db.AppendJournal(&codeChange{
-		account:  &s.address,
+		account:  s.address,
 		prevcode: s.code,
 		prevhash: s.data.CodeHash,
 	})
 	s.setCode(codehash, code)
 }
 
-func (s *StateObject) setCode(codehash og_types.Hash, code []byte) {
+func (s *StateObject) setCode(codehash ogtypes.Hash, code []byte) {
 	s.code = code
-	s.data.CodeHash = codehash.ToBytes()
+	s.data.CodeHash = codehash.Bytes()
 	s.dirtycode = true
 }
 
-func (s *StateObject) GetCodeHash() common.Hash {
-	return common.BytesToHash(s.data.CodeHash)
+func (s *StateObject) GetCodeHash() ogtypes.Hash {
+	return ogtypes.BytesToHash32(s.data.CodeHash)
 }
 
 func (s *StateObject) GetCodeSize(db Database) (int, error) {
 	if s.code != nil {
 		return len(s.code), nil
 	}
-	return db.ContractCodeSize(s.addressHash, common.BytesToHash(s.data.CodeHash))
+	return db.ContractCodeSize(s.addressHash, ogtypes.BytesToHash32(s.data.CodeHash))
 }
 
 func (s *StateObject) openTrie(db Database) Trie {
@@ -235,7 +238,7 @@ func (s *StateObject) openTrie(db Database) Trie {
 	}
 	t, err := db.OpenStorageTrie(s.addressHash, s.data.Root)
 	if err != nil {
-		t, _ = db.OpenStorageTrie(s.addressHash, common.BytesToHash([]byte{}))
+		t, _ = db.OpenStorageTrie(s.addressHash, ogtypes.BytesToHash32([]byte{}))
 	}
 	s.trie = t
 	return s.trie
@@ -245,8 +248,8 @@ func (s *StateObject) updateTrie(db Database) {
 	var err error
 	t := s.openTrie(db)
 	for key, value := range s.dirtyStorage {
-		if len(value.ToBytes()) == 0 {
-			err = t.TryDelete(key.ToBytes())
+		if len(value.Bytes()) == 0 {
+			err = t.TryDelete(key.Bytes())
 			if err != nil {
 				s.setError(err)
 				continue
@@ -255,7 +258,7 @@ func (s *StateObject) updateTrie(db Database) {
 			continue
 		}
 		//log.Tracef("Panic debug, StateObject updateTrie, key: %x, value: %x", key.ToBytes(), value.ToBytes())
-		err = t.TryUpdate(key.ToBytes(), value.ToBytes())
+		err = t.TryUpdate(key.Bytes(), value.Bytes())
 		if err != nil {
 			s.setError(err)
 		}
@@ -283,8 +286,8 @@ func (s *StateObject) CommitStorage(db Database, preCommit bool) error {
 // Note that this function is for test debug only, should not
 // be called by other functions.
 func (s *StateObject) Uncache() {
-	s.committedStorage = make(map[common.Hash]common.Hash)
-	s.dirtyStorage = make(map[common.Hash]common.Hash)
+	s.committedStorage = make(map[ogtypes.Hash]ogtypes.Hash)
+	s.dirtyStorage = make(map[ogtypes.Hash]ogtypes.Hash)
 }
 
 /*
@@ -294,7 +297,7 @@ func (s *StateObject) Uncache() {
 func (s *StateObject) Map() map[string]interface{} {
 	stobjMap := map[string]interface{}{}
 
-	stobjMap["code"] = common.Bytes2Hex(s.code)
+	stobjMap["code"] = hex.EncodeToString(s.code)
 	stobjMap["committed"] = s.committedStorage
 	stobjMap["dirty"] = s.dirtyStorage
 	stobjMap["data"] = s.data
@@ -318,9 +321,9 @@ func (s *StateObject) Decode(b []byte, db *StateDB) error {
 
 	s.data = a
 	s.address = a.Address
-	s.addressHash = crypto.Keccak256Hash(a.Address.ToBytes())
-	s.committedStorage = make(map[common.Hash]common.Hash)
-	s.dirtyStorage = make(map[common.Hash]common.Hash)
+	s.addressHash = ogtypes.BytesToHash32(crypto.Keccak256Hash(a.Address.Bytes()))
+	s.committedStorage = make(map[ogtypes.Hash]ogtypes.Hash)
+	s.dirtyStorage = make(map[ogtypes.Hash]ogtypes.Hash)
 	s.db = db
 	return err
 }
@@ -372,10 +375,10 @@ func (b *BalanceSet) MarshalMsg(bts []byte) (o []byte, err error) {
 	o = msgp.Require(bts, msgpSize)
 
 	// add total size
-	o = append(o, common.ByteInt32(int32(0))...)
+	o = append(o, common.Int32ToBytes(int32(0))...)
 
 	for k, v := range *b {
-		o = append(o, common.ByteInt32(k)...)
+		o = append(o, common.Int32ToBytes(k)...)
 
 		o, err = v.MarshalMsg(o)
 		//fmt.Println(fmt.Sprintf("cur o: %x", o))

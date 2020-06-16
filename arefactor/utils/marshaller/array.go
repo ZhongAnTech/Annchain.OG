@@ -1,7 +1,7 @@
 package marshaller
 
 import (
-	"github.com/annchain/OG/arefactor/types"
+	"github.com/annchain/OG/arefactor/common"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -29,7 +29,7 @@ func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
 
 	// set 5 bytes array header
 	b[0] = mfixarray
-	types.SetUInt32(b, 1, uint32(size))
+	common.SetUInt32(b, 1, uint32(size))
 
 	pos := 5
 	for _, element := range arr {

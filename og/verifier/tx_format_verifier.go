@@ -6,9 +6,9 @@ import (
 	"fmt"
 	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/og/types"
 	"github.com/annchain/OG/ogcore/miner"
 
@@ -100,7 +100,7 @@ func (v *TxFormatVerifier) VerifySignature(t types.Txi) bool {
 				return false
 			}
 			var addr common.Address
-			copy(addr.Bytes[:], ogcrypto.Keccak256(pub.KeyBytes)[12:])
+			copy(addr.Bytes[:], ogcrypto2.Keccak256(pub.KeyBytes)[12:])
 			t.SetSender(addr)
 		}
 		return ok

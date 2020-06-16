@@ -21,7 +21,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"math"
 	"math/rand"
 	"sort"
@@ -715,7 +715,7 @@ func (b *topicRadiusBucket) adjust(now mclock.AbsTime, inside float64) {
 }
 
 func newTopicRadius(t Topic) *topicRadius {
-	topicHash := ogcrypto.Keccak256Hash([]byte(t))
+	topicHash := ogcrypto2.Keccak256Hash([]byte(t))
 	topicHashPrefix := binary.BigEndian.Uint64(topicHash.Bytes[0:8])
 
 	return &topicRadius{

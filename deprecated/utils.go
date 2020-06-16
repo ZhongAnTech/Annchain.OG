@@ -1,4 +1,4 @@
-package ogcrypto
+package deprecated
 
 import (
 	"crypto/sha256"
@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/hexutil"
 	"github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/ogcrypto_interface"
+	"github.com/annchain/OG/deprecated/ogcrypto"
+	"github.com/annchain/OG/deprecated/ogcrypto_interface"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ripemd160"
 	"math/big"
@@ -42,7 +43,7 @@ func PublicKeyFromSignature(sighash og_interface.Hash, signature *ogcrypto_inter
 		return
 	}
 	V := byte(Vb.Uint64() - 27)
-	if !ValidateSignatureValues(V, R, S, false) {
+	if !ogcrypto.ValidateSignatureValues(V, R, S, false) {
 		err = errors.New("vrs error")
 		logrus.WithError(err).Debug("validate signature error")
 		return
@@ -55,7 +56,7 @@ func PublicKeyFromSignature(sighash og_interface.Hash, signature *ogcrypto_inter
 	sigBytes[64] = V
 	// recover the public key from the signature
 	//pub, err := Ecrecover(sighash.Bytes[:], sigBytes)
-	pub, err := Ecrecover(sighash.Bytes(), sigBytes)
+	pub, err := ogcrypto.Ecrecover(sighash.Bytes(), sigBytes)
 	if err != nil {
 		logrus.WithError(err).Debug("sigBytes verify failed")
 	}

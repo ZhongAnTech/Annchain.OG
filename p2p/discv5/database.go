@@ -25,7 +25,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/goroutine"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"os"
 	"sync"
 	"time"
@@ -200,7 +200,7 @@ func (db *nodeDB) node(id NodeID) *Node {
 	if err != nil {
 		return nil
 	}
-	node.sha = ogcrypto.Keccak256Hash(node.ID[:])
+	node.sha = ogcrypto2.Keccak256Hash(node.ID[:])
 	return &node
 }
 

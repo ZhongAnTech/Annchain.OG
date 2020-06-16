@@ -16,10 +16,6 @@ package ogcrypto_interface
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/hexutil"
-	"github.com/annchain/OG/arefactor/ogcrypto/extra25519"
-	"github.com/annchain/kyber/v3"
-	"github.com/annchain/kyber/v3/encrypt/ecies"
-	"github.com/annchain/kyber/v3/group/edwards25519"
 )
 
 type CryptoType int8
@@ -94,30 +90,31 @@ func (p *Signature) DebugString() string {
 	return fmt.Sprintf("sig%d:%s", p.Type, hexutil.ToHex(p.SignatureBytes))
 }
 
-type KyberEd22519PrivKey struct {
-	PrivateKey kyber.Scalar
-	Suit       *edwards25519.SuiteEd25519
-}
-
-func (p *KyberEd22519PrivKey) Decrypt(cipherText []byte) (m []byte, err error) {
-	return ecies.Decrypt(p.Suit, p.PrivateKey, cipherText, p.Suit.Hash)
-}
-
-func (p *PrivateKey) ToKyberEd25519PrivKey() *KyberEd22519PrivKey {
-	var edPrivKey [32]byte
-	var curvPrivKey [64]byte
-	copy(curvPrivKey[:], p.KeyBytes[:64])
-	extra25519.PrivateKeyToCurve25519(&edPrivKey, &curvPrivKey)
-	privateKey, err := edwards25519.UnmarshalBinaryScalar(edPrivKey[:32])
-	suite := edwards25519.NewBlakeSHA256Ed25519()
-	if err != nil {
-		panic(err)
-	}
-	return &KyberEd22519PrivKey{
-		PrivateKey: privateKey,
-		Suit:       suite,
-	}
-}
+//
+//type KyberEd22519PrivKey struct {
+//	PrivateKey kyber.Scalar
+//	Suit       *edwards25519.SuiteEd25519
+//}
+//
+//func (p *KyberEd22519PrivKey) Decrypt(cipherText []byte) (m []byte, err error) {
+//	return ecies.Decrypt(p.Suit, p.PrivateKey, cipherText, p.Suit.Hash)
+//}
+//
+//func (p *PrivateKey) ToKyberEd25519PrivKey() *KyberEd22519PrivKey {
+//	var edPrivKey [32]byte
+//	var curvPrivKey [64]byte
+//	copy(curvPrivKey[:], p.KeyBytes[:64])
+//	extra25519.PrivateKeyToCurve25519(&edPrivKey, &curvPrivKey)
+//	privateKey, err := edwards25519.UnmarshalBinaryScalar(edPrivKey[:32])
+//	suite := edwards25519.NewBlakeSHA256Ed25519()
+//	if err != nil {
+//		panic(err)
+//	}
+//	return &KyberEd22519PrivKey{
+//		PrivateKey: privateKey,
+//		Suit:       suite,
+//	}
+//}
 
 func (c CryptoType) String() string {
 	if c == CryptoTypeEd25519 {

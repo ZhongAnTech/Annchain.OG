@@ -16,17 +16,17 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/p2p/onode"
 	"net"
 )
 
 func main() {
-	key, err := ogcrypto.GenerateKey()
+	key, err := ogcrypto2.GenerateKey()
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate ephemeral node key: %v", err))
 	}
-	data := ogcrypto.FromECDSA(key)
+	data := ogcrypto2.FromECDSA(key)
 	fmt.Println("nodekey", hex.EncodeToString(data))
 	node := onode.NewV4(&key.PublicKey, net.ParseIP("192.168.1.1"), 8001, 8001)
 	fmt.Println(node)

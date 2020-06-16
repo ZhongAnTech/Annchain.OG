@@ -7,7 +7,7 @@ package extra25519
 import (
 	"crypto/sha512"
 
-	"github.com/annchain/OG/arefactor/ogcrypto/ed25519"
+	"github.com/annchain/OG/deprecated/ogcrypto/ed25519"
 )
 
 // PrivateKeyToCurve25519 converts an ed25519 private key into a corresponding

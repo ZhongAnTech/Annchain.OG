@@ -4,11 +4,12 @@ import (
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"time"
 )
 
-const EngineCheckIntervalSeconds = 5
+const EngineCheckIntervalSeconds = 1
 
 type OgEngine struct {
 	Ledger           Ledger
@@ -47,8 +48,8 @@ func (o *OgEngine) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.
 
 func (o *OgEngine) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range o.newOutgoingMessageSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
-		subscriber.NewOutgoingMessageEventChannel() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing engine"+subscriber.Name()).C
+		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
 }
 
@@ -58,8 +59,8 @@ func (o *OgEngine) AddSubscriberNewHeightDetectedEvent(sub og_interface.NewHeigh
 
 func (o *OgEngine) notifyNewHeightDetected(event *og_interface.NewHeightDetectedEvent) {
 	for _, subscriber := range o.newHeightDetectedSubscribers {
-		//goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing")
-		subscriber.NewHeightDetectedEventChannel() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewHeightDetectedEventChannel(), event, "heightdetected"+subscriber.Name()).C
+		//subscriber.NewHeightDetectedEventChannel() <- event
 	}
 }
 
@@ -82,9 +83,11 @@ func (o *OgEngine) loop() {
 	timer := time.NewTimer(time.Second * time.Duration(EngineCheckIntervalSeconds))
 
 	for {
-		logrus.Trace("ogEngine loop round start")
 		if !timer.Stop() {
-			<-timer.C
+			select {
+			case <-timer.C:
+			default:
+			}
 		}
 		timer.Reset(time.Second * time.Duration(EngineCheckIntervalSeconds))
 		select {

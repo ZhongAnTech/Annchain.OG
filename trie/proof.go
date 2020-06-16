@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/ogdb"
 	log "github.com/sirupsen/logrus"
 )
@@ -80,7 +80,7 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ogdb.Putter) error {
 				// delete this line later
 				// enc, _ := rlp.EncodeToBytes(n)
 				if !ok {
-					hash = ogcrypto.Keccak256(enc)
+					hash = ogcrypto2.Keccak256(enc)
 				}
 				proofDb.Put(hash, enc)
 			}

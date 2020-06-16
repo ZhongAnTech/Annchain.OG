@@ -18,10 +18,10 @@ import (
 	"fmt"
 	types2 "github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/consensus/campaign"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"github.com/annchain/OG/og/archive"
 	"github.com/annchain/OG/og/txmaker"
 	"github.com/annchain/OG/og/types"
@@ -285,9 +285,9 @@ func (r *RpcController) NewAccount(c *gin.Context) {
 	algorithm := strings.ToLower(txReq.Algorithm)
 	switch algorithm {
 	case "ed25519":
-		signer = &ogcrypto.SignerEd25519{}
+		signer = &ogcrypto2.SignerEd25519{}
 	case "secp256k1":
-		signer = &ogcrypto.SignerSecp256k1{}
+		signer = &ogcrypto2.SignerSecp256k1{}
 	}
 	pub, priv := signer.RandomKeyPair()
 	if err != nil {

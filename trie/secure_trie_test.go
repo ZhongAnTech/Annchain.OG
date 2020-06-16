@@ -19,7 +19,7 @@ package trie
 import (
 	"bytes"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"runtime"
 	"sync"
 	"testing"
@@ -100,7 +100,7 @@ func TestSecureGetKey(t *testing.T) {
 
 	key := []byte("foo")
 	value := []byte("bar")
-	seckey := ogcrypto.Keccak256(key)
+	seckey := ogcrypto2.Keccak256(key)
 
 	if !bytes.Equal(trie.Get(key), value) {
 		t.Errorf("Get did not return bar")

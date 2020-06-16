@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/og/types"
-	crypto2 "github.com/annchain/OG/arefactor/ogcrypto"
+	"github.com/annchain/OG/deprecated/ogcrypto"
 	"math/big"
 	"math/rand"
 	"net"
@@ -61,7 +61,7 @@ func NewNode(id NodeID, ip net.IP, udpPort, tcpPort uint16) *Node {
 		UDP:         udpPort,
 		TCP:         tcpPort,
 		ID:          id,
-		nodeNetGuts: nodeNetGuts{sha: crypto2.Keccak256Hash(id[:])},
+		nodeNetGuts: nodeNetGuts{sha: ogcrypto.Keccak256Hash(id[:])},
 	}
 }
 
@@ -322,7 +322,7 @@ func PubkeyID(pub *ecdsa.PublicKey) NodeID {
 // Pubkey returns the public key represented by the node ID.
 // It returns an error if the ID is not a point on the curve.
 func (n NodeID) Pubkey() (*ecdsa.PublicKey, error) {
-	p := &ecdsa.PublicKey{Curve: crypto2.S256(), X: new(big.Int), Y: new(big.Int)}
+	p := &ecdsa.PublicKey{Curve: ogcrypto.S256(), X: new(big.Int), Y: new(big.Int)}
 	half := len(n) / 2
 	p.X.SetBytes(n[:half])
 	p.Y.SetBytes(n[half:])
@@ -343,7 +343,7 @@ func (id NodeID) mustPubkey() ecdsa.PublicKey {
 // recoverNodeID computes the public key used to sign the
 // given hash from the signature.
 func recoverNodeID(hash, sig []byte) (id NodeID, err error) {
-	pubkey, err := crypto2.Ecrecover(hash, sig)
+	pubkey, err := ogcrypto.Ecrecover(hash, sig)
 	if err != nil {
 		return id, err
 	}

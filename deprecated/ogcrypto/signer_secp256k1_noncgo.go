@@ -19,8 +19,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"fmt"
-	"github.com/annchain/OG/arefactor/ogcrypto/ecies"
-	"github.com/annchain/OG/arefactor/ogcrypto_interface"
+	"github.com/annchain/OG/arefactor/ogcrypto"
+	"github.com/annchain/OG/deprecated"
+	"github.com/annchain/OG/deprecated/ogcrypto/ecies"
+	"github.com/annchain/OG/deprecated/ogcrypto_interface"
 	"github.com/btcsuite/btcd/btcec"
 	"math/big"
 )
@@ -42,7 +44,7 @@ func (s *SignerSecp256k1) GetCryptoType() ogcrypto_interface.CryptoType {
 // The produced signature is in the [R || S || V] format where V is 0 or 1.
 func (s *SignerSecp256k1) Sign(privKey ogcrypto_interface.PrivateKey, msg []byte) ogcrypto_interface.Signature {
 	prv, _ := ToECDSA(privKey.KeyBytes)
-	hash := Sha256(msg)
+	hash := deprecated.Sha256(msg)
 	if len(hash) != 32 {
 		panic(fmt.Errorf("hash is required to be exactly 32 bytes (%d)", len(hash)))
 	}
@@ -58,14 +60,14 @@ func (s *SignerSecp256k1) Sign(privKey ogcrypto_interface.PrivateKey, msg []byte
 	v := sig[0] - 27
 	copy(sig, sig[1:])
 	sig[64] = v
-	return SignatureFromBytes(s.GetCryptoType(), sig)
+	return deprecated.SignatureFromBytes(s.GetCryptoType(), sig)
 }
 
 // VerifySignature checks that the given public key created signature over hash.
 // The public key should be in compressed (33 bytes) or uncompressed (65 bytes) format.
 // The signature should have the 64 byte [R || S] format.
 func (s *SignerSecp256k1) Verify(pubKey ogcrypto_interface.PublicKey, signature ogcrypto_interface.Signature, msg []byte) bool {
-	hash := Sha256(msg)
+	hash := deprecated.Sha256(msg)
 	signature = s.DealRecoverID(signature)
 	sigs := signature.SignatureBytes
 	sig := &btcec.Signature{R: new(big.Int).SetBytes(sigs[:32]), S: new(big.Int).SetBytes(sigs[32:])}
@@ -85,11 +87,11 @@ func (s *SignerSecp256k1) Verify(pubKey ogcrypto_interface.PublicKey, signature 
 func (s *SignerSecp256k1) PubKey(privKey ogcrypto_interface.PrivateKey) ogcrypto_interface.PublicKey {
 	_, ecdsapub := btcec.PrivKeyFromBytes(btcec.S256(), privKey.KeyBytes)
 	pub := FromECDSAPub((*ecdsa.PublicKey)(ecdsapub))
-	return PublicKeyFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, pub[:])
+	return deprecated.PublicKeyFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, pub[:])
 }
 
 func (s *SignerSecp256k1) PublicKeyFromBytes(b []byte) ogcrypto_interface.PublicKey {
-	return PublicKeyFromBytes(s.GetCryptoType(), b)
+	return deprecated.PublicKeyFromBytes(s.GetCryptoType(), b)
 }
 
 func (s *SignerSecp256k1) Encrypt(p ogcrypto_interface.PublicKey, m []byte) (ct []byte, err error) {
@@ -120,9 +122,9 @@ func (s *SignerSecp256k1) DealRecoverID(sig ogcrypto_interface.Signature) ogcryp
 
 func (s *SignerSecp256k1) RandomKeyPair() (publicKey ogcrypto_interface.PublicKey, privateKey ogcrypto_interface.PrivateKey) {
 	privKeyBytes := [32]byte{}
-	copy(privKeyBytes[:], CRandBytes(32))
+	copy(privKeyBytes[:], ogcrypto.CRandBytes(32))
 
-	privateKey = PrivateKeyFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, privKeyBytes[:])
+	privateKey = deprecated.PrivateKeyFromBytes(ogcrypto_interface.CryptoTypeSecp256k1, privKeyBytes[:])
 	publicKey = s.PubKey(privateKey)
 	return
 }

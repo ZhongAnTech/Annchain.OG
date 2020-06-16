@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -581,7 +581,7 @@ func BenchmarkHash(b *testing.B) {
 			nonce   = uint64(random.Int63())
 			balance = new(big.Int).Rand(random, new(big.Int).Exp(math.Big2, math.Big256, nil))
 			root    = emptyRoot
-			code    = ogcrypto.Keccak256(nil)
+			code    = ogcrypto2.Keccak256(nil)
 		)
 		accstr := fmt.Sprintf("%d %v %s %v", nonce, balance.Bytes(), root.String(), code)
 		accounts[i] = common.Hex2BytesNoError(accstr)
@@ -589,7 +589,7 @@ func BenchmarkHash(b *testing.B) {
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
 	for i := 0; i < len(addresses); i++ {
-		trie.Update(ogcrypto.Keccak256(addresses[i][:]), accounts[i])
+		trie.Update(ogcrypto2.Keccak256(addresses[i][:]), accounts[i])
 	}
 	b.ResetTimer()
 	b.ReportAllocs()

@@ -19,8 +19,8 @@ package vm
 import (
 	"bytes"
 	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/arefactor/ogcrypto"
 	common2 "github.com/annchain/OG/common"
+	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 	"math/big"
 	"testing"
 
@@ -572,7 +572,7 @@ func TestCreate2Addreses(t *testing.T) {
 		origin := common2.BytesToAddress(common.FromHex(tt.origin))
 		salt := types.BytesToHash(common.FromHex(tt.salt))
 		code := common.FromHex(tt.code)
-		codeHash := ogcrypto.Keccak256(code)
+		codeHash := ogcrypto2.Keccak256(code)
 		address := crypto.CreateAddress2(origin, salt.Bytes, codeHash)
 		/*
 			stack          := newstack()

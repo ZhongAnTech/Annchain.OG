@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/sirupsen/logrus"
@@ -32,11 +33,23 @@ func getPerformanceMonitor() *performance.PerformanceMonitor {
 	return pm
 }
 
-func getTransport(identityHolder *transport.DefaultTransportIdentityHolder) *transport.PhysicalCommunicator {
-
-	identity, err := identityHolder.ProvidePrivateKey(viper.GetBool("genkey"))
+func getTransport(accountHolder og.TransportAccountHolder) *transport.PhysicalCommunicator {
+	account, err := accountHolder.ProvideAccount()
 	if err != nil {
-		logrus.WithError(err).Fatal("failed to init transport")
+		// account not exists
+		// generate or
+		if !viper.GetBool("genkey") {
+			logrus.WithError(err).Fatal("failed to read key file. You may generate one by specifying --genkey flag")
+		}
+		// generate
+		account, err = accountHolder.Generate(nil)
+		if err != nil {
+			logrus.WithError(err).Fatal("failed to generate transport account")
+		}
+		err = accountHolder.Save()
+		if err != nil {
+			logrus.WithError(err).Fatal("failed to store account. Account may lost after reboot so we quit.")
+		}
 	}
 
 	hostname := utilfuncs.GetHostName()
@@ -49,7 +62,7 @@ func getTransport(identityHolder *transport.DefaultTransportIdentityHolder) *tra
 
 	p2p := &transport.PhysicalCommunicator{
 		Port:            viper.GetInt("p2p.port"),
-		PrivateKey:      identity.PrivateKey,
+		PrivateKey:      account.PrivateKey,
 		ProtocolId:      viper.GetString("p2p.network_id"),
 		NetworkReporter: reporter,
 	}

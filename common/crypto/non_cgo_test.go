@@ -72,7 +72,7 @@ func (s *SignerSecp256k1cgo) Verify(pubKey PublicKey, signature Signature, msg [
 
 func (s *SignerSecp256k1cgo) RandomKeyPair() (publicKey PublicKey, privateKey PrivateKey) {
 	privKeyBytes := [32]byte{}
-	copy(privKeyBytes[:], ogcrypto.CRandBytes(32))
+	copy(privKeyBytes[:], ogcrypto2.CRandBytes(32))
 
 	privateKey = PrivateKeyFromBytes(CryptoTypeSecp256k1, privKeyBytes[:])
 	publicKey = s.PubKey(privateKey)

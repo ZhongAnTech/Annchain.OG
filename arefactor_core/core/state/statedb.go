@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	tkType "github.com/annchain/OG/types/token"
 	"sync"
@@ -63,8 +64,8 @@ type StateDB struct {
 
 	// states stores all the active state object, any changes on stateobject
 	// will also update states.
-	states   map[common.Address]*StateObject
-	dirtyset map[common.Address]struct{}
+	states   map[og_types.Address]*StateObject
+	dirtyset map[og_types.Address]struct{}
 
 	// token information
 	latestTokenID      int32
@@ -228,7 +229,7 @@ func (sd *StateDB) GetStateObject(addr common.Address) *StateObject {
 
 	return sd.getStateObject(addr)
 }
-func (sd *StateDB) getStateObject(addr common.Address) *StateObject {
+func (sd *StateDB) getStateObject(addr og_types.Address) *StateObject {
 	state, exist := sd.states[addr]
 	if !exist {
 		var err error

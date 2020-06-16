@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"fmt"
 	og_types "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/kyber/v3/util/random"
 	"math/rand"
 	"strings"

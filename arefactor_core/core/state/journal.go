@@ -17,7 +17,7 @@
 package state
 
 import (
-	"github.com/annchain/OG/common"
+	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common/math"
 )
 
@@ -30,7 +30,7 @@ type JournalEntry interface {
 	Revert(db *StateDB)
 
 	// dirtied returns the address modified by this journal entry.
-	Dirtied() *common.Address
+	Dirtied() og_types.Address
 
 	// TokenDirtied returns the Token ID modified by this journal entry.
 	TokenDirtied() int32
@@ -40,15 +40,15 @@ type JournalEntry interface {
 // commit. These are tracked to be able to be reverted in case of an execution
 // exception or revertal request.
 type journal struct {
-	entries      []JournalEntry         // Current changes tracked by the journal
-	dirties      map[common.Address]int // Dirty accounts and the number of changes
-	tokenDirties map[int32]int          // Dirty tokens and the number of changes.
+	entries      []JournalEntry           // Current changes tracked by the journal
+	dirties      map[og_types.Address]int // Dirty accounts and the number of changes
+	tokenDirties map[int32]int            // Dirty tokens and the number of changes.
 }
 
 // newJournal create a new initialized journal.
 func newJournal() *journal {
 	return &journal{
-		dirties:      make(map[common.Address]int),
+		dirties:      make(map[og_types.Address]int),
 		tokenDirties: make(map[int32]int),
 	}
 }
@@ -57,7 +57,7 @@ func newJournal() *journal {
 func (j *journal) append(entry JournalEntry) {
 	j.entries = append(j.entries, entry)
 	if addr := entry.Dirtied(); addr != nil {
-		j.dirties[*addr]++
+		j.dirties[addr]++
 	}
 	if tokenID := entry.TokenDirtied(); tokenID > TokenNotDirtied {
 		j.tokenDirties[tokenID]++
@@ -73,8 +73,8 @@ func (j *journal) revert(statedb *StateDB, snapshot int) {
 
 		// Drop any dirty tracking induced by the change
 		if addr := j.entries[i].Dirtied(); addr != nil {
-			if j.dirties[*addr]--; j.dirties[*addr] == 0 {
-				delete(j.dirties, *addr)
+			if j.dirties[addr]--; j.dirties[addr] == 0 {
+				delete(j.dirties, addr)
 			}
 		}
 		if tokenID := j.entries[i].TokenDirtied(); tokenID > TokenNotDirtied {
@@ -105,34 +105,34 @@ func (j *journal) length() int {
 type (
 	// Changes to the account trie.
 	createObjectChange struct {
-		account *common.Address
+		account og_types.Address
 	}
 	resetObjectChange struct {
-		account *common.Address
+		account og_types.Address
 		prev    *StateObject
 	}
 	suicideChange struct {
-		account     *common.Address
+		account     og_types.Address
 		prev        bool // whether account had already suicided
 		prevbalance BalanceSet
 	}
 
 	// Changes to individual accounts.
 	balanceChange struct {
-		account *common.Address
+		account og_types.Address
 		tokenID int32
 		prev    *math.BigInt
 	}
 	nonceChange struct {
-		account *common.Address
+		account og_types.Address
 		prev    uint64
 	}
 	storageChange struct {
-		account       *common.Address
-		key, prevalue common.Hash
+		account       og_types.Address
+		key, prevalue og_types.Hash
 	}
 	codeChange struct {
-		account            *common.Address
+		account            og_types.Address
 		prevcode, prevhash []byte
 	}
 
@@ -141,13 +141,13 @@ type (
 		prev uint64
 	}
 	addLogChange struct {
-		txhash common.Hash
+		txhash og_types.Hash
 	}
 	addPreimageChange struct {
-		hash common.Hash
+		hash og_types.Hash
 	}
 	touchChange struct {
-		account   *common.Address
+		account   og_types.Address
 		prev      bool
 		prevDirty bool
 	}
@@ -171,11 +171,11 @@ type (
 )
 
 func (ch createObjectChange) Revert(s *StateDB) {
-	delete(s.states, *ch.account)
-	delete(s.dirtyset, *ch.account)
+	delete(s.states, ch.account)
+	delete(s.dirtyset, ch.account)
 }
 
-func (ch createObjectChange) Dirtied() *common.Address {
+func (ch createObjectChange) Dirtied() og_types.Address {
 	return ch.account
 }
 
@@ -185,14 +185,14 @@ func (ch createObjectChange) TokenDirtied() int32 {
 
 func (ch resetObjectChange) Revert(s *StateDB) {
 	if ch.prev == nil {
-		delete(s.states, *ch.account)
+		delete(s.states, ch.account)
 	} else {
 		s.states[ch.prev.address] = ch.prev
 	}
 }
 
-func (ch resetObjectChange) Dirtied() *common.Address {
-	return &ch.prev.address
+func (ch resetObjectChange) Dirtied() og_types.Address {
+	return ch.prev.address
 }
 
 func (ch resetObjectChange) TokenDirtied() int32 {
@@ -200,7 +200,7 @@ func (ch resetObjectChange) TokenDirtied() int32 {
 }
 
 func (ch suicideChange) Revert(s *StateDB) {
-	stobj := s.getStateObject(*ch.account)
+	stobj := s.getStateObject(ch.account)
 	if stobj != nil {
 		stobj.suicided = ch.prev
 		for k, v := range ch.prevbalance {
@@ -209,7 +209,7 @@ func (ch suicideChange) Revert(s *StateDB) {
 	}
 }
 
-func (ch suicideChange) Dirtied() *common.Address {
+func (ch suicideChange) Dirtied() og_types.Address {
 	return ch.account
 }
 
@@ -220,7 +220,7 @@ func (ch suicideChange) TokenDirtied() int32 {
 func (ch touchChange) Revert(s *StateDB) {
 }
 
-func (ch touchChange) Dirtied() *common.Address {
+func (ch touchChange) Dirtied() og_types.Address {
 	return ch.account
 }
 
@@ -229,13 +229,13 @@ func (ch touchChange) TokenDirtied() int32 {
 }
 
 func (ch balanceChange) Revert(s *StateDB) {
-	stobj := s.getStateObject(*ch.account)
+	stobj := s.getStateObject(ch.account)
 	if stobj != nil {
 		stobj.setBalance(ch.tokenID, ch.prev)
 	}
 }
 
-func (ch balanceChange) Dirtied() *common.Address {
+func (ch balanceChange) Dirtied() og_types.Address {
 	return ch.account
 }
 
@@ -244,13 +244,13 @@ func (ch balanceChange) TokenDirtied() int32 {
 }
 
 func (ch nonceChange) Revert(s *StateDB) {
-	stobj := s.getStateObject(*ch.account)
+	stobj := s.getStateObject(ch.account)
 	if stobj != nil {
 		stobj.setNonce(ch.prev)
 	}
 }
 
-func (ch nonceChange) Dirtied() *common.Address {
+func (ch nonceChange) Dirtied() og_types.Address {
 	return ch.account
 }
 
@@ -259,13 +259,13 @@ func (ch nonceChange) TokenDirtied() int32 {
 }
 
 func (ch codeChange) Revert(s *StateDB) {
-	stobj := s.getStateObject(*ch.account)
+	stobj := s.getStateObject(ch.account)
 	if stobj != nil {
-		stobj.setCode(common.BytesToHash(ch.prevhash), ch.prevcode)
+		stobj.setCode(og_types.BytesToHash32(ch.prevhash), ch.prevcode)
 	}
 }
 
-func (ch codeChange) Dirtied() *common.Address {
+func (ch codeChange) Dirtied() og_types.Address {
 	return ch.account
 }
 
@@ -274,13 +274,13 @@ func (ch codeChange) TokenDirtied() int32 {
 }
 
 func (ch storageChange) Revert(s *StateDB) {
-	stobj := s.getStateObject(*ch.account)
+	stobj := s.getStateObject(ch.account)
 	if stobj != nil {
 		stobj.setState(ch.key, ch.prevalue)
 	}
 }
 
-func (ch storageChange) Dirtied() *common.Address {
+func (ch storageChange) Dirtied() og_types.Address {
 	return ch.account
 }
 
@@ -292,7 +292,7 @@ func (ch refundChange) Revert(s *StateDB) {
 	s.refund = ch.prev
 }
 
-func (ch refundChange) Dirtied() *common.Address {
+func (ch refundChange) Dirtied() og_types.Address {
 	return nil
 }
 
@@ -314,7 +314,7 @@ func (ch addLogChange) Revert(s *StateDB) {
 	// s.logSize--
 }
 
-func (ch addLogChange) Dirtied() *common.Address {
+func (ch addLogChange) Dirtied() og_types.Address {
 	return nil
 }
 
@@ -330,7 +330,7 @@ func (ch addPreimageChange) Revert(s *StateDB) {
 	// delete(s.preimages, ch.hash)
 }
 
-func (ch addPreimageChange) Dirtied() *common.Address {
+func (ch addPreimageChange) Dirtied() og_types.Address {
 	return nil
 }
 
@@ -344,7 +344,7 @@ func (ch createTokenChange) Revert(s *StateDB) {
 	delete(s.dirtyTokens, ch.tokenID)
 }
 
-func (ch createTokenChange) Dirtied() *common.Address {
+func (ch createTokenChange) Dirtied() og_types.Address {
 	return nil
 }
 
@@ -360,7 +360,7 @@ func (ch resetTokenChange) Revert(s *StateDB) {
 	}
 }
 
-func (ch resetTokenChange) Dirtied() *common.Address {
+func (ch resetTokenChange) Dirtied() og_types.Address {
 	return nil
 }
 
@@ -375,7 +375,7 @@ func (ch reIssueChange) Revert(s *StateDB) {
 	}
 }
 
-func (ch reIssueChange) Dirtied() *common.Address {
+func (ch reIssueChange) Dirtied() og_types.Address {
 	return nil
 }
 
@@ -390,7 +390,7 @@ func (ch destroyChange) Revert(s *StateDB) {
 	}
 }
 
-func (ch destroyChange) Dirtied() *common.Address {
+func (ch destroyChange) Dirtied() og_types.Address {
 	return nil
 }
 

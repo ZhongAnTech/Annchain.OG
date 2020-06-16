@@ -1,7 +1,7 @@
 package marshaller
 
 import (
-	"github.com/annchain/OG/arefactor_core/types"
+	"github.com/annchain/OG/arefactor/types"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -33,13 +33,11 @@ func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
 
 	pos := 5
 	for _, element := range arr {
-		msgSize := element.MsgSize()
-		b, pos = encodeIMarshallerHeader(b, pos, msgSize)
 		eleBytes, err := element.MarshalMsg()
 		if err != nil {
 			return nil, err
 		}
-		endPos := pos + msgSize
+		endPos := pos + len(eleBytes)
 		copy(b[pos:endPos], eleBytes)
 		pos = endPos
 	}
@@ -48,5 +46,5 @@ func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
 }
 
 func UnMarshalIMarshallerArrayHeader(b []byte) ([]byte, int, error) {
-	return decodeIMarshallerHeader(b)
+	return DecodeIMarshallerHeader(b)
 }

@@ -1,5 +1,9 @@
 package og_interface
 
+import (
+	"github.com/annchain/OG/arefactor/utils/marshaller"
+)
+
 type FixLengthBytes interface {
 	Length() int
 	FromBytes(b []byte)
@@ -17,6 +21,7 @@ type Address interface {
 }
 
 type Hash interface {
+	marshaller.IMarshaller
 	FixLengthBytes
 	HashString() string
 	HashShortString() string

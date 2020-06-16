@@ -16,18 +16,17 @@ package core
 import (
 	"container/heap"
 	"fmt"
+	og_types "github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/types"
 	"github.com/annchain/OG/arefactor_core/core/state"
-	"github.com/annchain/OG/arefactor_core/types"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
-	//"github.com/annchain/OG/types/tx_types"
 	log "github.com/sirupsen/logrus"
 	"sort"
 	"sync"
 )
 
 type AccountFlowSet struct {
-	afs map[common.Address]*AccountFlow
+	afs map[og_types.Address]*AccountFlow
 
 	ledger Ledger
 	mu     sync.RWMutex
@@ -35,7 +34,7 @@ type AccountFlowSet struct {
 
 func NewAccountFlowSet(ledger Ledger) *AccountFlowSet {
 	return &AccountFlowSet{
-		afs:    make(map[common.Address]*AccountFlow),
+		afs:    make(map[og_types.Address]*AccountFlow),
 		ledger: ledger,
 	}
 }
@@ -63,14 +62,14 @@ func (a *AccountFlowSet) Add(tx types.Txi) {
 	a.afs[tx.Sender()] = af
 }
 
-func (a *AccountFlowSet) Get(addr common.Address) *AccountFlow {
+func (a *AccountFlowSet) Get(addr og_types.Address) *AccountFlow {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
 	return a.afs[addr]
 }
 
-func (a *AccountFlowSet) GetBalanceState(addr common.Address, tokenID int32) *BalanceState {
+func (a *AccountFlowSet) GetBalanceState(addr og_types.Address, tokenID int32) *BalanceState {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -85,7 +84,7 @@ func (a *AccountFlowSet) GetBalanceState(addr common.Address, tokenID int32) *Ba
 	return bls[tokenID]
 }
 
-func (a *AccountFlowSet) GetTxByNonce(addr common.Address, nonce uint64) types.Txi {
+func (a *AccountFlowSet) GetTxByNonce(addr og_types.Address, nonce uint64) types.Txi {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -96,7 +95,7 @@ func (a *AccountFlowSet) GetTxByNonce(addr common.Address, nonce uint64) types.T
 	return flow.GetTx(nonce)
 }
 
-func (a *AccountFlowSet) GetLatestNonce(addr common.Address) (uint64, error) {
+func (a *AccountFlowSet) GetLatestNonce(addr og_types.Address) (uint64, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
@@ -110,14 +109,14 @@ func (a *AccountFlowSet) GetLatestNonce(addr common.Address) (uint64, error) {
 	return flow.LatestNonce()
 }
 
-func (a *AccountFlowSet) ResetFlow(addr common.Address, originBalance state.BalanceSet) {
+func (a *AccountFlowSet) ResetFlow(addr og_types.Address, originBalance state.BalanceSet) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	a.afs[addr] = NewAccountFlow(originBalance)
 }
 
-func (a *AccountFlowSet) MergeFlow(addr common.Address, af *AccountFlow) {
+func (a *AccountFlowSet) MergeFlow(addr og_types.Address, af *AccountFlow) {
 	afOld := a.afs[addr]
 	if afOld == nil {
 		a.afs[addr] = afOld

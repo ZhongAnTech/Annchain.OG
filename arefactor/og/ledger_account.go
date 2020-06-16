@@ -14,24 +14,24 @@ import (
 	"io/ioutil"
 )
 
-type LocalAccountProvider struct {
+type LedgerAccountHolder struct {
 	CryptoType       types.CryptoType
 	AddressConverter AddressConverter
-	Account          *types.OgAccount
+	Account          *types.OgLedgerAccount
 }
 
-type AccountLocalStorage struct {
+type LedgerAccountLocalStorage struct {
 	CryptoType int32
 	PubKey     string
 	PrivKey    string
 }
 
-func (l *LocalAccountProvider) Load(filePath string) (account *types.OgAccount, err error) {
+func (l *LedgerAccountHolder) Load(filePath string) (account *types.OgLedgerAccount, err error) {
 	bytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return
 	}
-	als := &AccountLocalStorage{}
+	als := &LedgerAccountLocalStorage{}
 	err = json.Unmarshal(bytes, als)
 	if err != nil {
 		return
@@ -47,7 +47,7 @@ func (l *LocalAccountProvider) Load(filePath string) (account *types.OgAccount, 
 		return
 	}
 
-	account = &types.OgAccount{
+	account = &types.OgLedgerAccount{
 		PublicKey:  privKey.GetPublic(),
 		PrivateKey: privKey,
 	}
@@ -55,7 +55,7 @@ func (l *LocalAccountProvider) Load(filePath string) (account *types.OgAccount, 
 	return
 }
 
-func (l *LocalAccountProvider) Save(filePath string, account *types.OgAccount) (err error) {
+func (l *LedgerAccountHolder) Save(filePath string, account *types.OgLedgerAccount) (err error) {
 	pubKeyBytes, err := account.PublicKey.Raw()
 	if err != nil {
 		return
@@ -64,7 +64,7 @@ func (l *LocalAccountProvider) Save(filePath string, account *types.OgAccount) (
 	if err != nil {
 		return
 	}
-	als := &AccountLocalStorage{
+	als := &LedgerAccountLocalStorage{
 		CryptoType: int32(account.PublicKey.Type()),
 		PubKey:     hexutil.ToHex(pubKeyBytes),
 		PrivKey:    hexutil.ToHex(privKeyBytes),
@@ -76,34 +76,24 @@ func (l *LocalAccountProvider) Save(filePath string, account *types.OgAccount) (
 	}
 	err = ioutil.WriteFile(filePath, bytes, 0600)
 	return
-
 }
 
-type AccountGenerator struct {
+type LedgerAccountGenerator struct {
+	PrivateGenerator PrivateGenerator
 	AddressConverter AddressConverter
 }
 
-func (g *AccountGenerator) Generate(typ types.CryptoType, src io.Reader) (account *types.OgAccount, err error) {
-	var privKey crypto.PrivKey
-	var pubKey crypto.PubKey
-	switch typ {
-	case types.CryptoTypeRSA:
-		privKey, pubKey, err = crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, src)
-	case types.CryptoTypeEd25519:
-		privKey, pubKey, err = crypto.GenerateKeyPairWithReader(crypto.Ed25519, 0, src)
-	case types.CryptoTypeSecp256k1:
-		privKey, pubKey, err = crypto.GenerateKeyPairWithReader(crypto.Secp256k1, 0, src)
-	case types.CryptoTypeECDSA:
-		privKey, pubKey, err = crypto.GenerateKeyPairWithReader(crypto.ECDSA, 0, src)
-	}
+func (g *LedgerAccountGenerator) Generate(typ types.CryptoType, src io.Reader) (account *types.OgLedgerAccount, err error) {
+	privKey, pubKey, err := g.PrivateGenerator.GeneratePair(int(typ), src)
 	if err != nil {
 		return
 	}
+
 	addr, err := g.AddressConverter.AddressFromPubKey(pubKey)
 	if err != nil {
 		return
 	}
-	account = &types.OgAccount{
+	account = &types.OgLedgerAccount{
 		PublicKey:  pubKey,
 		PrivateKey: privKey,
 		Address:    addr,

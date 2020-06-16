@@ -13,7 +13,7 @@ import (
 
 func TestAccountGenerator_Generate(t *testing.T) {
 	randomReader := rand.New(rand.NewSource(time.Now().UnixNano()))
-	g := &AccountGenerator{
+	g := &LedgerAccountGenerator{
 		AddressConverter: &OgAddressConverter{},
 	}
 
@@ -52,7 +52,7 @@ func TestAccountGenerator_Generate(t *testing.T) {
 			log.Info(len(bytes))
 		}
 		log.Info()
-		l := &LocalAccountProvider{
+		l := &LedgerAccountHolder{
 			CryptoType: types.CryptoType(method),
 			Account:    gotAccount,
 		}

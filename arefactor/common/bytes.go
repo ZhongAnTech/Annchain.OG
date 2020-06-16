@@ -1,4 +1,4 @@
-package types
+package common
 
 func GetUInt16(b []byte, pos int) uint16 {
 	return uint16(b[pos]) | uint16(b[pos+1])<<8
@@ -65,4 +65,26 @@ func SetUint64(b []byte, pos int, i uint64) {
 	b[pos+5] = byte(i >> 40)
 	b[pos+6] = byte(i >> 48)
 	b[pos+7] = byte(i >> 56)
+}
+
+func Int32ToBytes(i int32) []byte {
+	b := make([]byte, 4)
+
+	b[0] = byte(i)
+	b[1] = byte(i >> 8)
+	b[2] = byte(i >> 16)
+	b[3] = byte(i >> 24)
+
+	return b
+}
+
+// CopyBytes returns an exact copy of the provided bytes.
+func CopyBytes(b []byte) (copiedBytes []byte) {
+	if b == nil {
+		return nil
+	}
+	copiedBytes = make([]byte, len(b))
+	copy(copiedBytes, b)
+
+	return
 }

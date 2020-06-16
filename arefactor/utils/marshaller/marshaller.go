@@ -2,8 +2,8 @@ package marshaller
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/common"
 	"github.com/annchain/OG/arefactor/common/math"
-	"github.com/annchain/OG/arefactor/types"
 )
 
 const (
@@ -113,12 +113,12 @@ func EncodeIMarshallerHeader(b []byte, pos int, msgSize int) ([]byte, int) {
 	} else if msgSize <= math.MaxUint16 {
 		b[pos] = muint16
 		pos += 1
-		types.SetUInt16(b, pos, uint16(msgSize))
+		common.SetUInt16(b, pos, uint16(msgSize))
 		pos += 2
 	} else if msgSize <= math.MaxUint32 {
 		b[pos] = muint32
 		pos += 1
-		types.SetUInt32(b, pos, uint32(msgSize))
+		common.SetUInt32(b, pos, uint32(msgSize))
 		pos += 4
 	} else {
 		// size should not be larger than 2^32-1
@@ -134,10 +134,10 @@ func DecodeIMarshallerHeader(b []byte) ([]byte, int, error) {
 	case muint8:
 		return b[2:], int(b[1]), nil
 	case muint16:
-		sz := types.GetUInt16(b, 1)
+		sz := common.GetUInt16(b, 1)
 		return b[3:], int(sz), nil
 	case muint32:
-		sz := types.GetUInt32(b, 1)
+		sz := common.GetUInt32(b, 1)
 		return b[5:], int(sz), nil
 	default:
 		return b, 0, fmt.Errorf("unknown lead: %x", lead)

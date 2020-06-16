@@ -2,31 +2,31 @@ package state
 
 import (
 	"fmt"
-	og_types "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/common"
-	tkType "github.com/annchain/OG/types/token"
 	"sync"
 	"time"
 
-	"github.com/annchain/OG/common/crypto"
+	og_types "github.com/annchain/OG/arefactor/og_interface"
+	crypto "github.com/annchain/OG/arefactor/ogcrypto"
+	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/trie"
+	tkType "github.com/annchain/OG/types/token"
 	vmtypes "github.com/annchain/OG/vm/types"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
 	// emptyStateRoot is the known hash of an empty state trie entry.
-	emptyStateRoot = crypto.Keccak256Hash(nil)
+	emptyStateRoot = og_types.BytesToHash32(crypto.Keccak256Hash(nil))
 
 	// emptyStateHash is the known hash of an empty state trie.
-	emptyStateHash = common.Hash{}
+	emptyStateHash = og_types.Hash32{}
 
 	// emptyCode is the known hash of the empty EVM bytecode.
-	emptyCode = crypto.Keccak256Hash(nil)
+	emptyCode = og_types.BytesToHash32(crypto.Keccak256Hash(nil))
 
 	// emptyCodeHash is the known hash of the empty EVM bytecode.
-	emptyCodeHash = crypto.Keccak256Hash(nil)
+	emptyCodeHash = og_types.BytesToHash32(crypto.Keccak256Hash(nil))
 )
 
 type StateDBConfig struct {

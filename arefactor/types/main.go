@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	common2 "github.com/annchain/OG/arefactor/common"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"
@@ -107,33 +108,33 @@ func marshalTx(tx Tx) []byte {
 	// from - [20]byte
 	paramSize := int16(len(tx.From.Bytes))
 	sizeBytes := make([]byte, 2)
-	SetInt16(sizeBytes, 0, paramSize)
+	common2.SetInt16(sizeBytes, 0, paramSize)
 	b = append(b, sizeBytes...)
 	b = append(b, tx.From.Bytes[:]...)
 
 	// to - [20]byte
 	paramSize = int16(len(tx.To.Bytes))
 	sizeBytes = make([]byte, 2)
-	SetInt16(sizeBytes, 0, paramSize)
+	common2.SetInt16(sizeBytes, 0, paramSize)
 	b = append(b, sizeBytes...)
 	b = append(b, tx.To.Bytes[:]...)
 
 	// value - big int
 	paramSize = int16(len(tx.Value.GetBytes()))
 	sizeBytes = make([]byte, 2)
-	SetInt16(sizeBytes, 0, paramSize)
+	common2.SetInt16(sizeBytes, 0, paramSize)
 	b = append(b, sizeBytes...)
 	b = append(b, tx.Value.GetBytes()...)
 
 	// data - []byte
 	paramSize = int16(len(tx.Data))
 	sizeBytes = make([]byte, 2)
-	SetInt16(sizeBytes, 0, paramSize)
+	common2.SetInt16(sizeBytes, 0, paramSize)
 	b = append(b, sizeBytes...)
 	b = append(b, tx.Data...)
 
 	totalSize := int16(len(b))
-	SetInt16(b, 0, totalSize)
+	common2.SetInt16(b, 0, totalSize)
 
 	return b
 }
@@ -141,7 +142,7 @@ func marshalTx(tx Tx) []byte {
 func unmarshalTx(b []byte) *Tx {
 	tx := &Tx{}
 
-	totalSize := GetInt16(b, 0)
+	totalSize := common2.GetInt16(b, 0)
 	if totalSize != int16(len(b)) {
 		panic("total size not correct")
 	}
@@ -152,26 +153,26 @@ func unmarshalTx(b []byte) *Tx {
 	tx.TxBase = *base
 
 	// from - [20]byte
-	paramSize := GetInt16(b, 0)
+	paramSize := common2.GetInt16(b, 0)
 	b = b[2:]
 	from := common.BytesToAddress(b[:paramSize])
 	tx.From = &from
 	b = b[paramSize:]
 
 	// to - [20]byte
-	paramSize = GetInt16(b, 0)
+	paramSize = common2.GetInt16(b, 0)
 	b = b[2:]
 	tx.To = common.BytesToAddress(b[:paramSize])
 	b = b[paramSize:]
 
 	// value - big int
-	paramSize = GetInt16(b, 0)
+	paramSize = common2.GetInt16(b, 0)
 	b = b[2:]
 	tx.Value = math.NewBigIntFromBigInt(big.NewInt(0).SetBytes(b[:paramSize]))
 	b = b[paramSize:]
 
 	// data - []byte
-	paramSize = GetInt16(b, 0)
+	paramSize = common2.GetInt16(b, 0)
 	b = b[2:]
 	tx.Data = b[:paramSize]
 	b = b[paramSize:]
@@ -203,7 +204,7 @@ func marshalTxBase(base *TxBase, b []byte) []byte {
 	// hash - [32]byte
 	paramSize := int16(len(base.Hash.Bytes))
 	sizeBytes := make([]byte, 2)
-	SetInt16(sizeBytes, 0, paramSize)
+	common2.SetInt16(sizeBytes, 0, paramSize)
 
 	b = append(b, sizeBytes...)
 	b = append(b, base.Hash.Bytes[:]...)
@@ -214,7 +215,7 @@ func marshalTxBase(base *TxBase, b []byte) []byte {
 	for _, parentsHash := range base.ParentsHash {
 		paramSize := int16(len(parentsHash.Bytes))
 		sizeBytes := make([]byte, 2)
-		SetInt16(sizeBytes, 0, paramSize)
+		common2.SetInt16(sizeBytes, 0, paramSize)
 
 		b = append(b, sizeBytes...)
 		b = append(b, parentsHash.Bytes[:]...)
@@ -222,36 +223,36 @@ func marshalTxBase(base *TxBase, b []byte) []byte {
 
 	// accountNonce - uint64
 	sizeBytes = make([]byte, 8)
-	SetUint64(sizeBytes, 0, base.AccountNonce)
+	common2.SetUint64(sizeBytes, 0, base.AccountNonce)
 	b = append(b, sizeBytes...)
 
 	// height - uint64
 	sizeBytes = make([]byte, 8)
-	SetUint64(sizeBytes, 0, base.Height)
+	common2.SetUint64(sizeBytes, 0, base.Height)
 	b = append(b, sizeBytes...)
 
 	// publicKey - PublicKey ( []byte )
 	paramSize = int16(len(base.PublicKey))
 	sizeBytes = make([]byte, 2)
-	SetInt16(sizeBytes, 0, paramSize)
+	common2.SetInt16(sizeBytes, 0, paramSize)
 	b = append(b, sizeBytes...)
 	b = append(b, base.PublicKey...)
 
 	// signature - Bytes ( []byte )
 	paramSize = int16(len(base.Signature))
 	sizeBytes = make([]byte, 2)
-	SetInt16(sizeBytes, 0, paramSize)
+	common2.SetInt16(sizeBytes, 0, paramSize)
 	b = append(b, sizeBytes...)
 	b = append(b, base.Signature...)
 
 	// mined nonce - uint64
 	sizeBytes = make([]byte, 8)
-	SetUint64(sizeBytes, 0, base.MineNonce)
+	common2.SetUint64(sizeBytes, 0, base.MineNonce)
 	b = append(b, sizeBytes...)
 
 	// weight - uint64
 	sizeBytes = make([]byte, 8)
-	SetUint64(sizeBytes, 0, base.Weight)
+	common2.SetUint64(sizeBytes, 0, base.Weight)
 	b = append(b, sizeBytes...)
 
 	// version - byte
@@ -285,7 +286,7 @@ func unmarshalTxBase(b []byte) (*TxBase, []byte) {
 	b = b[1:]
 
 	// hash - [32]byte
-	paramSize := GetInt16(b, 0)
+	paramSize := common2.GetInt16(b, 0)
 	b = b[2:]
 	base.Hash = common.BytesToHash(b[:paramSize])
 	b = b[paramSize:]
@@ -295,7 +296,7 @@ func unmarshalTxBase(b []byte) (*TxBase, []byte) {
 	b = b[1:]
 	base.ParentsHash = make([]common.Hash, 0)
 	for i := int8(0); i < listLen; i++ {
-		paramSize := GetInt16(b, 0)
+		paramSize := common2.GetInt16(b, 0)
 		b = b[2:]
 		pHash := common.BytesToHash(b[:paramSize])
 		b = b[paramSize:]
@@ -304,31 +305,31 @@ func unmarshalTxBase(b []byte) (*TxBase, []byte) {
 	}
 
 	// account nonce - uint64
-	base.AccountNonce = GetUint64(b, 0)
+	base.AccountNonce = common2.GetUint64(b, 0)
 	b = b[8:]
 
 	// height - uint64
-	base.Height = GetUint64(b, 0)
+	base.Height = common2.GetUint64(b, 0)
 	b = b[8:]
 
 	// public key - []byte
-	paramSize = GetInt16(b, 0)
+	paramSize = common2.GetInt16(b, 0)
 	b = b[2:]
 	base.PublicKey = b[:paramSize]
 	b = b[paramSize:]
 
 	// signature - []byte
-	paramSize = GetInt16(b, 0)
+	paramSize = common2.GetInt16(b, 0)
 	b = b[2:]
 	base.Signature = b[:paramSize]
 	b = b[paramSize:]
 
 	// mine nonce - uint64
-	base.MineNonce = GetUint64(b, 0)
+	base.MineNonce = common2.GetUint64(b, 0)
 	b = b[8:]
 
 	// weight - uint64
-	base.MineNonce = GetUint64(b, 0)
+	base.MineNonce = common2.GetUint64(b, 0)
 	b = b[8:]
 
 	// version - byte

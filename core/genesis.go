@@ -19,6 +19,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"time"
+
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
@@ -26,8 +30,6 @@ import (
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
-	"path/filepath"
 )
 
 const MaxAccountCount = 255
@@ -60,6 +62,7 @@ func DefaultGenesis(genesisPath string) (*tx_types.Sequencer, map[common.Address
 	hash.MustSetBytes(sum, common.PaddingNone)
 	seq.SetHash(hash)
 
+	seq.Timestamp = time.Now().UnixNano() / 1e6
 	return seq, balance
 }
 

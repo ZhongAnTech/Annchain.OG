@@ -15,6 +15,8 @@ package node
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/annchain/OG/account"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/encryption"
@@ -23,7 +25,6 @@ import (
 	"github.com/annchain/OG/rpc"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types/p2p_message"
-	"time"
 
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/og"

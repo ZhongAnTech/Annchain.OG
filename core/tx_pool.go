@@ -15,15 +15,16 @@ package core
 
 import (
 	"fmt"
+	"sort"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/core/state"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types/tx_types"
-	"sort"
-	"sync"
-	"sync/atomic"
-	"time"
 
 	"math/rand"
 

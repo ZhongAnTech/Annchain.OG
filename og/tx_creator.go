@@ -15,11 +15,12 @@ package og
 
 import (
 	"fmt"
+	"sync/atomic"
+	"time"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/types/tx_types"
-	"sync/atomic"
-	"time"
 
 	"math/rand"
 	"sync"
@@ -469,6 +470,9 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 
 	connectionTries := 0
 	timeStart := time.Now()
+
+	tx.Timestamp = time.Now().UnixNano() / 1e6
+
 	//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
 	// pick up parents.
 	var ok bool

@@ -16,7 +16,6 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
-	"time"
 
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/token"
@@ -359,7 +358,6 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 		}
 		sq = r.Og.Dag.GetSequencerByHeight(uint64(id))
 		if sq != nil {
-			sq.Timestamp = time.Now().UnixNano() / 1e6
 			Response(c, http.StatusOK, nil, sq)
 			return
 		} else {
@@ -370,7 +368,6 @@ func (r *RpcController) Sequencer(c *gin.Context) {
 	if hashtr == "" {
 		sq = r.Og.Dag.LatestSequencer()
 		if sq != nil {
-			sq.Timestamp = time.Now().UnixNano() / 1e6
 			Response(c, http.StatusOK, nil, sq)
 			return
 		} else {

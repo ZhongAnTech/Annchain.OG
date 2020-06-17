@@ -68,6 +68,9 @@ title = "OG configuration"
   level = "trace"
   log_dir = "log"
 
+[node]
+  version = "OGFull-v1.0.1"
+
 [p2p]
   bootstrap_node = true
   bootstrap_nodes = "onode://0fef07b9c716bd49c8ec53a3aac399e935bb5a6c286392dce1f0b633fb5fe4d78f60db41dfb7d37490501b209eb0aa43414538f0c5f1350ea0fe2d30d3ff3bec@127.0.0.1:8001"

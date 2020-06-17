@@ -15,13 +15,14 @@ package rpc
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/annchain/OG/p2p"
 	"github.com/annchain/OG/p2p/ioperformance"
 	"github.com/annchain/OG/types"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	"net/http"
-	"time"
 )
 
 type SyncStatus struct {

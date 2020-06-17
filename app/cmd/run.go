@@ -15,13 +15,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/annchain/OG/client/httplib"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/io"
-	"github.com/annchain/OG/node"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"net/url"
 	"os"
 	"os/signal"
@@ -29,6 +22,14 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/annchain/OG/client/httplib"
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/io"
+	"github.com/annchain/OG/node"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // runCmd represents the run command
@@ -119,7 +120,7 @@ func readConfig() {
 	if io.FileExists(configPath) {
 		mergeLocalConfig(configPath)
 	} else {
-		fmt.Println("config file not exist ",configPath)
+		fmt.Println("config file not exist ", configPath)
 		mergeOnlineConfig(viper.GetString("config"))
 	}
 

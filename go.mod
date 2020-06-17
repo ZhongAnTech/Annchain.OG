@@ -23,7 +23,6 @@ require (
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/latifrons/soccerdash v0.0.0-20200529073835-940832018dff
 	github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 // indirect
-	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f
 	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/magiconair/properties v1.8.0
 	github.com/mattn/go-isatty v0.0.10 // indirect
@@ -41,5 +40,6 @@ require (
 	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f
 	golang.org/x/sys v0.0.0-20191008105621-543471e840be
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.2.2
 )

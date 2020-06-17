@@ -15,13 +15,12 @@ package mylog
 
 import (
 	"fmt"
-	"github.com/lestrrat/go-file-rotatelogs"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
-	"time"
 )
 
 func panicIfError(err error, message string) {
@@ -32,14 +31,14 @@ func panicIfError(err error, message string) {
 	}
 }
 
-func RotateLog(abspath string) *rotatelogs.RotateLogs {
-	logFile, err := rotatelogs.New(
-		abspath+"%Y%m%d%H%M.log",
-		rotatelogs.WithLinkName(abspath+".log"),
-		rotatelogs.WithMaxAge(24*time.Hour*7),
-		rotatelogs.WithRotationTime(time.Hour*24),
-	)
-	panicIfError(err, "err init log")
+func RotateLog(abspath string) *lumberjack.Logger {
+	logFile := &lumberjack.Logger{
+		Filename:   abspath,
+		MaxSize:    10, // megabytes
+		MaxBackups: 100,
+		MaxAge:     90,   //days
+		Compress:   true, // disabled by default
+	}
 	return logFile
 }
 

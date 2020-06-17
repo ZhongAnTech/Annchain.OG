@@ -135,20 +135,18 @@ func initLogger() {
 		folderPath, err := filepath.Abs(logdir)
 		panicIfError(err, fmt.Sprintf("Error on parsing log path: %s", logdir))
 
-		abspath, err := filepath.Abs(path.Join(logdir, "run"))
+		abspath, err := filepath.Abs(path.Join(logdir, "run.log"))
 		panicIfError(err, fmt.Sprintf("Error on parsing log file path: %s", logdir))
 
 		err = os.MkdirAll(folderPath, os.ModePerm)
 		panicIfError(err, fmt.Sprintf("Error on creating log dir: %s", folderPath))
 
 		if stdout {
-			logFile, err := os.OpenFile(abspath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			panicIfError(err, fmt.Sprintf("Error on creating log file: %s", abspath))
-			abspath += ".log"
 			fmt.Println("Will be logged to stdout and ", abspath)
-			writer = io.MultiWriter(os.Stdout, logFile)
+			fileWriter := mylog.RotateLog(abspath)
+			writer = io.MultiWriter(os.Stdout, fileWriter)
 		} else {
-			fmt.Println("Will be logged to ", abspath+".log")
+			fmt.Println("Will be logged to ", abspath)
 			writer = mylog.RotateLog(abspath)
 		}
 	} else {
@@ -156,7 +154,6 @@ func initLogger() {
 		fmt.Println("Will be logged to stdout")
 		writer = os.Stdout
 	}
-
 	logrus.SetOutput(writer)
 
 	// Only log the warning severity or above.
@@ -181,11 +178,10 @@ func initLogger() {
 	}
 
 	Formatter := new(logrus.TextFormatter)
-	Formatter.ForceColors = logdir == ""
-	//Formatter.DisableColors = true
-	Formatter.TimestampFormat = "2006-01-02 15:04:05.000000"
+	Formatter.ForceColors = false
+	Formatter.DisableColors = true
+	Formatter.TimestampFormat = "06-01-02 15:04:05.000000"
 	Formatter.FullTimestamp = true
-
 	logrus.SetFormatter(Formatter)
 
 	// redirect standard log to logrus
@@ -200,13 +196,13 @@ func initLogger() {
 	}
 	byLevel := viper.GetBool("multifile_by_level")
 	if byLevel && logdir != "" {
-		panicLog, _ := filepath.Abs(path.Join(logdir, "panic"))
-		fatalLog, _ := filepath.Abs(path.Join(logdir, "fatal"))
-		warnLog, _ := filepath.Abs(path.Join(logdir, "warn"))
-		errorLog, _ := filepath.Abs(path.Join(logdir, "error"))
-		infoLog, _ := filepath.Abs(path.Join(logdir, "info"))
-		debugLog, _ := filepath.Abs(path.Join(logdir, "debug"))
-		traceLog, _ := filepath.Abs(path.Join(logdir, "trace"))
+		panicLog, _ := filepath.Abs(path.Join(logdir, "panic.log"))
+		fatalLog, _ := filepath.Abs(path.Join(logdir, "fatal.log"))
+		warnLog, _ := filepath.Abs(path.Join(logdir, "warn.log"))
+		errorLog, _ := filepath.Abs(path.Join(logdir, "error.log"))
+		infoLog, _ := filepath.Abs(path.Join(logdir, "info.log"))
+		debugLog, _ := filepath.Abs(path.Join(logdir, "debug.log"))
+		traceLog, _ := filepath.Abs(path.Join(logdir, "trace.log"))
 		writerMap := lfshook.WriterMap{
 			logrus.PanicLevel: mylog.RotateLog(panicLog),
 			logrus.FatalLevel: mylog.RotateLog(fatalLog),

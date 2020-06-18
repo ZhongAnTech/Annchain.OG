@@ -290,6 +290,7 @@ func (m *TxCreator) NewUnsignedSequencer(issuer common.Address, Height uint64, a
 			Type:         types.TxBaseTypeSequencer,
 			Height:       Height,
 		},
+		Timestamp: time.Now().UnixNano() / 1e6,
 	}
 	return &tx
 }
@@ -471,7 +472,7 @@ func (m *TxCreator) GenerateSequencer(issuer common.Address, Height uint64, acco
 	connectionTries := 0
 	timeStart := time.Now()
 
-	tx.Timestamp = time.Now().UnixNano() / 1e6
+	// tx.Timestamp = time.Now().UnixNano() / 1e6
 
 	//logrus.Debugf("Total time for Mining: %d ns, %d times", time.Since(timeStart).Nanoseconds(), minedNonce)
 	// pick up parents.

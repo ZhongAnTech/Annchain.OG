@@ -198,6 +198,7 @@ type TransactionMsg struct {
 	Value   string   `json:"value"`
 	Weight  uint64   `json:"weight"`
 	TokenId int32    `json:"tokenId"`
+	Sign    string   `json:"sign"`
 }
 
 func (t *Tx) ToJsonMsg() TransactionMsg {
@@ -211,6 +212,7 @@ func (t *Tx) ToJsonMsg() TransactionMsg {
 	txMsg.Value = t.GetValue().String()
 	txMsg.Weight = t.GetWeight()
 	txMsg.TokenId = t.TokenId
+	txMsg.Sign = t.Signature.String()
 
 	txMsg.Parents = make([]string, 0)
 	for _, p := range t.ParentsHash {

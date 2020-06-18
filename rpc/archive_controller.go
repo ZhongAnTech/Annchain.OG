@@ -17,7 +17,6 @@ package rpc
 import (
 	"bytes"
 	"fmt"
-	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/gin-gonic/gin"
@@ -43,10 +42,10 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 	)
 	now := time.Now()
 	id := getArchiveId()
-	if !status.ArchiveMode {
-		Response(c, http.StatusBadRequest, fmt.Errorf("not archive mode"), nil)
-		return
-	}
+	//if !status.ArchiveMode {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("not archive mode"), nil)
+	//	return
+	//}
 	err := c.ShouldBindJSON(&txReq)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)

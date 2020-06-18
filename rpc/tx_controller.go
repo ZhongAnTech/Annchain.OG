@@ -36,10 +36,10 @@ func (r *RpcController) NewTransaction(c *gin.Context) {
 		pub   crypto.PublicKey
 	)
 
-	if status.ArchiveMode {
-		Response(c, http.StatusBadRequest, fmt.Errorf("archive mode"), nil)
-		return
-	}
+	//if status.ArchiveMode {
+	//	Response(c, http.StatusBadRequest, fmt.Errorf("archive mode"), nil)
+	//	return
+	//}
 
 	err := c.ShouldBindJSON(&txReq)
 	if err != nil {

@@ -18,8 +18,9 @@ package state
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
 	"sync"
+
+	"github.com/annchain/OG/common"
 
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/trie"

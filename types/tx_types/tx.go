@@ -15,11 +15,12 @@ package tx_types
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/types"
 
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/common/math"

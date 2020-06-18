@@ -1,6 +1,7 @@
 package state
 
 import (
+	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -214,7 +215,7 @@ func (pd *PreloadDB) SetState(addr common.Address, key, value common.Hash) {
 	state.SetState(pd.db, key, value)
 }
 
-func (pd *PreloadDB) Commit() (common.Hash, error) {
+func (pd *PreloadDB) Commit() (ogTypes.Hash, error) {
 	trie, err := pd.db.OpenTrie(pd.sd.Root())
 	if err != nil {
 		return common.Hash{}, err

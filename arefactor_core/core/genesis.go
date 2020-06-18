@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/account"
+	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
@@ -32,7 +33,7 @@ import (
 
 const MaxAccountCount = 255
 
-func DefaultGenesis(genesisPath string) (*tx_types.Sequencer, map[common.Address]*math.BigInt) {
+func DefaultGenesis(genesisPath string) (*tx_types.Sequencer, map[ogTypes.Address]*math.BigInt) {
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)

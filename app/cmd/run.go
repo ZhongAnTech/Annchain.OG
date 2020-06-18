@@ -71,7 +71,7 @@ var runCmd = &cobra.Command{
 func mergeOnlineConfig(configPath string) {
 	_, err := url.Parse(configPath)
 	if err != nil {
-		panicIfError(err, "config is should  be valid server url or toml file has suffix .toml")
+		panicIfError(err, "config is should be valid server url or toml file has suffix .toml")
 	}
 	fileName := "og_config_" + time.Now().Format("20060102_150405") + ".toml"
 	fmt.Println("read from config", configPath)

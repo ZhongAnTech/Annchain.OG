@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ognb-test
+  labels:
+    app: ognb-test
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: ognb-test
+  template:
+    metadata:
+      labels:
+        app: ognb-test
+    spec:
+      containers:
+        - name: ognb-test
+          image: 172.28.152.101:5000/ogprd:v0.0.15
+          env:
+            - name: OG_P2P.ENABLED
+              value: 'true'
+            - name: OG_P2P.NETWORK_ID
+              value: '32'
+            - name: OG_MODE
+              value: 'normal'
+            - name: OG_ANNSENSUS.DISABLE
+              value: 'false'
+            - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
+              value: 'http://ogboot:8008/4'
+            - name: OG_P2P.ENABLE_BOOT_SERVER
+              value: 'true'
+            - name: OG_P2P.GEN_NODE_KEY
+              value: 'true'
+            - name: OG_ANNSENSUS.CAMPAGIN
+              value: 'true'
+            - name: OG_DAG.GENESIS_PATH
+              value: /genesis.json
+            - name: OG_REPORT.ENABLE
+              value: 'true'
+            - name: OG_REPORT.ADDRESS
+              value: 'soccerdash-test:8080'
+            - name: OG_LOG.LEVEL
+              value: info
+            - name: OG_AUTO_CLIENT.SEQUENCER.ENABLED
+              value: 'false'
+
+          ports:
+            - name: rpc
+              containerPort: 8000
+              protocol: TCP
+            - name: p2p-tcp
+              containerPort: 8001
+            - name: p2p-udp
+              containerPort: 8001
+              protocol: UDP
+            - name: websocket
+              containerPort: 8002
+            - name: profiling
+              containerPort: 8003
+          command:
+            ["./og", "-c", "/opt/config.toml", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
+  volumeClaimTemplates:
+    - metadata:
+        name: rw
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "glusterfsx"
+        resources:
+          requests:
+            storage: 10Gi
+  ------------
+kind: Service
+apiVersion: v1
+metadata:
+  name: ognb-test-0
+spec:
+  ports:
+    - name: p2p-tcp
+      protocol: TCP
+      port: 8001
+      targetPort: 8001
+    - name: p2p-udp
+      protocol: UDP
+      port: 8001
+      targetPort: 8001
+    - name: test-tcp
+      protocol: TCP
+      port: 8002
+      targetPort: 8002
+    - name: test-udp
+      protocol: UDP
+      port: 8002
+      targetPort: 8002
+  selector:
+    statefulset.kubernetes.io/pod-name: ognb-test-0
+  ------------------
+kind: Service
+apiVersion: v1
+metadata:
+  name: ognb-test-public-0
+spec:
+  ports:
+    - name: rpc
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+      nodePort: 30030
+  selector:
+    statefulset.kubernetes.io/pod-name: ognb-test-0
+  type: NodePort

@@ -1,19 +1,18 @@
 package types
 
 import (
-	"github.com/annchain/OG/arefactor/og/types"
-	"github.com/annchain/OG/common"
+	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"math/big"
 )
 
 type (
 	// CanTransferFunc is the signature of a transfer guard function
-	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
+	CanTransferFunc func(StateDB, ogTypes.Address, *big.Int) bool
 	// TransferFunc is the signature of a transfer function
-	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
+	TransferFunc func(StateDB, ogTypes.Address, ogTypes.Address, *big.Int)
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH OVM op code.
-	GetHashFunc func(uint64) types.Hash
+	GetHashFunc func(uint64) ogTypes.Hash
 )
 
 // Context provides the OVM with auxiliary information. Once provided

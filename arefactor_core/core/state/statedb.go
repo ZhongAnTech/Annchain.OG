@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	og_types "github.com/annchain/OG/arefactor/og_interface"
+	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	crypto "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
@@ -17,16 +17,16 @@ import (
 
 var (
 	// emptyStateRoot is the known hash of an empty state trie entry.
-	emptyStateRoot = og_types.BytesToHash32(crypto.Keccak256Hash(nil))
+	emptyStateRoot = ogTypes.BytesToHash32(crypto.Keccak256Hash(nil))
 
 	// emptyStateHash is the known hash of an empty state trie.
-	emptyStateHash = og_types.Hash32{}
+	emptyStateHash = ogTypes.Hash32{}
 
 	// emptyCode is the known hash of the empty EVM bytecode.
-	emptyCode = og_types.BytesToHash32(crypto.Keccak256Hash(nil))
+	emptyCode = ogTypes.BytesToHash32(crypto.Keccak256Hash(nil))
 
 	// emptyCodeHash is the known hash of the empty EVM bytecode.
-	emptyCodeHash = og_types.BytesToHash32(crypto.Keccak256Hash(nil))
+	emptyCodeHash = ogTypes.BytesToHash32(crypto.Keccak256Hash(nil))
 )
 
 type StateDBConfig struct {
@@ -64,8 +64,8 @@ type StateDB struct {
 
 	// states stores all the active state object, any changes on stateobject
 	// will also update states.
-	states   map[og_types.Address]*StateObject
-	dirtyset map[og_types.Address]struct{}
+	states   map[ogTypes.Address]*StateObject
+	dirtyset map[ogTypes.Address]struct{}
 
 	// token information
 	latestTokenID      int32
@@ -78,7 +78,7 @@ type StateDB struct {
 	mu sync.RWMutex
 }
 
-func NewStateDB(conf StateDBConfig, db Database, root common.Hash) (*StateDB, error) {
+func NewStateDB(conf StateDBConfig, db Database, root ogTypes.Hash) (*StateDB, error) {
 	tr, err := db.OpenTrie(root)
 	if err != nil {
 		return nil, err
@@ -145,14 +145,14 @@ func (sd *StateDB) GetBalance(addr common.Address) *math.BigInt {
 	return sd.getBalance(addr, tkType.OGTokenID)
 }
 
-func (sd *StateDB) GetTokenBalance(addr common.Address, tokenID int32) *math.BigInt {
+func (sd *StateDB) GetTokenBalance(addr ogTypes.Address, tokenID int32) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
 	return sd.getBalance(addr, tokenID)
 }
 
-func (sd *StateDB) GetAllTokenBalance(addr common.Address) BalanceSet {
+func (sd *StateDB) GetAllTokenBalance(addr ogTypes.Address) BalanceSet {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
@@ -183,7 +183,7 @@ func (sd *StateDB) getAllBalance(addr common.Address) BalanceSet {
 	return balance
 }
 
-func (sd *StateDB) GetNonce(addr common.Address) uint64 {
+func (sd *StateDB) GetNonce(addr ogTypes.Address) uint64 {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
@@ -197,7 +197,7 @@ func (sd *StateDB) getNonce(addr common.Address) uint64 {
 	return state.GetNonce()
 }
 
-func (sd *StateDB) Exist(addr common.Address) bool {
+func (sd *StateDB) Exist(addr ogTypes.Address) bool {
 	if stobj := sd.getStateObject(addr); stobj != nil {
 		return true
 	}
@@ -229,7 +229,7 @@ func (sd *StateDB) GetStateObject(addr common.Address) *StateObject {
 
 	return sd.getStateObject(addr)
 }
-func (sd *StateDB) getStateObject(addr og_types.Address) *StateObject {
+func (sd *StateDB) getStateObject(addr ogTypes.Address) *StateObject {
 	state, exist := sd.states[addr]
 	if !exist {
 		var err error
@@ -358,7 +358,7 @@ func (sd *StateDB) GetCodeSize(addr common.Address) int {
 	return l
 }
 
-func (sd *StateDB) GetState(addr common.Address, key common.Hash) common.Hash {
+func (sd *StateDB) GetState(addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return emptyStateHash
@@ -376,7 +376,7 @@ func (sd *StateDB) GetCommittedState(addr common.Address, key common.Hash) commo
 
 // SetBalance set origin OG token balance.
 // TODO should be modified to satisfy all tokens.
-func (sd *StateDB) SetBalance(addr common.Address, balance *math.BigInt) {
+func (sd *StateDB) SetBalance(addr ogTypes.Address, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
@@ -619,7 +619,7 @@ func (sd *StateDB) loadTokenObject(tokenID int32) (*TokenObject, error) {
 }
 
 // Commit tries to save dirty data to memory trie db.
-func (sd *StateDB) Commit() (common.Hash, error) {
+func (sd *StateDB) Commit() (ogTypes.Hash, error) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 

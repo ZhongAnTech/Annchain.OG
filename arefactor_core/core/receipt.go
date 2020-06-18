@@ -15,7 +15,7 @@ package core
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common"
+	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 )
 
 type ReceiptStatus uint8
@@ -31,13 +31,13 @@ const (
 
 //msgp:tuple Receipt
 type Receipt struct {
-	TxHash          common.Hash
+	TxHash          ogTypes.Hash
 	Status          ReceiptStatus
 	ProcessResult   string
-	ContractAddress common.Address
+	ContractAddress ogTypes.Address
 }
 
-func NewReceipt(hash common.Hash, status ReceiptStatus, pResult string, addr common.Address) *Receipt {
+func NewReceipt(hash ogTypes.Hash, status ReceiptStatus, pResult string, addr ogTypes.Address) *Receipt {
 	return &Receipt{
 		TxHash:          hash,
 		Status:          status,

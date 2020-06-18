@@ -196,6 +196,7 @@ type TransactionMsg struct {
 	Nonce   uint64   `json:"nonce"`
 	Value   string   `json:"value"`
 	Weight  uint64   `json:"weight"`
+	TokenId int32    `json:"tokenId"`
 }
 
 func (t *Tx) ToJsonMsg() TransactionMsg {
@@ -208,6 +209,7 @@ func (t *Tx) ToJsonMsg() TransactionMsg {
 	txMsg.Nonce = t.GetNonce()
 	txMsg.Value = t.GetValue().String()
 	txMsg.Weight = t.GetWeight()
+	txMsg.TokenId = t.TokenId
 
 	txMsg.Parents = make([]string, 0)
 	for _, p := range t.ParentsHash {

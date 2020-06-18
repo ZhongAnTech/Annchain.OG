@@ -125,15 +125,15 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		txResp.Archive = &seqMsg
 		Response(c, http.StatusOK, nil, txResp)
 		return
-		//case *tx_types.Campaign:
-		//	Response(c, http.StatusOK, nil, tx)
-		//	return
-		//case *tx_types.TermChange:
-		//	Response(c, http.StatusOK, nil, tx)
-		//	return
-		//case *tx_types.ActionTx:
-		//	Response(c, http.StatusOK, nil, tx)
-		//	return
+	//case *tx_types.Campaign:
+	//	Response(c, http.StatusOK, nil, tx)
+	//	return
+	//case *tx_types.TermChange:
+	//	Response(c, http.StatusOK, nil, tx)
+	//	return
+	case *tx_types.ActionTx:
+		Response(c, http.StatusOK, nil, tx)
+		return
 	}
 
 	Response(c, http.StatusNotFound, fmt.Errorf("status not found, only support transaction and sequencer"), nil)

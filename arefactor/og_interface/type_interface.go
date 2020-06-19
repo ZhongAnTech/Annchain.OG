@@ -10,12 +10,14 @@ type FixLengthBytes interface {
 
 type Address interface {
 	FixLengthBytes
+	AddressKey() string
 	AddressString() string // just for type safety between Address and Hash
 	AddressShortString() string
 }
 
 type Hash interface {
 	FixLengthBytes
+	HashKey() string
 	HashString() string
 	HashShortString() string
 }

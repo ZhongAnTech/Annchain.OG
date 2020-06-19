@@ -866,6 +866,14 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		return nil, receipt, nil
 	}
 
+	// return when the address type is not Address20
+	from20, okFrom := txnormal.From.(ogTypes.Address20)
+	to20, okTo := txnormal.To.(ogTypes.Address20)
+	if !okFrom || !okTo {
+		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
+		return nil, receipt, nil
+	}
+
 	// create ovm object.
 	//
 	// TODO gaslimit not implemented yet.
@@ -877,7 +885,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	}
 
 	txContext := &ovm.TxContext{
-		From:       txnormal.Sender(),
+		From:       from20,
 		Value:      txnormal.Value,
 		Data:       txnormal.Data,
 		GasPrice:   math.NewBigInt(0),
@@ -901,9 +909,9 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	var err error
 	var receipt *Receipt
 	if txnormal.To.Cmp(emptyAddress) == 0 {
-		ret, contractAddress, _, err = ogvm.Create(txContext.From, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
+		ret, contractAddress, _, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	} else {
-		ret, _, err = ogvm.Call(txContext.From, txnormal.To, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
+		ret, _, err = ogvm.Call(vmtypes.AccountRef(txContext.From), to20, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	}
 	if err != nil {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusOVMFailed, err.Error(), emptyAddress)
@@ -967,7 +975,7 @@ func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error)
 
 // CallContract calls contract but disallow any modifications on
 // statedb. This method will call ovm.StaticCall() to satisfy this.
-func (dag *Dag) CallContract(addr common.Address, data []byte) ([]byte, error) {
+func (dag *Dag) CallContract(addr ogTypes.Address20, data []byte) ([]byte, error) {
 	// create ovm object.
 	//
 	// TODO gaslimit not implemented yet.
@@ -1007,15 +1015,15 @@ func (dag *Dag) Revert(snapShotID int, txs types.Txis) {
 
 type txcached struct {
 	maxsize int
-	order   common.Hashes
-	txs     map[common.Hash]types.Txi
+	order   []ogTypes.Hash
+	txs     map[ogTypes.Hash]types.Txi
 }
 
 func newTxcached(maxsize int) *txcached {
 	return &txcached{
 		maxsize: maxsize,
-		order:   common.Hashes{},
-		txs:     make(map[common.Hash]types.Txi),
+		order:   make([]ogTypes.Hash, 0),
+		txs:     make(map[ogTypes.Hash]types.Txi),
 	}
 }
 

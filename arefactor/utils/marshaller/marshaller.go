@@ -103,22 +103,22 @@ func InitIMarshallerBytes(msgSize int) []byte {
 	return make([]byte, headerLen+msgSize)
 }
 
-func EncodeIMarshallerHeader(b []byte, pos int, msgSize int) ([]byte, int) {
+func EncodeIMarshallerHeader(b []byte, pos int, size int) ([]byte, int) {
 
-	if msgSize <= math.MaxUint8 {
+	if size <= math.MaxUint8 {
 		b[pos] = muint8
 		pos += 1
-		b[pos] = uint8(msgSize)
+		b[pos] = uint8(size)
 		pos += 1
-	} else if msgSize <= math.MaxUint16 {
+	} else if size <= math.MaxUint16 {
 		b[pos] = muint16
 		pos += 1
-		common.SetUInt16(b, pos, uint16(msgSize))
+		common.SetUInt16(b, pos, uint16(size))
 		pos += 2
-	} else if msgSize <= math.MaxUint32 {
+	} else if size <= math.MaxUint32 {
 		b[pos] = muint32
 		pos += 1
-		common.SetUInt32(b, pos, uint32(msgSize))
+		common.SetUInt32(b, pos, uint32(size))
 		pos += 4
 	} else {
 		// size should not be larger than 2^32-1

@@ -114,100 +114,100 @@ func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
-func (z *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// array header, size 10
-	o = append(o, 0x9a)
-	o = msgp.AppendUint16(o, uint16(z.Type))
-	o, err = z.Hash.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	o, err = z.ParentsHash.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	o = msgp.AppendUint64(o, z.AccountNonce)
-	o = msgp.AppendUint64(o, z.Height)
-	o, err = z.PublicKey.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	o, err = z.Signature.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	o = msgp.AppendUint64(o, z.MineNonce)
-	o = msgp.AppendUint64(o, z.Weight)
-	o = msgp.AppendByte(o, z.Version)
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if zb0001 != 10 {
-		err = msgp.ArrayError{Wanted: 10, Got: zb0001}
-		return
-	}
-	{
-		var zb0002 uint16
-		zb0002, bts, err = msgp.ReadUint16Bytes(bts)
-		if err != nil {
-			return
-		}
-		z.Type = TxBaseType(zb0002)
-	}
-	bts, err = z.Hash.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	bts, err = z.ParentsHash.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	z.AccountNonce, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		return
-	}
-	z.Height, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		return
-	}
-	bts, err = z.PublicKey.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	bts, err = z.Signature.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	z.MineNonce, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		return
-	}
-	z.Weight, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		return
-	}
-	z.Version, bts, err = msgp.ReadByteBytes(bts)
-	if err != nil {
-		return
-	}
-	o = bts
-	return
-}
-
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *TxBase) Msgsize() (s int) {
-	s = 1 + msgp.Uint16Size + z.Hash.Msgsize() + z.ParentsHash.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + z.PublicKey.Msgsize() + z.Signature.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + msgp.ByteSize
-	return
-}
+//// MarshalMsg implements msgp.Marshaler
+//func (z *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
+//	o = msgp.Require(b, z.Msgsize())
+//	// array header, size 10
+//	o = append(o, 0x9a)
+//	o = msgp.AppendUint16(o, uint16(z.Type))
+//	o, err = z.Hash.MarshalMsg(o)
+//	if err != nil {
+//		return
+//	}
+//	o, err = z.ParentsHash.MarshalMsg(o)
+//	if err != nil {
+//		return
+//	}
+//	o = msgp.AppendUint64(o, z.AccountNonce)
+//	o = msgp.AppendUint64(o, z.Height)
+//	o, err = z.PublicKey.MarshalMsg(o)
+//	if err != nil {
+//		return
+//	}
+//	o, err = z.Signature.MarshalMsg(o)
+//	if err != nil {
+//		return
+//	}
+//	o = msgp.AppendUint64(o, z.MineNonce)
+//	o = msgp.AppendUint64(o, z.Weight)
+//	o = msgp.AppendByte(o, z.Version)
+//	return
+//}
+//
+//// UnmarshalMsg implements msgp.Unmarshaler
+//func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
+//	var zb0001 uint32
+//	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+//	if err != nil {
+//		return
+//	}
+//	if zb0001 != 10 {
+//		err = msgp.ArrayError{Wanted: 10, Got: zb0001}
+//		return
+//	}
+//	{
+//		var zb0002 uint16
+//		zb0002, bts, err = msgp.ReadUint16Bytes(bts)
+//		if err != nil {
+//			return
+//		}
+//		z.Type = TxBaseType(zb0002)
+//	}
+//	bts, err = z.Hash.UnmarshalMsg(bts)
+//	if err != nil {
+//		return
+//	}
+//	bts, err = z.ParentsHash.UnmarshalMsg(bts)
+//	if err != nil {
+//		return
+//	}
+//	z.AccountNonce, bts, err = msgp.ReadUint64Bytes(bts)
+//	if err != nil {
+//		return
+//	}
+//	z.Height, bts, err = msgp.ReadUint64Bytes(bts)
+//	if err != nil {
+//		return
+//	}
+//	bts, err = z.PublicKey.UnmarshalMsg(bts)
+//	if err != nil {
+//		return
+//	}
+//	bts, err = z.Signature.UnmarshalMsg(bts)
+//	if err != nil {
+//		return
+//	}
+//	z.MineNonce, bts, err = msgp.ReadUint64Bytes(bts)
+//	if err != nil {
+//		return
+//	}
+//	z.Weight, bts, err = msgp.ReadUint64Bytes(bts)
+//	if err != nil {
+//		return
+//	}
+//	z.Version, bts, err = msgp.ReadByteBytes(bts)
+//	if err != nil {
+//		return
+//	}
+//	o = bts
+//	return
+//}
+//
+//// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+//func (z *TxBase) Msgsize() (s int) {
+//	s = 1 + msgp.Uint16Size + z.Hash.Msgsize() + z.ParentsHash.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + z.PublicKey.Msgsize() + z.Signature.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + msgp.ByteSize
+//	return
+//}
 
 // DecodeMsg implements msgp.Decodable
 func (z *TxBaseJson) DecodeMsg(dc *msgp.Reader) (err error) {

@@ -205,3 +205,30 @@ func (t *TxBase) CalculateWeight(parents Txis) uint64 {
 func (t *TxBase) GetVersion() byte {
 	return t.Version
 }
+
+/**
+Marshaller part
+*/
+
+/**
+Type         TxBaseType
+Hash         og_types.Hash
+ParentsHash  []og_types.Hash
+AccountNonce uint64
+Height       uint64
+PublicKey    PublicKey //
+Signature    hexutil.Bytes
+MineNonce    uint64
+Weight       uint64
+inValid      bool
+Version      byte
+*/
+func (t *TxBase) MarshalMsg() ([]byte, error) {
+
+}
+
+func (t *TxBase) UnMarshalMsg([]byte) ([]byte, error) {}
+
+func (t *TxBase) MsgSize() int {
+
+}

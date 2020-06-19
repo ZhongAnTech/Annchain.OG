@@ -14,17 +14,21 @@ type FixLengthBytes interface {
 	Cmp(FixLengthBytes) int
 }
 
+type AddressKey string
+
 type Address interface {
 	FixLengthBytes
-	AddressKey() string
+	AddressKey() AddressKey
 	AddressString() string // just for type safety between Address and Hash
 	AddressShortString() string
 }
 
+type HashKey string
+
 type Hash interface {
 	marshaller.IMarshaller
 	FixLengthBytes
-	HashKey() string
+	HashKey() HashKey
 	HashString() string
 	HashShortString() string
 }

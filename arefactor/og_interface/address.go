@@ -15,8 +15,8 @@ const (
 
 type Address20 [Address20Length]byte
 
-func (a *Address20) AddressKey() string {
-	return string(a[:])
+func (a *Address20) AddressKey() AddressKey {
+	return AddressKey(a[:])
 }
 
 func (a *Address20) AddressShortString() string {

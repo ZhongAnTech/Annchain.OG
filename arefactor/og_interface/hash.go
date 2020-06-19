@@ -17,8 +17,8 @@ const (
 
 type Hash32 [Hash32Length]byte
 
-func (a *Hash32) HashKey() string {
-	return string(a[:])
+func (a *Hash32) HashKey() HashKey {
+	return HashKey(a[:])
 }
 
 func (a *Hash32) HashShortString() string {

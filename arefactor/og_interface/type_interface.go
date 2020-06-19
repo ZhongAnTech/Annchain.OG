@@ -16,6 +16,7 @@ type FixLengthBytes interface {
 
 type Address interface {
 	FixLengthBytes
+	AddressKey() string
 	AddressString() string // just for type safety between Address and Hash
 	AddressShortString() string
 }
@@ -23,6 +24,7 @@ type Address interface {
 type Hash interface {
 	marshaller.IMarshaller
 	FixLengthBytes
+	HashKey() string
 	HashString() string
 	HashShortString() string
 }

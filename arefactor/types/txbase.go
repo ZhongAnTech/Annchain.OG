@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common/hexutil"
 	"golang.org/x/crypto/sha3"
 
@@ -230,5 +231,13 @@ func (t *TxBase) MarshalMsg() ([]byte, error) {
 func (t *TxBase) UnMarshalMsg([]byte) ([]byte, error) {}
 
 func (t *TxBase) MsgSize() int {
+
+	size := 0
+	// t.Type + t.Hash
+	size += 1 + marshaller.CalIMarshallerSize(t.Hash)
+	// t.ParentsHash
+	for {
+
+	}
 
 }

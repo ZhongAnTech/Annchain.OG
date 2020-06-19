@@ -67,7 +67,7 @@ type IMarshaller interface {
 	MsgSize() int
 }
 
-func calIMarshallerSize(im IMarshaller) int {
+func CalIMarshallerSize(im IMarshaller) int {
 	// 1 for header lead
 	sz := 1
 
@@ -85,6 +85,10 @@ func calIMarshallerSize(im IMarshaller) int {
 
 	sz += msgSize
 	return sz
+}
+
+func CalIMarshallerArrSize(arr []IMarshaller) int {
+
 }
 
 func InitIMarshallerBytes(msgSize int) []byte {

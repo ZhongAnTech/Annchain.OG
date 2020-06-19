@@ -93,15 +93,17 @@ func RandomAddress20() *Address20 {
 	return adr
 }
 
-// CreateAddress creates an ethereum address given the bytes and the nonce
+// CreateAddress creates an address20 given the bytes and the nonce
 func CreateAddress20(b Address20, nonce uint64) Address20 {
 	bs := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bs, nonce)
-	return BytesToAddress20(ogCrypto.Keccak256([]byte{0xff}, b.Bytes()[:], bs)[12:])
+	addr := BytesToAddress20(ogCrypto.Keccak256([]byte{0xff}, b.Bytes()[:], bs)[12:])
+	return *addr
 }
 
-// CreateAddress2 creates an ethereum address given the address bytes, initial
+// CreateAddress2 creates an address20 given the address bytes, initial
 // contract code hash and a salt.
 func CreateAddress20_2(b Address20, salt Hash32, inithash []byte) Address20 {
-	return BytesToAddress20(ogCrypto.Keccak256([]byte{0xff}, b.Bytes()[:], salt[:], inithash)[12:])
+	addr := BytesToAddress20(ogCrypto.Keccak256([]byte{0xff}, b.Bytes()[:], salt[:], inithash)[12:])
+	return *addr
 }

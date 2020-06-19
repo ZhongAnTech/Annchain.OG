@@ -20,8 +20,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	math2 "github.com/annchain/OG/arefactor/common/math"
-	common2 "github.com/annchain/OG/common"
+	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/deprecated/ogcrypto"
+	"math"
 	"math/big"
 
 	"github.com/annchain/OG/arefactor/ogcrypto/bn256"
@@ -60,15 +61,15 @@ type PrecompiledContract interface {
 
 // PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
 // contracts used in the Byzantium release.
-var PrecompiledContractsByzantium = map[common2.Address]PrecompiledContract{
-	common2.BytesToAddress([]byte{1}): &ecrecover{},
-	common2.BytesToAddress([]byte{2}): &sha256hash{},
-	common2.BytesToAddress([]byte{3}): &ripemd160hash{},
-	common2.BytesToAddress([]byte{4}): &dataCopy{},
-	common2.BytesToAddress([]byte{5}): &bigModExp{},
-	common2.BytesToAddress([]byte{6}): &bn256Add{},
-	common2.BytesToAddress([]byte{7}): &bn256ScalarMul{},
-	common2.BytesToAddress([]byte{8}): &bn256Pairing{},
+var PrecompiledContractsByzantium = map[ogTypes.Address20]PrecompiledContract{
+	*ogTypes.BytesToAddress20([]byte{1}): &ecrecover{},
+	*ogTypes.BytesToAddress20([]byte{2}): &sha256hash{},
+	*ogTypes.BytesToAddress20([]byte{3}): &ripemd160hash{},
+	*ogTypes.BytesToAddress20([]byte{4}): &dataCopy{},
+	*ogTypes.BytesToAddress20([]byte{5}): &bigModExp{},
+	*ogTypes.BytesToAddress20([]byte{6}): &bn256Add{},
+	*ogTypes.BytesToAddress20([]byte{7}): &bn256ScalarMul{},
+	*ogTypes.BytesToAddress20([]byte{8}): &bn256Pairing{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
@@ -216,7 +217,7 @@ func (c *bigModExp) RequiredGas(input []byte) uint64 {
 	gas.Div(gas, new(big.Int).SetUint64(params.ModExpQuadCoeffDiv))
 
 	if gas.BitLen() > 64 {
-		return math2.BiggerUint64
+		return math.MaxUint64
 	}
 	return gas.Uint64()
 }

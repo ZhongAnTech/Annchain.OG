@@ -17,6 +17,10 @@ const (
 
 type Hash32 [Hash32Length]byte
 
+func (a *Hash32) HashKey() string {
+	return string(a[:])
+}
+
 func (a *Hash32) HashShortString() string {
 	return hexutil.ToHex(a[:10])
 }

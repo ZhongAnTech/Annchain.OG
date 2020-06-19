@@ -124,7 +124,7 @@ func (ovm *OVM) Cancel() {
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (ovm *OVM) Call(caller vmtypes.ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int, txCall bool) (ret []byte, leftOverGas uint64, err error) {
+func (ovm *OVM) Call(caller vmtypes.ContractRef, addr ogTypes.Address20, input []byte, gas uint64, value *big.Int, txCall bool) (ret []byte, leftOverGas uint64, err error) {
 	logrus.WithFields(logrus.Fields{
 		"caller": caller.Address().Hex(),
 		"addr":   addr.Hex(),

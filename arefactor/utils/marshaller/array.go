@@ -1,7 +1,7 @@
 package marshaller
 
 import (
-	"github.com/annchain/OG/arefactor/common"
+	"fmt"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -15,23 +15,23 @@ func MarshalIntArray() {
 
 func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
 	// get total size
-	var size int
-	if len(arr) == 0 {
-		size = msgp.ArrayHeaderSize
-	} else {
-		size = msgp.ArrayHeaderSize
-		for _, ele := range arr {
-			size += calIMarshallerSize(ele)
-		}
+
+	// init size for array lead byte
+	header := make([]byte, msgp.ArrayHeaderSize)
+	header, pos := EncodeIMarshallerHeader(header, 1, len(arr))
+	// add header len
+	size := pos
+	// add element size
+	for _, ele := range arr {
+		size += calIMarshallerSize(ele)
 	}
 
 	b := make([]byte, size)
 
-	// set 5 bytes array header
+	// set lead and header
 	b[0] = mfixarray
-	common.SetUInt32(b, 1, uint32(size))
+	copy(b[1:pos], header)
 
-	pos := 5
 	for _, element := range arr {
 		eleBytes, err := element.MarshalMsg()
 		if err != nil {
@@ -45,6 +45,17 @@ func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
 	return b, nil
 }
 
+// UnMarshalIMarshallerArrayHeader decode array header return array body bytes
+// and the length of this array
 func UnMarshalIMarshallerArrayHeader(b []byte) ([]byte, int, error) {
-	return DecodeIMarshallerHeader(b)
+	if len(b) == 0 {
+		return b, 0, fmt.Errorf("bytes is empty")
+	}
+
+	lead := b[0]
+	if lead != mfixarray {
+		return b, 0, fmt.Errorf("byte lead is not mfixarray, get: %x", lead)
+	}
+
+	return DecodeIMarshallerHeader(b[1:])
 }

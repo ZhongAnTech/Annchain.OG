@@ -867,8 +867,8 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	}
 
 	// return when the address type is not Address20
-	from20, okFrom := txnormal.From.(ogTypes.Address20)
-	to20, okTo := txnormal.To.(ogTypes.Address20)
+	from20, okFrom := txnormal.From.(*ogTypes.Address20)
+	to20, okTo := txnormal.To.(*ogTypes.Address20)
 	if !okFrom || !okTo {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 		return nil, receipt, nil
@@ -893,7 +893,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		Coinbase:   DefaultCoinbase,
 		SequenceID: dag.latestSequencer.Height,
 	}
-	// TODO more interpreters should be initialized, here only evm.
+
 	evmInterpreter := evm.NewEVMInterpreter(vmContext, txContext,
 		&evm.InterpreterConfig{
 			Debug: false,
@@ -909,9 +909,9 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	var err error
 	var receipt *Receipt
 	if txnormal.To.Cmp(emptyAddress) == 0 {
-		ret, contractAddress, _, err = ogvm.Create(vmtypes.AccountRef(txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
+		ret, contractAddress, _, err = ogvm.Create(vmtypes.AccountRef(*txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	} else {
-		ret, _, err = ogvm.Call(vmtypes.AccountRef(txContext.From), to20, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
+		ret, _, err = ogvm.Call(vmtypes.AccountRef(*txContext.From), *to20, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
 	}
 	if err != nil {
 		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusOVMFailed, err.Error(), emptyAddress)

@@ -57,8 +57,8 @@ type AccountRef ogTypes.Address20
 
 // Address casts AccountRef to a Address
 func (ar AccountRef) Address() ogTypes.Address20 {
-	return (ogTypes.Address20)(ar)
-	//return a
+	a := (ogTypes.Address20)(ar)
+	return a
 }
 
 // Contract represents an general contract in the state database. It contains
@@ -76,7 +76,7 @@ type Contract struct {
 
 	Code     []byte
 	CodeHash ogTypes.Hash32
-	CodeAddr ogTypes.Address20
+	CodeAddr *ogTypes.Address20
 	Input    []byte
 
 	Gas   uint64
@@ -199,7 +199,7 @@ func (c *Contract) SetCallCode(addr ogTypes.Address20, hash ogTypes.Hash32, code
 	}).Info("SetCallCode")
 	c.Code = code
 	c.CodeHash = hash
-	c.CodeAddr = addr
+	c.CodeAddr = &addr
 }
 
 // SetCodeOptionalHash can be used to provide code, but it's optional to provide hash.
@@ -207,5 +207,5 @@ func (c *Contract) SetCallCode(addr ogTypes.Address20, hash ogTypes.Hash32, code
 func (c *Contract) SetCodeOptionalHash(addr ogTypes.Address20, codeAndHash *CodeAndHash) {
 	c.Code = codeAndHash.Code
 	c.CodeHash = codeAndHash.hash
-	c.CodeAddr = addr
+	c.CodeAddr = &addr
 }

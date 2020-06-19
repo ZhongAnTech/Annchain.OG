@@ -25,16 +25,16 @@ import (
 
 // TxContext represents all information that evm needs to know about the tx current processing.
 type TxContext struct {
-	From  ogTypes.Address20
-	To    ogTypes.Address20
+	From  *ogTypes.Address20
+	To    *ogTypes.Address20
 	Value *math.BigInt
 	Data  []byte
 
 	// Temporarily keep using gas as resource billing
 	GasLimit   uint64
 	GasPrice   *math.BigInt
-	Coinbase   ogTypes.Address20 // Provides information for COINBASE
-	SequenceID uint64            // Provides information for SequenceID
+	Coinbase   *ogTypes.Address20 // Provides information for COINBASE
+	SequenceID uint64             // Provides information for SequenceID
 	//Time        *math.BigInt      // Provides information for TIME
 	//Difficulty  *math.BigInt      // Provides information for DIFFICULTY
 }

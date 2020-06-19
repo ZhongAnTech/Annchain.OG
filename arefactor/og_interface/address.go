@@ -2,8 +2,10 @@ package og_interface
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 	"github.com/annchain/OG/arefactor/common/hexutil"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	ogCrypto "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
 	"math/big"
 	"math/rand"
@@ -61,10 +63,10 @@ func (a *Address20) Cmp(another FixLengthBytes) int {
 	return BytesCmp(a, another)
 }
 
-func BytesToAddress20(b []byte) (*Address20, error) {
+func BytesToAddress20(b []byte) *Address20 {
 	a := &Address20{}
 	a.FromBytes(b)
-	return a, nil
+	return a
 }
 
 func HexToAddress20(hex string) (*Address20, error) {
@@ -89,4 +91,17 @@ func RandomAddress20() *Address20 {
 	sum := h.Sum(nil)
 	adr.FromBytes(sum[:20])
 	return adr
+}
+
+// CreateAddress creates an ethereum address given the bytes and the nonce
+func CreateAddress20(b Address20, nonce uint64) Address20 {
+	bs := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bs, nonce)
+	return BytesToAddress20(ogCrypto.Keccak256([]byte{0xff}, b.Bytes()[:], bs)[12:])
+}
+
+// CreateAddress2 creates an ethereum address given the address bytes, initial
+// contract code hash and a salt.
+func CreateAddress20_2(b Address20, salt Hash32, inithash []byte) Address20 {
+	return BytesToAddress20(ogCrypto.Keccak256([]byte{0xff}, b.Bytes()[:], salt[:], inithash)[12:])
 }

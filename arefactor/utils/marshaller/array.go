@@ -23,7 +23,7 @@ func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
 	size := pos
 	// add element size
 	for _, ele := range arr {
-		size += calIMarshallerSize(ele)
+		size += CalIMarshallerSize(ele)
 	}
 
 	b := make([]byte, size)

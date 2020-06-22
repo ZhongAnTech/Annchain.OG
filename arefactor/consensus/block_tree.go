@@ -36,7 +36,7 @@ func (t *BlockTree) InitGenesisOrLatest() {
 	})
 	t.Ledger.Speculate("", "genesis", "0")
 	t.Ledger.Commit("genesis")
-	//t.pendingBlkTree.Add(&Block{
+	//t.pendingBlkTree.AddBranch(&Block{
 	//	Round:    0,
 	//	Payload:  "genesispayload",
 	//	ParentQC: nil,
@@ -44,18 +44,18 @@ func (t *BlockTree) InitGenesisOrLatest() {
 	//})
 }
 
-func (t *BlockTree) InitDefault() {
-	//t.pendingBlkTree = PendingBlockTree{
-	//	MyId:   t.MyIdIndex,
-	//	Logger: t.Logger,
-	//}
-	//t.pendingBlkTree.InitDefault()
-}
+//func (t *BlockTree) InitDefault() {
+//	//t.pendingBlkTree = PendingBlockTree{
+//	//	MyId:   t.MyIdIndex,
+//	//	Logger: t.Logger,
+//	//}
+//	//t.pendingBlkTree.InitDefault()
+//}
 
-func (t *BlockTree) ProcessCommit(id string) {
-	t.Ledger.Commit(id)
-	t.pendingBlkTree.Commit(id)
-}
+//func (t *BlockTree) ProcessCommit(id string) {
+//	t.Ledger.Commit(id)
+//	t.pendingBlkTree.Commit(id)
+//}
 
 func (t *BlockTree) ExecuteAndInsert(p *consensus_interface.Block) {
 	// it is a proposal message
@@ -69,7 +69,7 @@ func (t *BlockTree) ExecuteAndInsert(p *consensus_interface.Block) {
 	}).Info("Block Executed")
 	t.Report.Report("blockId", p.Id, false)
 	t.Report.Report("executeStateId", executeStateId, false)
-	t.pendingBlkTree.Add(p)
+	t.pendingBlkTree.AddBranch(p)
 	if p.ParentQC.VoteData.Round > t.highQC.VoteData.Round {
 		t.Logger.WithField("old", t.highQC).WithField("new", p.ParentQC).Info("highQC updated")
 		t.updateHighQC(p.ParentQC)
@@ -79,21 +79,21 @@ func (t *BlockTree) ExecuteAndInsert(p *consensus_interface.Block) {
 
 }
 
-func (t *BlockTree) GenerateProposal(currentRound int, payload string) *consensus_interface.ContentProposal {
-	time.Sleep(time.Second * 1)
-	//time.Sleep(time.Millisecond * 2)
-	return &consensus_interface.ContentProposal{
-		Proposal: Block{
-			Round:    currentRound,
-			Payload:  payload,
-			ParentQC: t.highQC,
-			Id:       Hash(fmt.Sprintf("%d %s %s", currentRound, payload, t.highQC)),
-		},
-		TC: t.PaceMaker.lastTC,
-	}
-}
-
-func (t *BlockTree) updateHighQC(qc *consensus_interface.QC) {
-	t.highQC = qc
-	t.Report.Report("t.highQC", t.highQC.VoteData.Round, false)
-}
+//func (t *BlockTree) GenerateProposal(currentRound int, payload string) *consensus_interface.ContentProposal {
+//	time.Sleep(time.Second * 1)
+//	//time.Sleep(time.Millisecond * 2)
+//	return &consensus_interface.ContentProposal{
+//		Proposal: Block{
+//			Round:    currentRound,
+//			Payload:  payload,
+//			ParentQC: t.highQC,
+//			Id:       Hash(fmt.Sprintf("%d %s %s", currentRound, payload, t.highQC)),
+//		},
+//		TC: t.PaceMaker.lastTC,
+//	}
+//}
+//
+//func (t *BlockTree) updateHighQC(qc *consensus_interface.QC) {
+//	t.highQC = qc
+//	t.Report.Report("t.highQC", t.highQC.VoteData.Round, false)
+//}

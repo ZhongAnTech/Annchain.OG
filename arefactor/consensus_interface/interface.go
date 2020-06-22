@@ -35,8 +35,8 @@ type ProposalVerifier interface {
 }
 
 type ProposalExecutor interface {
-	ExecuteProposal(proposal *ContentProposal)
-	ExecuteProposalAsync(proposal *ContentProposal)
+	ExecuteProposal(block *Block)
+	ExecuteProposalAsync(block *Block)
 }
 
 type CommitteeProvider interface {

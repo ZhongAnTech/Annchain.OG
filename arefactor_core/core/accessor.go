@@ -566,11 +566,12 @@ func (da *Accessor) ReadIndexedTxHashs(SeqHeight uint64) ([]og_types.Hash, error
 	}
 	hashs := make([]og_types.Hash, arrLen)
 	for i := 0; i < arrLen; i++ {
-		hash := &og_types.Hash32{}
-		data, err = hash.UnMarshalMsg(data)
+		var hash og_types.Hash
+		hash, data, err = og_types.UnmarshalHash(data)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal tx hash error: %v", err)
 		}
+		hashs = append(hashs, hash)
 	}
 	return hashs, nil
 }

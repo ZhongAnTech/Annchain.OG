@@ -6,11 +6,12 @@ import (
 )
 
 type Safety struct {
-	lastVoteRound  int64
-	preferredRound int64
-	Ledger         *Ledger
+	lastVoteRound  int
+	preferredRound int
+	Ledger         consensus_interface.Ledger
 	Partner        *Partner
 	Logger         *logrus.Logger
+	Hasher         consensus_interface.Hasher
 	//	voteMsg := &Msg{
 	//	Typev:    HotStuffMessageTypeVote,
 	//	ParentQC: msg.ParentQC,
@@ -50,7 +51,7 @@ func (s *Safety) MakeVote(blockId string, blockRound int, parentQC *consensus_in
 
 	ledgerCommitInfo := consensus_interface.LedgerCommitInfo{
 		CommitStateId: s.Ledger.GetState(potentialCommitId),
-		VoteInfoHash:  Hash(voteInfo.GetHashContent()),
+		VoteInfoHash:  s.Hasher.Hash(voteInfo.GetHashContent()),
 	}
 
 	return &consensus_interface.ContentVote{

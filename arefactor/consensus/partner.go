@@ -128,7 +128,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	// TODO: execute the block async
 	//n.BlockTree.ExecuteAndInsert(&p.HotStuffMessageTypeProposal)
 	// TODO: who is ProposalExecutor?
-	n.ProposalExecutor.ExecuteProposal(p)
+	n.ProposalExecutor.ExecuteProposal(&p.Proposal)
 
 	// vote after execution
 

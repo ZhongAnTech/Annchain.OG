@@ -25,6 +25,10 @@ type NewHeightDetectedEvent struct {
 	PeerId string
 }
 
+type AccountHolder interface {
+	ProvidePrivateKey(createIfMissing bool) ([]byte, error)
+}
+
 type NewHeightDetectedEventSubscriber interface {
 	Name() string
 	NewHeightDetectedEventChannel() chan *NewHeightDetectedEvent

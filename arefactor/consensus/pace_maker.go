@@ -1,80 +1,127 @@
 package consensus
 
 import (
-	"fmt"
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"time"
 )
 
 type PaceMaker struct {
-	PeerIds      []string
-	MyIdIndex    int
-	CurrentRound int
-	Safety       *Safety
+	PeerIds         []string
+	MyIdIndex       int
+	CurrentRound    int
+	Safety          *Safety
+	Signer          consensus_interface.Signer
+	AccountProvider consensus_interface.AccountHolder
+	Ledger          consensus_interface.Ledger
 
-	MessageHub       Hub
-	BlockTree        *BlockTree
-	ProposerElection *ProposerElection
-	Partner          *Partner
-	Logger           *logrus.Logger
-	lastTC           *TC
-	timeoutsPerRound map[int]SignatureCollector // round : sender list:true
-	timer            *time.Timer
-	quit             chan bool
+	BlockTree         *BlockTree
+	CommitteeProvider consensus_interface.CommitteeProvider
+	Partner           *Partner
+	Logger            *logrus.Logger
+	lastTC            *consensus_interface.TC
+	pendingTCs        map[int]consensus_interface.SignatureCollector // round : sender list:true
+	timer             *time.Timer
+	quit              chan bool
+
+	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 }
 
 func (m *PaceMaker) InitDefault() {
 	m.quit = make(chan bool)
-	m.timeoutsPerRound = make(map[int]SignatureCollector)
+	m.pendingTCs = make(map[int]consensus_interface.SignatureCollector)
 	m.timer = time.NewTimer(time.Second * 2)
+	m.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
+
 }
 
-func (m *PaceMaker) ProcessRemoteTimeout(msg *Msg) {
-	contentTimeout := msg.Content.(*ContentTimeout)
-	m.Partner.ProcessCertificates(contentTimeout.HighQC, contentTimeout.TC, "RTM")
+// subscribe mine
+func (m *PaceMaker) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
+	m.newOutgoingMessageSubscribers = append(m.newOutgoingMessageSubscribers, sub)
+}
 
-	if _, ok := m.timeoutsPerRound[contentTimeout.Round]; !ok {
-		collector := SignatureCollector{}
-		collector.InitDefault()
-		m.timeoutsPerRound[contentTimeout.Round] = collector
+func (m *PaceMaker) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
+	for _, subscriber := range m.newOutgoingMessageSubscribers {
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing hotstuff pacemaker"+subscriber.Name()).C
+		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
-	collector := m.timeoutsPerRound[contentTimeout.Round]
-	collector.Collect(msg.Sig)
-	m.Logger.WithField("detail", fmt.Sprintf("from %s round %d. Collector round %d have %d votes: %s", PrettyId(msg.SenderId), contentTimeout.Round, contentTimeout.Round, collector.Count(), collector.AllSignatures())).
-		Debug("T got")
+}
 
-	if collector.Count() == m.Partner.F*2+1 {
-		m.Logger.WithField("round", contentTimeout.Round).Info("TC got")
-		m.AdvanceRound(nil, &TC{
-			Round:      contentTimeout.Round,
-			Signatures: collector.AllSignatures(),
+func (m *PaceMaker) ProcessRemoteTimeoutMessage(msg *consensus_interface.HotStuffSignedMessage) {
+	p := &consensus_interface.ContentTimeout{}
+	err := p.FromBytes(msg.ContentBytes)
+	if err != nil {
+		logrus.WithError(err).Debug("failed to decode ContentTimeout")
+		return
+	}
+
+	m.ProcessRemoteTimeout(p, msg.Signature, msg.SenderId)
+}
+
+func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, signature consensus_interface.Signature, fromId string) {
+	id, err := m.CommitteeProvider.GetPeerIndex(fromId)
+	if err != nil {
+		logrus.WithError(err).WithField("peerId", fromId).
+			Debug("error in finding peer in committee")
+		return
+	}
+
+	m.Partner.ProcessCertificates(p.HighQC, p.TC, "RemoteTimeout")
+
+	collector := m.ensureTCCollector(p.Round)
+	collector.Collect(signature, id)
+
+	m.Logger.WithFields(logrus.Fields{
+		"from":  fromId,
+		"round": p.Round,
+		"tcs":   collector.GetCurrentCount(),
+	}).Debug("T got")
+
+	if collector.Collected() {
+		m.Logger.WithField("round", p.Round).Info("TC got")
+		m.AdvanceRound(nil, &consensus_interface.TC{
+			Round:          p.Round,
+			JointSignature: collector.GetJointSignature(),
 		}, "remote tc got")
 	}
 }
 
 func (m *PaceMaker) LocalTimeoutRound() {
-	var collector SignatureCollector
-	if _, ok := m.timeoutsPerRound[m.CurrentRound]; !ok {
-		collector = SignatureCollector{}
-		collector.InitDefault()
-		m.timeoutsPerRound[m.CurrentRound] = collector
-	} else {
-		// different from paper: to keep sending timeout message so that TC may be generated if there is someone missed or later joined in.
-		collector = m.timeoutsPerRound[m.CurrentRound]
-	}
+	collector := m.ensureTCCollector(m.CurrentRound)
 
 	m.Safety.IncreaseLastVoteRound(m.CurrentRound)
 	m.Partner.SaveConsensusState()
 
 	timeoutMsg := m.MakeTimeoutMessage()
-	m.MessageHub.DeliverToThemIncludingMe(timeoutMsg, m.PeerIds, "LocalTimeoutRound")
-	collector.Collect(timeoutMsg.Sig)
+	bytes := timeoutMsg.ToBytes()
+	signature, err := m.sign(timeoutMsg)
+	if err != nil {
+		return
+	}
+
+	// announce a timeout msg
+	outMsg := &consensus_interface.HotStuffSignedMessage{
+		HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeTimeout),
+		ContentBytes:        bytes,
+		SenderId:            m.CommitteeProvider.GetMyPeerId(),
+		Signature:           signature,
+	}
+	letter := &transport_interface.OutgoingLetter{
+		Msg:            outMsg,
+		SendType:       transport_interface.SendTypeMulticast,
+		CloseAfterSent: false,
+		EndReceivers:   m.CommitteeProvider.GetAllMemberPeedIds(),
+	}
+	m.notifyNewOutgoingMessage(letter)
+
+	collector.Collect(signature, m.CommitteeProvider.GetMyPeerIndex())
 	logrus.Info("reset timer")
 	m.timer.Reset(m.GetRoundTimer(m.CurrentRound))
 }
 
-func (m *PaceMaker) AdvanceRound(qc *QC, tc *TC, reason string) {
+func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_interface.TC, reason string) {
 	m.Logger.WithField("qc", qc).WithField("tc", tc).WithField("reason", reason).Trace("advancing round")
 
 	latestRound := 0
@@ -95,37 +142,43 @@ func (m *PaceMaker) AdvanceRound(qc *QC, tc *TC, reason string) {
 
 	m.lastTC = tc
 	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Warn("round advanced")
-	if m.MyIdIndex != m.ProposerElection.GetLeader(m.CurrentRound) {
-		content := &ContentVote{
+	if !m.CommitteeProvider.AmILeader(m.CurrentRound) {
+
+		// prepare vote message
+		vote := &consensus_interface.ContentVote{
 			QC: qc,
 			TC: tc,
 		}
+		bytes := vote.ToBytes()
+		signature, err := m.sign(vote)
+		if err != nil {
+			return
+		}
 
-		m.MessageHub.Deliver(&Msg{
-
-			Typev: Vote,
-			Sig: Signature{
-				PartnerIndex: m.MyIdIndex,
-				Signature:    content.SignatureTarget(),
-			},
-			SenderId: m.PeerIds[m.MyIdIndex],
-			Content:  content,
-		}, m.PeerIds[m.ProposerElection.GetLeader(m.CurrentRound)], "AdvanceRound:"+reason)
+		// announce it
+		outMsg := &consensus_interface.HotStuffSignedMessage{
+			HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeVote),
+			ContentBytes:        bytes,
+			SenderId:            m.CommitteeProvider.GetMyPeerId(),
+			Signature:           signature,
+		}
+		letter := &transport_interface.OutgoingLetter{
+			Msg:            outMsg,
+			SendType:       transport_interface.SendTypeUnicast,
+			CloseAfterSent: false,
+			EndReceivers:   []string{m.CommitteeProvider.GetLeaderPeerId(m.CurrentRound)},
+		}
+		m.notifyNewOutgoingMessage(letter)
 	}
 	m.StartLocalTimer(m.CurrentRound, m.GetRoundTimer(m.CurrentRound))
 	m.Partner.ProcessNewRoundEvent()
 }
 
-func (m *PaceMaker) MakeTimeoutMessage() *Msg {
-	content := &ContentTimeout{Round: m.CurrentRound, HighQC: m.BlockTree.highQC, TC: m.lastTC}
-	return &Msg{
-		Typev: Timeout,
-		Sig: Signature{
-			PartnerIndex: m.MyIdIndex,
-			Signature:    content.SignatureTarget(),
-		},
-		SenderId: m.PeerIds[m.MyIdIndex],
-		Content:  content,
+func (m *PaceMaker) MakeTimeoutMessage() *consensus_interface.ContentTimeout {
+	return &consensus_interface.ContentTimeout{
+		Round:  m.CurrentRound,
+		HighQC: m.Ledger.GetHighQC(),
+		TC:     m.lastTC,
 	}
 }
 
@@ -147,4 +200,26 @@ func (m *PaceMaker) GetRoundTimer(round int) time.Duration {
 func (m *PaceMaker) StartLocalTimer(round int, duration time.Duration) {
 	logrus.Warn("Starting local timer")
 	m.timer.Reset(duration)
+}
+
+func (m *PaceMaker) ensureTCCollector(round int) consensus_interface.SignatureCollector {
+	if _, ok := m.pendingTCs[round]; !ok {
+		collector := &BlsSignatureCollector{
+			CommitteeProvider: m.CommitteeProvider,
+		}
+		collector.InitDefault()
+		m.pendingTCs[round] = collector
+	}
+	collector := m.pendingTCs[round]
+	return collector
+}
+
+func (m *PaceMaker) sign(msg Signable) (signature []byte, err error) {
+	privateKey, err := m.AccountProvider.ProvidePrivateKey(false)
+	if err != nil {
+		logrus.WithError(err).Warn("account provider cannot provide private key")
+		return
+	}
+	signature = m.Signer.Sign(msg.SignatureTarget(), privateKey)
+	return
 }

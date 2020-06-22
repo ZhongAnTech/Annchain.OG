@@ -46,6 +46,8 @@ type CommitteeProvider interface {
 	GetMyPeerIndex() int
 	GetLeaderPeerId(round int) string
 	GetPeerIndex(id string) (index int, err error)
+	GetThreshold() int
+	AmILeader(round int) bool
 }
 
 type AccountHolder interface {
@@ -73,6 +75,7 @@ type Ledger interface {
 	GetState(blockId string) (stateId string)
 	// Commit commits the pending prefix of the given blockId and prune other branches
 	Commit(blockId string)
+	GetHighQC() *QC
 }
 
 type Hasher interface {

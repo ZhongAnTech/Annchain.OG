@@ -17,6 +17,10 @@ type PendingBlockTree struct {
 	Ledger         consensus_interface.Ledger // Ledger should be operated by
 }
 
+func (t *PendingBlockTree) InitFromLedger() {
+	t.EnsureHighQC(t.Ledger.GetHighQC())
+}
+
 func (t *PendingBlockTree) ExecuteProposal(block *consensus_interface.Block) {
 	t.AddBranch(block)
 	executeStateId := t.Ledger.Speculate(block.ParentQC.VoteData.Id, block.Id, block.Payload)

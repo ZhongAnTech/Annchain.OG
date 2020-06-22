@@ -7,7 +7,7 @@ type DefaultProposalContext struct {
 	PendingBlockTree *PendingBlockTree
 }
 
-func (d DefaultProposalContext) GetCurrentRound() int64 {
+func (d DefaultProposalContext) GetCurrentRound() int {
 	return d.PaceMaker.CurrentRound
 }
 

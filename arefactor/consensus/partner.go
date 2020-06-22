@@ -41,7 +41,7 @@ type Partner struct {
 	Ledger                  consensus_interface.Ledger
 
 	pendingBlockTree *PendingBlockTree
-	pendingVotes     map[string]consensus_interface.SignatureCollector // collected votes per block indexed by their LedgerInfo hash
+	pendingQCs       map[string]consensus_interface.SignatureCollector // collected votes per block indexed by their LedgerInfo hash
 
 	// event handlers
 	myNewIncomingMessageEventChan chan *transport_interface.IncomingLetter
@@ -56,7 +56,7 @@ func (n *Partner) InitDefault() {
 		Logger: n.Logger,
 		Ledger: n.Ledger,
 	}
-	n.pendingVotes = make(map[string]consensus_interface.SignatureCollector)
+	n.pendingQCs = make(map[string]consensus_interface.SignatureCollector)
 	n.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
 	n.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 }
@@ -179,7 +179,7 @@ func (t *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature c
 
 	voteIndex := t.Hasher.Hash(vote.LedgerCommitInfo.GetHashContent())
 
-	collector := t.ensureCollector(voteIndex)
+	collector := t.ensureQCCollector(voteIndex)
 	collector.Collect(signature, id)
 
 	logrus.WithField("sigs", collector.GetCurrentCount()).
@@ -212,7 +212,7 @@ func (n *Partner) ProcessCertificates(qc *consensus_interface.QC, tc *consensus_
 }
 
 func (n *Partner) ProcessNewRoundEvent() {
-	if n.CommitteeProvider.GetMyPeerId() != n.CommitteeProvider.GetLeaderPeerId(n.PaceMaker.CurrentRound) {
+	if !n.CommitteeProvider.AmILeader(n.PaceMaker.CurrentRound) {
 		// not the leader
 		n.Logger.Trace("I'm not the leader so just return")
 		return
@@ -239,7 +239,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 	}
 	letter := &transport_interface.OutgoingLetter{
 		Msg:            outMsg,
-		SendType:       transport_interface.SendTypeUnicast,
+		SendType:       transport_interface.SendTypeMulticast,
 		CloseAfterSent: false,
 		EndReceivers:   n.CommitteeProvider.GetAllMemberPeedIds(),
 	}
@@ -300,15 +300,15 @@ func (d *Partner) notifyNewOutgoingMessage(event *transport_interface.OutgoingLe
 	}
 }
 
-func (n *Partner) ensureCollector(commitInfoHash string) consensus_interface.SignatureCollector {
-	if _, ok := n.pendingVotes[commitInfoHash]; !ok {
+func (n *Partner) ensureQCCollector(commitInfoHash string) consensus_interface.SignatureCollector {
+	if _, ok := n.pendingQCs[commitInfoHash]; !ok {
 		collector := &BlsSignatureCollector{
-			Threshold: 2*n.F + 1,
+			CommitteeProvider: n.CommitteeProvider,
 		}
 		collector.InitDefault()
-		n.pendingVotes[commitInfoHash] = collector
+		n.pendingQCs[commitInfoHash] = collector
 	}
-	collector := n.pendingVotes[commitInfoHash]
+	collector := n.pendingQCs[commitInfoHash]
 	return collector
 }
 

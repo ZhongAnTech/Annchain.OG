@@ -6,15 +6,14 @@ import (
 )
 
 type BlsSignatureCollector struct {
-	Threshold int
-
-	signatures map[int]consensus_interface.Signature
-	mu         sync.RWMutex
+	CommitteeProvider consensus_interface.CommitteeProvider
+	signatures        map[int]consensus_interface.Signature
+	mu                sync.RWMutex
 }
 
 func (s *BlsSignatureCollector) Collected() bool {
 	// TODO: Bls verify
-	return len(s.signatures) >= s.Threshold
+	return len(s.signatures) >= s.CommitteeProvider.GetThreshold()
 }
 
 func (s *BlsSignatureCollector) InitDefault() {
@@ -22,7 +21,7 @@ func (s *BlsSignatureCollector) InitDefault() {
 }
 
 func (s *BlsSignatureCollector) GetThreshold() int {
-	return s.Threshold
+	return s.CommitteeProvider.GetThreshold()
 }
 
 func (s *BlsSignatureCollector) GetCurrentCount() int {

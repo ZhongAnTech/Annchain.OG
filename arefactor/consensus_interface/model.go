@@ -116,8 +116,8 @@ func (z *ContentString) String() string {
 	return z.Content
 }
 
-func (z *ContentString) SignatureTarget() string {
-	return z.Content
+func (z *ContentString) SignatureTarget() []byte {
+	return z.ToBytes()
 }
 
 //msgp ContentProposal
@@ -147,7 +147,7 @@ func (z *ContentProposal) String() string {
 }
 
 func (z *ContentProposal) SignatureTarget() []byte {
-	return []byte(z.Proposal.String())
+	return z.ToBytes()
 }
 
 //msgp ContentTimeout
@@ -155,6 +155,10 @@ type ContentTimeout struct {
 	Round  int
 	HighQC *QC
 	TC     *TC
+}
+
+func (z *ContentTimeout) SignatureTarget() []byte {
+	return z.ToBytes()
 }
 
 func (z *ContentTimeout) ToBytes() []byte {
@@ -171,10 +175,6 @@ func (z *ContentTimeout) FromBytes(bts []byte) error {
 		return err
 	}
 	return nil
-}
-
-func (z *ContentTimeout) SignatureTarget() string {
-	return strconv.Itoa(z.Round)
 }
 
 func (z *ContentTimeout) String() string {
@@ -210,8 +210,7 @@ func (z *ContentVote) String() string {
 }
 
 func (z *ContentVote) SignatureTarget() []byte {
-	// TODO: make it less
-	return []byte(fmt.Sprintf("[CVote: voteinfo=%s ledgercinfo=%s qc=%s tc=%s]", z.VoteInfo, z.LedgerCommitInfo, z.QC, z.TC))
+	return z.ToBytes()
 }
 
 //msgp QC
@@ -224,7 +223,7 @@ func (q *QC) String() string {
 	if q == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("[QC: voteInfo=%s sigs=%d]", q.VoteData, len(q.Signatures))
+	return fmt.Sprintf("[QC: voteInfo=%s sigs=%d]", q.VoteData, len(q.JointSignature))
 }
 
 //msgp TC
@@ -237,7 +236,7 @@ func (t *TC) String() string {
 	if t == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("[TC: round=%d, sigs=%d]", t.Round, len(t.Signatures))
+	return fmt.Sprintf("[TC: round=%d, sigs=%d]", t.Round, len(t.JointSignature))
 }
 
 //msgp VoteInfo

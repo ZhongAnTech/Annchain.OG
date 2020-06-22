@@ -17,6 +17,16 @@ type PendingBlockTree struct {
 	Ledger         consensus_interface.Ledger // Ledger should be operated by
 }
 
+func (t *PendingBlockTree) ExecuteProposal(block *consensus_interface.Block) {
+	t.AddBranch(block)
+	executeStateId := t.Ledger.Speculate(block.ParentQC.VoteData.Id, block.Id, block.Payload)
+	logrus.WithField("executeStateId", executeStateId).Debug("executed block")
+}
+
+func (t *PendingBlockTree) ExecuteProposalAsync(block *consensus_interface.Block) {
+	panic("implement me")
+}
+
 func (t *PendingBlockTree) String() string {
 	return fmt.Sprintf("[PBT: cache %d relation %d]", len(t.cache), len(t.childRelations))
 }
@@ -26,10 +36,10 @@ func (t *PendingBlockTree) InitDefault() {
 	t.childRelations = make(map[string][]string)
 }
 
-func (t *PendingBlockTree) Add(p *consensus_interface.Block) {
+func (t *PendingBlockTree) AddBranch(p *consensus_interface.Block) {
 	t.cache[p.Id] = p
 
-	vs, ok := t.childRelations[p.ParentQC.VoteData.Id]
+	vs, ok := t.childRelations[p.ParentQC.VoteData.Id] // get parent QC block id
 	if !ok {
 		vs = []string{}
 	}

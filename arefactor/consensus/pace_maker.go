@@ -9,24 +9,24 @@ import (
 )
 
 type PaceMaker struct {
-	PeerIds         []string
-	MyIdIndex       int
+	Logger *logrus.Logger
+
 	CurrentRound    int
 	Safety          *Safety
 	Signer          consensus_interface.Signer
 	AccountProvider consensus_interface.AccountHolder
 	Ledger          consensus_interface.Ledger
 
-	BlockTree         *BlockTree
 	CommitteeProvider consensus_interface.CommitteeProvider
 	Partner           *Partner
-	Logger            *logrus.Logger
-	lastTC            *consensus_interface.TC
-	pendingTCs        map[int]consensus_interface.SignatureCollector // round : sender list:true
-	timer             *time.Timer
-	quit              chan bool
 
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
+
+	lastTC     *consensus_interface.TC
+	pendingTCs map[int]consensus_interface.SignatureCollector // round : sender list:true
+
+	timer *time.Timer
+	quit  chan bool
 }
 
 func (m *PaceMaker) InitDefault() {

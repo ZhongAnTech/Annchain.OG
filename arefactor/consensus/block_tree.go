@@ -64,8 +64,8 @@ type BlockTree struct {
 //		"blockContent":   p.Payload,
 //		"executeStateId": executeStateId,
 //	}).Info("Block Executed")
-//	t.Report.Report("blockId", p.Id, false)
-//	t.Report.Report("executeStateId", executeStateId, false)
+//	t.Reporter.Reporter("blockId", p.Id, false)
+//	t.Reporter.Reporter("executeStateId", executeStateId, false)
 //	t.pendingBlkTree.AddBranch(p)
 //	if p.ParentQC.VoteData.Round > t.highQC.VoteData.Round {
 //		t.Logger.WithField("old", t.highQC).WithField("new", p.ParentQC).Info("highQC updated")
@@ -86,11 +86,11 @@ type BlockTree struct {
 //			ParentQC: t.highQC,
 //			Id:       Hash(fmt.Sprintf("%d %s %s", currentRound, payload, t.highQC)),
 //		},
-//		TC: t.PaceMaker.lastTC,
+//		TC: t.paceMaker.lastTC,
 //	}
 //}
 //
 //func (t *BlockTree) updateHighQC(qc *consensus_interface.QC) {
 //	t.highQC = qc
-//	t.Report.Report("t.highQC", t.highQC.VoteData.Round, false)
+//	t.Reporter.Reporter("t.highQC", t.highQC.VoteData.Round, false)
 //}

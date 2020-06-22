@@ -19,6 +19,11 @@ type ExecuteResult struct {
 	ExecuteId string
 }
 
+type ConsensusState struct {
+	LastVoteRound  int
+	PreferredRound int
+}
+
 type ProposalContextProvider interface {
 	GetProposalContext() *ProposalContext
 }
@@ -76,6 +81,8 @@ type Ledger interface {
 	// Commit commits the pending prefix of the given blockId and prune other branches
 	Commit(blockId string)
 	GetHighQC() *QC
+	SaveConsensusState(*ConsensusState)
+	LoadConsensusState() *ConsensusState
 }
 
 type Hasher interface {

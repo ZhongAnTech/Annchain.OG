@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/annchain/OG/arefactor/consensus"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport_interface"
@@ -49,6 +50,23 @@ func (n *OgNode) Setup() {
 	ledger := &og.IntArrayLedger{}
 	ledger.InitDefault()
 	ledger.StaticSetup()
+
+	// consensus
+	cpConsensusPartner := &consensus.Partner{
+		paceMaker:               nil,
+		safety:                  nil,
+		Logger:                  nil,
+		Report:                  nil,
+		ProposalContextProvider: nil,
+		ProposalGenerator:       nil,
+		ProposalVerifier:        nil,
+		ProposalExecutor:        nil,
+		CommitteeProvider:       nil,
+		Signer:                  nil,
+		AccountProvider:         nil,
+		Hasher:                  nil,
+		Ledger:                  nil,
+	}
 
 	cpController := &rpc.RpcController{
 		Ledger:                    ledger,

@@ -2,16 +2,18 @@ package consensus
 
 import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 )
 
 type Safety struct {
-	lastVoteRound  int
-	preferredRound int
-	Ledger         consensus_interface.Ledger
-	Partner        *Partner
-	Logger         *logrus.Logger
-	Hasher         consensus_interface.Hasher
+	Ledger   consensus_interface.Ledger
+	Reporter *soccerdash.Reporter
+	Logger   *logrus.Logger
+	Hasher   consensus_interface.Hasher
+
+	consensusState *consensus_interface.ConsensusState
+
 	//	voteMsg := &Msg{
 	//	Typev:    HotStuffMessageTypeVote,
 	//	ParentQC: msg.ParentQC,
@@ -21,21 +23,28 @@ type Safety struct {
 	//}
 }
 
+func (s *Safety) InitDefault() {
+	s.consensusState = &consensus_interface.ConsensusState{
+		LastVoteRound:  0,
+		PreferredRound: 0,
+	}
+}
+
 func (s *Safety) UpdatePreferredRound(qc *consensus_interface.QC) {
-	if qc.VoteData.ParentRound > s.preferredRound {
+	if qc.VoteData.ParentRound > s.consensusState.PreferredRound {
 		s.Logger.WithField("qc", qc).Trace("update preferred round")
-		s.preferredRound = qc.VoteData.ParentRound
-		s.Partner.Report.Report("PreferredRound", s.preferredRound, false)
+		s.consensusState.PreferredRound = qc.VoteData.ParentRound
+		s.Reporter.Report("PreferredRound", s.consensusState.PreferredRound, false)
 	}
 }
 
 func (s *Safety) MakeVote(blockId string, blockRound int, parentQC *consensus_interface.QC) *consensus_interface.ContentVote {
 	// This function exercises both the voting and the commit rules
-	if blockRound < s.lastVoteRound || parentQC.VoteData.Round < s.preferredRound {
+	if blockRound < s.consensusState.LastVoteRound || parentQC.VoteData.Round < s.consensusState.PreferredRound {
 		return nil
 	}
 	s.IncreaseLastVoteRound(blockRound)
-	s.Partner.SaveConsensusState()
+	s.Ledger.SaveConsensusState(s.consensusState)
 
 	// VoteINfo carries the potential QC info with ids and rounds of the whole three-chain
 	voteInfo := consensus_interface.VoteInfo{
@@ -65,8 +74,8 @@ func (s *Safety) MakeVote(blockId string, blockRound int, parentQC *consensus_in
 // IncreaseLastVoteRound
 func (s *Safety) IncreaseLastVoteRound(targetRound int) {
 	// commit not to vote in rounds lower than target
-	if s.lastVoteRound < targetRound {
-		s.lastVoteRound = targetRound
+	if s.consensusState.LastVoteRound < targetRound {
+		s.consensusState.LastVoteRound = targetRound
 	}
 }
 

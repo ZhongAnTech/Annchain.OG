@@ -14,23 +14,18 @@ func MarshalIntArray() {
 }
 
 func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
-	// get total size
 
-	// init size for array lead byte
-	header := make([]byte, msgp.ArrayHeaderSize)
-	header, pos := EncodeIMarshallerHeader(header, 1, len(arr))
-	// add header len
-	size := pos
-	// add element size
-	for _, ele := range arr {
-		size += CalIMarshallerSize(ele)
-	}
+	// init size and header
+	size, header := CalIMarshallerArrSizeAndHeader(arr)
 
 	b := make([]byte, size)
+	pos := 0
 
 	// set lead and header
 	b[0] = mfixarray
-	copy(b[1:pos], header)
+	pos += 1
+	copy(b[pos:len(header)+pos], header)
+	pos += len(header)
 
 	for _, element := range arr {
 		eleBytes, err := element.MarshalMsg()
@@ -57,5 +52,21 @@ func UnMarshalIMarshallerArrayHeader(b []byte) ([]byte, int, error) {
 		return b, 0, fmt.Errorf("byte lead is not mfixarray, get: %x", lead)
 	}
 
-	return DecodeIMarshallerHeader(b[1:])
+	return DecodeHeader(b[1:])
+}
+
+func CalIMarshallerArrSizeAndHeader(arr []IMarshaller) (int, []byte) {
+	// init size for array lead byte
+	size := 1
+
+	// add header len
+	header := make([]byte, msgp.ArrayHeaderSize)
+	header, headerLen := EncodeHeader(header, 0, len(arr))
+	size += headerLen
+	// add element size
+	for _, ele := range arr {
+		size += CalIMarshallerSize(ele)
+	}
+
+	return size, header[:headerLen]
 }

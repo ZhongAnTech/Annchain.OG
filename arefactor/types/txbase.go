@@ -207,37 +207,127 @@ func (t *TxBase) GetVersion() byte {
 	return t.Version
 }
 
-/**
-Marshaller part
-*/
-
-/**
-Type         TxBaseType
-Hash         og_types.Hash
-ParentsHash  []og_types.Hash
-AccountNonce uint64
-Height       uint64
-PublicKey    PublicKey //
-Signature    hexutil.Bytes
-MineNonce    uint64
-Weight       uint64
-inValid      bool
-Version      byte
-*/
 func (t *TxBase) MarshalMsg() ([]byte, error) {
+	b := make([]byte, marshaller.HeaderSize)
+	//b, pos := marshaller.EncodeHeader(b, 0, size)
 
+	// (byte) Type + Version
+	b = append(b, byte(t.Type))
+	b = append(b, t.Version)
+
+	// (uint64) AccountNonce, Height, MineNonce, Weight
+	b = marshaller.AppendUint64(b, t.AccountNonce)
+	b = marshaller.AppendUint64(b, t.Height)
+	b = marshaller.AppendUint64(b, t.MineNonce)
+	b = marshaller.AppendUint64(b, t.Weight)
+
+	// ([]byte) PublicKey, Signature
+	b = marshaller.AppendBytes(b, t.PublicKey)
+	b = marshaller.AppendBytes(b, t.Signature)
+
+	// (Hash) Hash
+	hashB, err := t.Hash.MarshalMsg()
+	if err != nil {
+		return nil, err
+	}
+	b = append(b, hashB...)
+
+	// ([]Hash) ParentsHash
+	hashes := make([]marshaller.IMarshaller, 0)
+	for _, hash := range t.ParentsHash {
+		hashes = append(hashes, hash)
+	}
+	hashesB, err := marshaller.MarshalIMarshallerArray(hashes)
+	if err != nil {
+		return nil, err
+	}
+	b = append(b, hashesB...)
+
+	// fill in header bytes
+	b = marshaller.FillHeaderData(b)
+
+	return b, nil
 }
 
-func (t *TxBase) UnMarshalMsg([]byte) ([]byte, error) {}
+func (t *TxBase) UnMarshalMsg(b []byte) ([]byte, error) {
+	b, size, err := marshaller.DecodeHeader(b)
+	if err != nil {
+		return nil, err
+	}
+	if len(b) < size {
+		return nil, fmt.Errorf("msg is incompleted, should be len: %d, get: %d", size, len(b))
+	}
+
+	// Type, Version
+	t.Type = TxBaseType(b[0])
+	t.Version = b[1]
+	b = b[2:]
+
+	// (uint64) AccountNonce, Height, MineNonce, Weight
+	t.AccountNonce, b, err = marshaller.ReadUint64Bytes(b)
+	if err != nil {
+		return nil, err
+	}
+	t.Height, b, err = marshaller.ReadUint64Bytes(b)
+	if err != nil {
+		return nil, err
+	}
+	t.MineNonce, b, err = marshaller.ReadUint64Bytes(b)
+	if err != nil {
+		return nil, err
+	}
+	t.Weight, b, err = marshaller.ReadUint64Bytes(b)
+	if err != nil {
+		return nil, err
+	}
+
+	// ([]byte) PublicKey, Signature
+	t.PublicKey, b, err = marshaller.ReadBytes(b)
+	if err != nil {
+		return nil, err
+	}
+	t.Signature, b, err = marshaller.ReadBytes(b)
+	if err != nil {
+		return nil, err
+	}
+
+	// Hash
+	t.Hash, b, err = og_types.UnmarshalHash(b)
+	if err != nil {
+		return nil, err
+	}
+
+	// ParentsHash
+	b, arrLen, err := marshaller.UnMarshalIMarshallerArrayHeader(b)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal tx hashes arr header error: %v", err)
+	}
+	t.ParentsHash = make([]og_types.Hash, 0)
+	for i := 0; i < arrLen; i++ {
+		var hash og_types.Hash
+		hash, b, err = og_types.UnmarshalHash(b)
+		if err != nil {
+			return nil, err
+		}
+		t.ParentsHash = append(t.ParentsHash, hash)
+	}
+
+	return b, nil
+}
 
 func (t *TxBase) MsgSize() int {
-
 	size := 0
 	// t.Type + t.Hash
 	size += 1 + marshaller.CalIMarshallerSize(t.Hash)
 	// t.ParentsHash
-	for {
-
+	hashesI := make([]marshaller.IMarshaller, 0)
+	for _, h := range t.ParentsHash {
+		hashesI = append(hashesI, h)
 	}
+	hashesSize, _ := marshaller.CalIMarshallerArrSizeAndHeader(hashesI)
+	size += hashesSize
+	// t.AccountNonce + t.Height + t.MineNonce + t.Weight + PublicKey + Signature + Version
+	size += 4*marshaller.Uint64Size + len(t.PublicKey) + len(t.Signature) + 1
 
+	return size
 }

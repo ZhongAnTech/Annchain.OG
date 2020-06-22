@@ -56,9 +56,7 @@ const (
 )
 
 var (
-	mByteLen map[uint8]int = map[uint8]int{
-		mint32: 4,
-	}
+	HeaderSize = 5
 )
 
 type IMarshaller interface {
@@ -87,10 +85,6 @@ func CalIMarshallerSize(im IMarshaller) int {
 	return sz
 }
 
-func CalIMarshallerArrSize(arr []IMarshaller) int {
-
-}
-
 func InitIMarshallerBytes(msgSize int) []byte {
 	headerLen := 0
 	if msgSize <= math.MaxUint8 {
@@ -107,7 +101,7 @@ func InitIMarshallerBytes(msgSize int) []byte {
 	return make([]byte, headerLen+msgSize)
 }
 
-func EncodeIMarshallerHeader(b []byte, pos int, size int) ([]byte, int) {
+func EncodeHeader(b []byte, pos int, size int) ([]byte, int) {
 
 	if size <= math.MaxUint8 {
 		b[pos] = muint8
@@ -132,7 +126,7 @@ func EncodeIMarshallerHeader(b []byte, pos int, size int) ([]byte, int) {
 	return b, pos
 }
 
-func DecodeIMarshallerHeader(b []byte) ([]byte, int, error) {
+func DecodeHeader(b []byte) ([]byte, int, error) {
 	lead := b[0]
 	switch lead {
 	case muint8:
@@ -147,6 +141,47 @@ func DecodeIMarshallerHeader(b []byte) ([]byte, int, error) {
 		return b, 0, fmt.Errorf("unknown lead: %x", lead)
 	}
 
+}
+
+// InitHeader create a header based on msg raw size
+func InitHeader(msgSizeRaw int) []byte {
+	b := make([]byte, 0)
+	return AppendHeader(b, msgSizeRaw)
+}
+
+// AppendHeader append the header to a given byte array
+func AppendHeader(b []byte, size int) []byte {
+	if size <= math.MaxUint8 {
+		b = append(b, muint8)
+		b = append(b, uint8(size))
+	} else if size <= math.MaxUint16 {
+		u16 := make([]byte, 2)
+		common.SetUInt16(u16, 0, uint16(size))
+
+		b = append(b, muint16)
+		b = append(b, u16...)
+
+	} else if size <= math.MaxUint32 {
+		u32 := make([]byte, 4)
+		common.SetUInt32(u32, 0, uint32(size))
+
+		b = append(b, muint32)
+		b = append(b, u32...)
+	} else {
+		// size should not be larger than 2^32-1
+		panic("size should less than 2^32-1")
+	}
+
+	return b
+}
+
+// FillHeaderData fills the header data into a byte array
+func FillHeaderData(b []byte) []byte {
+	header := InitHeader(len(b) - HeaderSize)
+	b = b[HeaderSize-len(header):]
+	copy(b[0:len(header)], header)
+
+	return b
 }
 
 //func EncodeStr(s string) []byte {

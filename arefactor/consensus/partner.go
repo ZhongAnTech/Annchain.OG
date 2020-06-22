@@ -276,7 +276,7 @@ func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter)
 		n.ProcessVoteMessage(signedMessage)
 	case consensus_interface.HotStuffMessageTypeTimeout:
 		logrus.Info("handling timeout")
-		n.PaceMaker.ProcessRemoteTimeout(signedMessage)
+		n.PaceMaker.ProcessRemoteTimeoutMessage(signedMessage)
 	default:
 		panic("unsupported typev")
 	}

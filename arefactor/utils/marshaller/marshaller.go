@@ -2,8 +2,7 @@ package marshaller
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/common"
-	"github.com/annchain/OG/arefactor/common/math"
+	"math"
 )
 
 const (
@@ -59,29 +58,39 @@ var (
 	HeaderSize = 5
 )
 
+// IMarshaller should meet these requirements:
+// 1. MarshalMsg and UnMarshalMsg should be opposite to each other. UnMarshalMsg should
+//    be able to restore the origin struct by the byte array provided by MarshalMsg.
+// 2. MarshalMsg will create a byte array as a pair structure like [header - body].
+//    The header part declares the size of body, the body part includes all the specific
+//    info.
+//    e.g. 0xcc0102
+//    0xcc01 is the header, 0x02 is the body. 0xcc means it is an uint8 sized header, so
+//    the 0x01 represents that the body size is 1 byte. 0x02 is the body data and its size
+//    is 1.
+// 3. MsgSize returns the cap size of body. It should be no less than the true body size.
 type IMarshaller interface {
 	MarshalMsg() ([]byte, error)
 	UnMarshalMsg([]byte) ([]byte, error)
 	MsgSize() int
 }
 
-func CalIMarshallerSize(im IMarshaller) int {
+func CalIMarshallerSize(imSize int) int {
 	// 1 for header lead
 	sz := 1
 
-	msgSize := im.MsgSize()
-	if msgSize <= math.MaxUint8 {
+	if imSize <= math.MaxUint8 {
 		sz += 1
-	} else if msgSize <= math.MaxUint16 {
+	} else if imSize <= math.MaxUint16 {
 		sz += 2
-	} else if msgSize <= math.MaxUint32 {
+	} else if imSize <= math.MaxUint32 {
 		sz += 4
 	} else {
 		// size should not be larger than 2^32-1
 		panic("size should less than 2^32-1")
 	}
 
-	sz += msgSize
+	sz += imSize
 	return sz
 }
 
@@ -111,12 +120,12 @@ func EncodeHeader(b []byte, pos int, size int) ([]byte, int) {
 	} else if size <= math.MaxUint16 {
 		b[pos] = muint16
 		pos += 1
-		common.SetUInt16(b, pos, uint16(size))
+		SetUInt16(b, pos, uint16(size))
 		pos += 2
 	} else if size <= math.MaxUint32 {
 		b[pos] = muint32
 		pos += 1
-		common.SetUInt32(b, pos, uint32(size))
+		SetUInt32(b, pos, uint32(size))
 		pos += 4
 	} else {
 		// size should not be larger than 2^32-1
@@ -132,10 +141,10 @@ func DecodeHeader(b []byte) ([]byte, int, error) {
 	case muint8:
 		return b[2:], int(b[1]), nil
 	case muint16:
-		sz := common.GetUInt16(b, 1)
+		sz := GetUInt16(b, 1)
 		return b[3:], int(sz), nil
 	case muint32:
-		sz := common.GetUInt32(b, 1)
+		sz := GetUInt32(b, 1)
 		return b[5:], int(sz), nil
 	default:
 		return b, 0, fmt.Errorf("unknown lead: %x", lead)
@@ -156,14 +165,14 @@ func AppendHeader(b []byte, size int) []byte {
 		b = append(b, uint8(size))
 	} else if size <= math.MaxUint16 {
 		u16 := make([]byte, 2)
-		common.SetUInt16(u16, 0, uint16(size))
+		SetUInt16(u16, 0, uint16(size))
 
 		b = append(b, muint16)
 		b = append(b, u16...)
 
 	} else if size <= math.MaxUint32 {
 		u32 := make([]byte, 4)
-		common.SetUInt32(u32, 0, uint32(size))
+		SetUInt32(u32, 0, uint32(size))
 
 		b = append(b, muint32)
 		b = append(b, u32...)

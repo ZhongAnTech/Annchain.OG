@@ -37,7 +37,7 @@ func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
 		pos = endPos
 	}
 
-	return b, nil
+	return b[:pos], nil
 }
 
 // UnMarshalIMarshallerArrayHeader decode array header return array body bytes
@@ -65,7 +65,7 @@ func CalIMarshallerArrSizeAndHeader(arr []IMarshaller) (int, []byte) {
 	size += headerLen
 	// add element size
 	for _, ele := range arr {
-		size += CalIMarshallerSize(ele)
+		size += CalIMarshallerSize(ele.MsgSize())
 	}
 
 	return size, header[:headerLen]

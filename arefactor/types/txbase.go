@@ -318,7 +318,7 @@ func (t *TxBase) UnMarshalMsg(b []byte) ([]byte, error) {
 func (t *TxBase) MsgSize() int {
 	size := 0
 	// t.Type + t.Hash
-	size += 1 + marshaller.CalIMarshallerSize(t.Hash)
+	size += 1 + marshaller.CalIMarshallerSize(t.Hash.MsgSize())
 	// t.ParentsHash
 	hashesI := make([]marshaller.IMarshaller, 0)
 	for _, h := range t.ParentsHash {
@@ -327,7 +327,10 @@ func (t *TxBase) MsgSize() int {
 	hashesSize, _ := marshaller.CalIMarshallerArrSizeAndHeader(hashesI)
 	size += hashesSize
 	// t.AccountNonce + t.Height + t.MineNonce + t.Weight + PublicKey + Signature + Version
-	size += 4*marshaller.Uint64Size + len(t.PublicKey) + len(t.Signature) + 1
+	size += 4*marshaller.Uint64Size +
+		marshaller.CalIMarshallerSize(len(t.PublicKey)) +
+		marshaller.CalIMarshallerSize(len(t.Signature)) +
+		1
 
 	return size
 }

@@ -200,6 +200,7 @@ func (s *Sequencer) RawSequencer() *RawSequencer {
 		BlsJointSig:    s.BlsJointSig,
 		BlsJointPubKey: s.BlsJointPubKey,
 		StateRoot:      s.StateRoot,
+		Timestamp:      s.Timestamp,
 	}
 }
 

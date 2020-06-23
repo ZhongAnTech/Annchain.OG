@@ -15,10 +15,11 @@ package tx_types
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/types"
-	"strings"
 
 	"github.com/annchain/OG/common/math"
 )
@@ -48,6 +49,7 @@ type RawSequencer struct {
 	BlsJointSig    []byte
 	BlsJointPubKey []byte
 	StateRoot      common.Hash
+	Timestamp      int64
 }
 
 //msgp:tuple RawCampaign
@@ -114,6 +116,7 @@ func (t *RawSequencer) Sequencer() *Sequencer {
 		BlsJointPubKey: t.BlsJointPubKey,
 		BlsJointSig:    t.BlsJointSig,
 		StateRoot:      t.StateRoot,
+		Timestamp:      t.Timestamp,
 	}
 	if !types.CanRecoverPubFromSig {
 		addr := crypto.Signer.AddressFromPubKeyBytes(tx.PublicKey)

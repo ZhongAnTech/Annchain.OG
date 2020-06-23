@@ -185,11 +185,11 @@ func (c *PhysicalCommunicator) printHostInfo(basicHost host.Host) {
 
 func (c *PhysicalCommunicator) Listen() {
 	// start a libp2p node with default settings
-	host, err := c.makeHost(c.PrivateKey)
+	myHost, err := c.makeHost(c.PrivateKey)
 	if err != nil {
 		panic(err)
 	}
-	c.node = host
+	c.node = myHost
 
 	c.printHostInfo(c.node)
 

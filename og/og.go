@@ -308,7 +308,6 @@ func (og *Og) PushNodeData() {
 	// })
 
 	s.Every(1).Minute().Do(func() {
-		// 未用 viper
 		r.Report("Version", viper.GetString("node.Version"), false)
 		r.Report("NodeName", og.Manager.Hub.NodeInfo().Name, false)
 	})

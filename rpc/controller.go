@@ -87,6 +87,7 @@ type TransactionResp struct {
 	Transaction *tx_types.TransactionMsg `json:"transaction"`
 	Sequencer   *tx_types.SequencerMsg   `json:"sequencer"`
 	Archive     *tx_types.ArchiveMsg     `json:"archive"`
+	Action      *tx_types.ActionMsg      `json:"action"`
 }
 
 //Transaction  get  transaction
@@ -132,7 +133,9 @@ func (r *RpcController) Transaction(c *gin.Context) {
 	//	Response(c, http.StatusOK, nil, tx)
 	//	return
 	case *tx_types.ActionTx:
-		Response(c, http.StatusOK, nil, tx)
+		seqMsg := tx.ToJsonMsg()
+		txResp.Action = &seqMsg
+		Response(c, http.StatusOK, nil, txResp)
 		return
 	}
 

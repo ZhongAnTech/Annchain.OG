@@ -189,16 +189,18 @@ func (c *Tx) RawTxi() types.RawTxi {
 }
 
 type TransactionMsg struct {
-	Type    int      `json:"type"`
-	Hash    string   `json:"hash"`
-	Parents []string `json:"parents"`
-	From    string   `json:"from"`
-	To      string   `json:"to"`
-	Nonce   uint64   `json:"nonce"`
-	Value   string   `json:"value"`
-	Weight  uint64   `json:"weight"`
-	TokenId int32    `json:"tokenId"`
-	Sign    string   `json:"sign"`
+	Type         int      `json:"type"`
+	Hash         string   `json:"hash"`
+	Parents      []string `json:"parents"`
+	From         string   `json:"from"`
+	To           string   `json:"to"`
+	AccountNonce uint64   `json:"account_nonce"`
+	MindNonce    uint64   `json:"mind_nonce"`
+	Value        string   `json:"value"`
+	Weight       uint64   `json:"weight"`
+	Height       uint64   `json:"height"`
+	TokenId      int32    `json:"tokenId"`
+	Sign         string   `json:"sign"`
 }
 
 func (t *Tx) ToJsonMsg() TransactionMsg {
@@ -208,9 +210,11 @@ func (t *Tx) ToJsonMsg() TransactionMsg {
 	txMsg.Hash = t.GetTxHash().Hex()
 	txMsg.From = t.From.Hex()
 	txMsg.To = t.To.Hex()
-	txMsg.Nonce = t.GetNonce()
+	txMsg.AccountNonce = t.GetNonce()
+	txMsg.MindNonce = t.MineNonce
 	txMsg.Value = t.GetValue().String()
 	txMsg.Weight = t.GetWeight()
+	txMsg.Height = t.Height
 	txMsg.TokenId = t.TokenId
 	txMsg.Sign = t.Signature.String()
 

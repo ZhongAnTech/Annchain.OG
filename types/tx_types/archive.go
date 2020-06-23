@@ -167,7 +167,9 @@ type ArchiveMsg struct {
 	AccountNonce uint64   `json:"account_nonce"`
 	MindNonce    uint64   `json:"mind_nonce"`
 	Weight       uint64   `json:"weight"`
+	Height       uint64   `json:"height"`
 	Data         []byte   `json:"data"`
+	Sign         string   `json:"sign"`
 }
 
 func (t *Archive) ToJsonMsg() ArchiveMsg {
@@ -178,6 +180,8 @@ func (t *Archive) ToJsonMsg() ArchiveMsg {
 	txMsg.AccountNonce = t.GetNonce()
 	txMsg.MindNonce = t.MineNonce
 	txMsg.Weight = t.GetWeight()
+	txMsg.Height = t.Height
+	txMsg.Sign = t.Signature.String()
 	txMsg.Parents = make([]string, 0)
 	for _, p := range t.ParentsHash {
 		txMsg.Parents = append(txMsg.Parents, p.Hex())

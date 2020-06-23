@@ -23,6 +23,14 @@ type Safety struct {
 	//}
 }
 
+func (s *Safety) ConsensusState() *consensus_interface.ConsensusState {
+	return s.consensusState
+}
+
+func (s *Safety) SetConsensusState(consensusState *consensus_interface.ConsensusState) {
+	s.consensusState = consensusState
+}
+
 func (s *Safety) InitDefault() {
 	s.consensusState = &consensus_interface.ConsensusState{
 		LastVoteRound:  0,

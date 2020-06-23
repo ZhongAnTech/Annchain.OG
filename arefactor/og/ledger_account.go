@@ -27,12 +27,12 @@ type LedgerAccountLocalStorage struct {
 }
 
 func (l *LedgerAccountHolder) Load(filePath string) (account *types.OgLedgerAccount, err error) {
-	bytes, err := ioutil.ReadFile(filePath)
+	byteContent, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return
 	}
 	als := &LedgerAccountLocalStorage{}
-	err = json.Unmarshal(bytes, als)
+	err = json.Unmarshal(byteContent, als)
 	if err != nil {
 		return
 	}
@@ -70,11 +70,11 @@ func (l *LedgerAccountHolder) Save(filePath string, account *types.OgLedgerAccou
 		PrivKey:    hexutil.ToHex(privKeyBytes),
 	}
 
-	bytes, err := json.MarshalIndent(als, "", "    ")
+	byteContent, err := json.MarshalIndent(als, "", "    ")
 	if err != nil {
 		return
 	}
-	err = ioutil.WriteFile(filePath, bytes, 0600)
+	err = ioutil.WriteFile(filePath, byteContent, 0600)
 	return
 }
 
@@ -110,12 +110,12 @@ type OgAddressConverter struct {
 }
 
 func (o *OgAddressConverter) AddressFromPubKey(pubKey crypto.PubKey) (addr og_interface.Address, err error) {
-	bytes, err := pubKey.Bytes()
+	byteContent, err := pubKey.Bytes()
 	if err != nil {
 		return
 	}
 	addr = &og_interface.Address20{}
-	addr.FromBytes(Keccak256(bytes))
+	addr.FromBytes(Keccak256(byteContent))
 	return
 }
 
@@ -129,11 +129,11 @@ func Keccak256(data ...[]byte) []byte {
 
 func (o *OgAddressConverter) AddressFromPubKey1(pubKey crypto.PubKey) (addr og_interface.Address, err error) {
 	var w bytes.Buffer
-	bytes, err := pubKey.Bytes()
+	byteContent, err := pubKey.Bytes()
 	if err != nil {
 		return
 	}
-	w.Write(bytes)
+	w.Write(byteContent)
 	hasher := ripemd160.New()
 	hasher.Write(w.Bytes())
 	result := hasher.Sum(nil)

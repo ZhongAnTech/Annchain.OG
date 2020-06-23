@@ -92,7 +92,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	collector := m.ensureTCCollector(m.CurrentRound)
 
 	m.Safety.IncreaseLastVoteRound(m.CurrentRound)
-	m.Partner.SaveConsensusState()
+	m.Ledger.SaveConsensusState(m.Safety.ConsensusState())
 
 	timeoutMsg := m.MakeTimeoutMessage()
 	bytes := timeoutMsg.ToBytes()

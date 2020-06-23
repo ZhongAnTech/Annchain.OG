@@ -260,3 +260,37 @@ func (c *ActionTx) RawTxi() types.RawTxi {
 func (c *ActionTx) SetSender(addr common.Address) {
 	c.From = &addr
 }
+
+type ActionMsg struct {
+	Type         int         `json:"type"`
+	Hash         string      `json:"hash"`
+	Parents      []string    `json:"parents"`
+	AccountNonce uint64      `json:"account_nonce"`
+	Height       uint64      `json:"height"`
+	MindNonce    uint64      `json:"mind_nonce"`
+	Weight       uint64      `json:"weight"`
+	ActionData   interface{} `json:"data"`
+	From         string      `json:"from"`
+	Action       uint8       `json:"action"`
+	Sign         string      `json:"sign"`
+}
+
+func (z *ActionTx) ToJsonMsg() ActionMsg {
+	a := ActionMsg{
+		Type: int(z.GetType()),
+		Hash: z.GetTxHash().Hex(),
+		//Parents:      z.,
+		AccountNonce: z.GetNonce(),
+		Height:       z.GetHeight(),
+		MindNonce:    z.MineNonce,
+		Weight:       z.Weight,
+		ActionData:   z.ActionData,
+		From:         z.From.Hex(),
+		Action:       z.Action,
+		Sign:         z.Signature.String(),
+	}
+	a.Parents = make([]string, 0)
+	for _, p := range z.ParentsHash {
+		a.Parents = append(a.Parents, p.Hex())
+	}
+}

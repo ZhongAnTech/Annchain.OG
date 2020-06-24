@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
+	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -13,12 +14,13 @@ type PaceMaker struct {
 
 	CurrentRound    int
 	Safety          *Safety
+	Partner         *Partner
 	Signer          consensus_interface.Signer
 	AccountProvider consensus_interface.AccountHolder
 	Ledger          consensus_interface.Ledger
 
 	CommitteeProvider consensus_interface.CommitteeProvider
-	Partner           *Partner
+	Reporter          *soccerdash.Reporter
 
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 
@@ -138,7 +140,7 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 	m.StopLocalTimer(latestRound)
 	m.CurrentRound = latestRound + 1
 
-	m.Partner.Report.Report("CurrentRound", m.CurrentRound, false)
+	m.Reporter.Report("CurrentRound", m.CurrentRound, false)
 
 	m.lastTC = tc
 	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Warn("round advanced")
@@ -215,7 +217,7 @@ func (m *PaceMaker) ensureTCCollector(round int) consensus_interface.SignatureCo
 }
 
 func (m *PaceMaker) sign(msg Signable) (signature []byte, err error) {
-	privateKey, err := m.AccountProvider.ProvidePrivateKey(false)
+	privateKey, err := m.AccountProvider.ProvidePrivateKey()
 	if err != nil {
 		logrus.WithError(err).Warn("account provider cannot provide private key")
 		return

@@ -54,7 +54,7 @@ func TestAccountGenerator_Generate(t *testing.T) {
 		log.Info()
 		l := &LedgerAccountHolder{
 			CryptoType: types.CryptoType(method),
-			Account:    gotAccount,
+			account:    gotAccount,
 		}
 		err = l.Save(fmt.Sprintf("D:\\tmp\\test\\dump_%d.json", method), gotAccount)
 		utilfuncs.PanicIfError(err, "save account")

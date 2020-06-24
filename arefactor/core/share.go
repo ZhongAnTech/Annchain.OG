@@ -48,7 +48,7 @@ func getTransport(accountHolder og.TransportAccountHolder) *transport.PhysicalCo
 		}
 		err = accountHolder.Save()
 		if err != nil {
-			logrus.WithError(err).Fatal("failed to store account. Account may lost after reboot so we quit.")
+			logrus.WithError(err).Fatal("failed to store account. account may lost after reboot so we quit.")
 		}
 	}
 

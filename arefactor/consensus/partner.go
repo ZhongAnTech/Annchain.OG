@@ -21,18 +21,18 @@ type Partner struct {
 	safety           *Safety
 	pendingBlockTree *PendingBlockTree
 	//BlockTree        *BlockTree
-	Logger *logrus.Logger
-	Report *soccerdash.Reporter
+	Logger   *logrus.Logger
+	Reporter *soccerdash.Reporter
 
-	ProposalContextProvider consensus_interface.ProposalContextProvider
-	ProposalGenerator       consensus_interface.ProposalGenerator
-	ProposalVerifier        consensus_interface.ProposalVerifier
-	ProposalExecutor        consensus_interface.ProposalExecutor
-	CommitteeProvider       consensus_interface.CommitteeProvider
-	Signer                  consensus_interface.Signer
-	AccountProvider         consensus_interface.AccountHolder
-	Hasher                  consensus_interface.Hasher
-	Ledger                  consensus_interface.Ledger
+	ProposalContextProvider  consensus_interface.ProposalContextProvider
+	ProposalGenerator        consensus_interface.ProposalGenerator
+	ProposalVerifier         consensus_interface.ProposalVerifier
+	ProposalExecutor         consensus_interface.ProposalExecutor
+	CommitteeProvider        consensus_interface.CommitteeProvider
+	Signer                   consensus_interface.Signer
+	ConsensusAccountProvider consensus_interface.AccountHolder
+	Hasher                   consensus_interface.Hasher
+	Ledger                   consensus_interface.Ledger
 
 	pendingQCs map[string]consensus_interface.SignatureCollector // collected votes per block indexed by their LedgerInfo hash
 
@@ -50,20 +50,22 @@ func (n *Partner) InitDefault() {
 		Logger: n.Logger,
 		Ledger: n.Ledger,
 	}
+
+	n.safety = &Safety{
+		Ledger:   n.Ledger,
+		Reporter: n.Reporter,
+		Logger:   n.Logger,
+		Hasher:   n.Hasher,
+	}
 	n.paceMaker = &PaceMaker{
-		CurrentRound:                  0,
-		Safety:                        nil,
-		Signer:                        nil,
-		AccountProvider:               nil,
-		Ledger:                        nil,
-		CommitteeProvider:             nil,
-		Partner:                       nil,
-		Logger:                        nil,
-		lastTC:                        nil,
-		pendingTCs:                    nil,
-		timer:                         nil,
-		quit:                          nil,
-		newOutgoingMessageSubscribers: nil,
+		CurrentRound:      0,
+		Safety:            n.safety,
+		Signer:            n.Signer,
+		AccountProvider:   n.ConsensusAccountProvider,
+		Ledger:            n.Ledger,
+		CommitteeProvider: n.CommitteeProvider,
+		Partner:           n,
+		Logger:            n.Logger,
 	}
 
 	n.pendingQCs = make(map[string]consensus_interface.SignatureCollector)
@@ -232,7 +234,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 
 	proposal := n.ProposalGenerator.GenerateProposal(proposalContext)
 	n.Logger.WithField("proposal", proposal).Warn("I'm the current leader")
-	n.Report.Report("leader", proposal.Proposal.Round, false)
+	n.Reporter.Report("leader", proposal.Proposal.Round, false)
 
 	bytes := proposal.ToBytes()
 	signature, err := n.sign(proposal)
@@ -294,6 +296,7 @@ func (d *Partner) NewIncomingMessageEventChannel() chan *transport_interface.Inc
 // subscribe mine
 func (d *Partner) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
 	d.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
+	d.paceMaker.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
 }
 
 func (d *Partner) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
@@ -316,7 +319,7 @@ func (n *Partner) ensureQCCollector(commitInfoHash string) consensus_interface.S
 }
 
 func (n *Partner) sign(msg Signable) (signature []byte, err error) {
-	privateKey, err := n.AccountProvider.ProvidePrivateKey(false)
+	privateKey, err := n.ConsensusAccountProvider.ProvidePrivateKey()
 	if err != nil {
 		logrus.WithError(err).Warn("account provider cannot provide private key")
 		return

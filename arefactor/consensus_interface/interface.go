@@ -1,6 +1,8 @@
 package consensus_interface
 
-import "github.com/libp2p/go-libp2p-core/crypto"
+import (
+	"github.com/libp2p/go-libp2p-core/crypto"
+)
 
 type Committee struct {
 }
@@ -54,11 +56,6 @@ type CommitteeProvider interface {
 	GetThreshold() int
 	AmILeader(round int) bool
 }
-
-type AccountHolder interface {
-	ProvidePrivateKey(createIfMissing bool) (crypto.PrivKey, error)
-}
-
 type Signer interface {
 	Sign(msg []byte, privateKey crypto.PrivKey) Signature
 }

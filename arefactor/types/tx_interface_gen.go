@@ -86,68 +86,68 @@ import (
 //	return
 //}
 
-// DecodeMsg implements msgp.Decodable
-func (z *TxiSmallCaseMarshal) DecodeMsg(dc *msgp.Reader) (err error) {
-	var zb0001 uint32
-	zb0001, err = dc.ReadArrayHeader()
-	if err != nil {
-		return
-	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
-		return
-	}
-	err = z.Txi.DecodeMsg(dc)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// EncodeMsg implements msgp.Encodable
-func (z *TxiSmallCaseMarshal) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 1
-	err = en.Append(0x91)
-	if err != nil {
-		return
-	}
-	err = z.Txi.EncodeMsg(en)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// MarshalMsg implements msgp.Marshaler
-func (z *TxiSmallCaseMarshal) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// array header, size 1
-	o = append(o, 0x91)
-	o, err = z.Txi.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *TxiSmallCaseMarshal) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
-		return
-	}
-	bts, err = z.Txi.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	o = bts
-	return
-}
+//// DecodeMsg implements msgp.Decodable
+//func (z *TxiSmallCaseMarshal) DecodeMsg(dc *msgp.Reader) (err error) {
+//	var zb0001 uint32
+//	zb0001, err = dc.ReadArrayHeader()
+//	if err != nil {
+//		return
+//	}
+//	if zb0001 != 1 {
+//		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+//		return
+//	}
+//	err = z.Txi.DecodeMsg(dc)
+//	if err != nil {
+//		return
+//	}
+//	return
+//}
+//
+//// EncodeMsg implements msgp.Encodable
+//func (z *TxiSmallCaseMarshal) EncodeMsg(en *msgp.Writer) (err error) {
+//	// array header, size 1
+//	err = en.Append(0x91)
+//	if err != nil {
+//		return
+//	}
+//	err = z.Txi.EncodeMsg(en)
+//	if err != nil {
+//		return
+//	}
+//	return
+//}
+//
+//// MarshalMsg implements msgp.Marshaler
+//func (z *TxiSmallCaseMarshal) MarshalMsg(b []byte) (o []byte, err error) {
+//	o = msgp.Require(b, z.Msgsize())
+//	// array header, size 1
+//	o = append(o, 0x91)
+//	o, err = z.Txi.MarshalMsg(o)
+//	if err != nil {
+//		return
+//	}
+//	return
+//}
+//
+//// UnmarshalMsg implements msgp.Unmarshaler
+//func (z *TxiSmallCaseMarshal) UnmarshalMsg(bts []byte) (o []byte, err error) {
+//	var zb0001 uint32
+//	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+//	if err != nil {
+//		return
+//	}
+//	if zb0001 != 1 {
+//		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+//		return
+//	}
+//	bts, err = z.Txi.UnmarshalMsg(bts)
+//	if err != nil {
+//		return
+//	}
+//	o = bts
+//	return
+//}
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TxiSmallCaseMarshal) Msgsize() (s int) {

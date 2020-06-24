@@ -20,6 +20,7 @@ import (
 	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/types/tx_types"
 
 	//"github.com/annchain/OG/common"
 
@@ -260,8 +261,8 @@ func (da *Accessor) ReadTransaction(hash og_types.Hash) types.Txi {
 	prefix := data[:prefixLen]
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
-		var tx types.Tx
-		_, err := tx.UnmarshalMsg(data)
+		tx := types.Tx{}
+		_, err := tx.UnMarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx error")
 			return nil
@@ -427,10 +428,10 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 	switch tx := tx.(type) {
 	case *types.Tx:
 		prefix = contentPrefixTransaction
-		data, err = tx.MarshalMsg(nil)
+		data, err = tx.MarshalMsg()
 	case *types.Sequencer:
 		prefix = contentPrefixSequencer
-		data, err = tx.MarshalMsg(nil)
+		data, err = tx.MarshalMsg()
 	//case *tx_types.Campaign:
 	//	prefix = contentPrefixCampaign
 	//	data, err = tx.MarshalMsg(nil)
@@ -440,9 +441,9 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 	//case *tx_types.Archive:
 	//	prefix = contentPrefixArchive
 	//	data, err = tx.MarshalMsg(nil)
-	//case *tx_types.ActionTx:
-	//	prefix = contentPrefixActionTx
-	//	data, err = tx.MarshalMsg(nil)
+	case *types.ActionTx:
+		prefix = contentPrefixActionTx
+		data, err = tx.MarshalMsg()
 	default:
 		return fmt.Errorf("unknown tx type, must be *Tx, *Sequencer, *Campaign, *TermChange")
 	}

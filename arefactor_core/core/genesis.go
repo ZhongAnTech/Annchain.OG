@@ -20,11 +20,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/account"
+	"github.com/annchain/OG/arefactor/common/hexutil"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/types"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/types/tx_types"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -33,12 +34,12 @@ import (
 
 const MaxAccountCount = 255
 
-func DefaultGenesis(genesisPath string) (*tx_types.Sequencer, map[ogTypes.Address]*math.BigInt) {
+func DefaultGenesis(genesisPath string) (*types.Sequencer, map[ogTypes.AddressKey]*math.BigInt) {
 
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)
-	seq.GetBase().Signature = common.FromHex("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
-	seq.GetBase().PublicKey = common.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
+	seq.GetBase().Signature, _ = hexutil.FromHex("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
+	seq.GetBase().PublicKey, _ = hexutil.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
 	issuer := crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(seq.GetBase().PublicKey))
 	seq.Issuer = &issuer
 	hash := seq.CalcTxHash()
@@ -124,8 +125,8 @@ func GetSampleAccounts() []*account.SampleAccount {
 	return accounts
 }
 
-func newUnsignedSequencer(height uint64, accountNonce uint64) *tx_types.Sequencer {
-	tx := tx_types.Sequencer{
+func newUnsignedSequencer(height uint64, accountNonce uint64) *types.Sequencer {
+	tx := types.Sequencer{
 		TxBase: types.TxBase{
 			AccountNonce: accountNonce,
 			Type:         types.TxBaseTypeSequencer,

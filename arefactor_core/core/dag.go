@@ -40,7 +40,7 @@ import (
 var (
 	// empty address is the address used for contract creation, it
 	// is filled in [tx.To].
-	emptyAddress, _ = ogTypes.BytesToAddress20(nil)
+	emptyAddress = ogTypes.BytesToAddress20(nil)
 
 	DefaultGasLimit = uint64(10000000000)
 
@@ -139,7 +139,7 @@ func (dag *Dag) StateDatabase() *state.StateDB {
 }
 
 // Init inits genesis sequencer and genesis state of the network.
-func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Address]*math.BigInt) error {
+func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.AddressKey]*math.BigInt) error {
 	if genesis.Height != 0 {
 		return fmt.Errorf("invalheight genesis: height is not zero")
 	}
@@ -169,7 +169,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Addres
 	log.Tracef("successfully store genesis: %s", genesis)
 
 	// init genesis balance
-	for addr, value := range genesisBalance {
+	for addrKey, value := range genesisBalance {
 		//tx := &types.Tx{}
 		//tx.To = addr
 		//tx.Value = value
@@ -177,7 +177,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Addres
 		//tx.GetBase().Hash = tx.CalcTxHash()
 		//dag.WriteTransaction(dbBatch, tx)
 
-		dag.statedb.SetBalance(addr, value)
+		dag.statedb.SetBalance(addrKey, value)
 	}
 
 	dag.genesis = genesis

@@ -53,7 +53,7 @@ type StateDB struct {
 	// db is for trie accessing.
 	db   Database
 	trie Trie
-	root common.Hash
+	root ogTypes.Hash
 
 	refund uint64
 	// journal records every action which will change statedb's data
@@ -64,8 +64,8 @@ type StateDB struct {
 
 	// states stores all the active state object, any changes on stateobject
 	// will also update states.
-	states   map[ogTypes.Address]*StateObject
-	dirtyset map[ogTypes.Address]struct{}
+	states   map[ogTypes.AddressKey]*StateObject
+	dirtyset map[ogTypes.AddressKey]struct{}
 
 	// token information
 	latestTokenID      int32
@@ -94,8 +94,8 @@ func NewStateDB(conf StateDBConfig, db Database, root ogTypes.Hash) (*StateDB, e
 		conf:          conf,
 		db:            db,
 		trie:          tr,
-		states:        make(map[common.Address]*StateObject),
-		dirtyset:      make(map[common.Address]struct{}),
+		states:        make(map[ogTypes.AddressKey]*StateObject),
+		dirtyset:      make(map[ogTypes.AddressKey]struct{}),
 		latestTokenID: latestTokenID,
 		tokens:        make(map[int32]*TokenObject),
 		dirtyTokens:   make(map[int32]struct{}),
@@ -117,28 +117,28 @@ func (sd *StateDB) Database() Database {
 	return sd.db
 }
 
-func (sd *StateDB) Root() common.Hash {
+func (sd *StateDB) Root() ogTypes.Hash {
 	return sd.root
 }
 
 // CreateAccount will create a new state for input address.
-func (sd *StateDB) CreateAccount(addr common.Address) {
+func (sd *StateDB) CreateAccount(addr ogTypes.Address) {
 	newstate := NewStateObject(addr, sd)
 	oldstate := sd.getStateObject(addr)
 	if oldstate != nil {
 		sd.AppendJournal(&resetObjectChange{
-			account: &oldstate.address,
+			account: oldstate.address,
 			prev:    oldstate,
 		})
 	} else {
 		sd.AppendJournal(&createObjectChange{
-			account: &addr,
+			account: addr,
 		})
 	}
-	sd.states[addr] = newstate
+	sd.states[addr.AddressKey()] = newstate
 }
 
-func (sd *StateDB) GetBalance(addr common.Address) *math.BigInt {
+func (sd *StateDB) GetBalance(addr ogTypes.Address) *math.BigInt {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
@@ -159,7 +159,7 @@ func (sd *StateDB) GetAllTokenBalance(addr ogTypes.Address) BalanceSet {
 	return sd.getAllBalance(addr)
 }
 
-func (sd *StateDB) getBalance(addr common.Address, tokenID int32) *math.BigInt {
+func (sd *StateDB) getBalance(addr ogTypes.Address, tokenID int32) *math.BigInt {
 	state := sd.getStateObject(addr)
 	if state == nil {
 		return math.NewBigInt(0)
@@ -171,7 +171,7 @@ func (sd *StateDB) getBalance(addr common.Address, tokenID int32) *math.BigInt {
 	return balance
 }
 
-func (sd *StateDB) getAllBalance(addr common.Address) BalanceSet {
+func (sd *StateDB) getAllBalance(addr ogTypes.Address) BalanceSet {
 	state := sd.getStateObject(addr)
 	if state == nil {
 		return NewBalanceSet()
@@ -189,7 +189,7 @@ func (sd *StateDB) GetNonce(addr ogTypes.Address) uint64 {
 
 	return sd.getNonce(addr)
 }
-func (sd *StateDB) getNonce(addr common.Address) uint64 {
+func (sd *StateDB) getNonce(addr ogTypes.Address) uint64 {
 	state := sd.getStateObject(addr)
 	if state == nil {
 		return 0
@@ -204,7 +204,7 @@ func (sd *StateDB) Exist(addr ogTypes.Address) bool {
 	return false
 }
 
-func (sd *StateDB) Empty(addr common.Address) bool {
+func (sd *StateDB) Empty(addr ogTypes.Address) bool {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return true
@@ -223,14 +223,14 @@ func (sd *StateDB) Empty(addr common.Address) bool {
 
 // GetStateObject get a state from StateDB. If state not exist,
 // load it from db.
-func (sd *StateDB) GetStateObject(addr common.Address) *StateObject {
+func (sd *StateDB) GetStateObject(addr ogTypes.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	return sd.getStateObject(addr)
 }
 func (sd *StateDB) getStateObject(addr ogTypes.Address) *StateObject {
-	state, exist := sd.states[addr]
+	state, exist := sd.states[addr.AddressKey()]
 	if !exist {
 		var err error
 		state, err = sd.loadStateObject(addr)
@@ -241,20 +241,20 @@ func (sd *StateDB) getStateObject(addr ogTypes.Address) *StateObject {
 		if state == nil {
 			return nil
 		}
-		sd.states[addr] = state
+		sd.states[addr.AddressKey()] = state
 	}
 	return state
 }
 
 // GetOrCreateStateObject will find a state from memory by account address.
 // If state not exists, it will load a state from db.
-func (sd *StateDB) GetOrCreateStateObject(addr common.Address) *StateObject {
+func (sd *StateDB) GetOrCreateStateObject(addr ogTypes.Address) *StateObject {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	return sd.getOrCreateStateObject(addr)
 }
-func (sd *StateDB) getOrCreateStateObject(addr common.Address) *StateObject {
+func (sd *StateDB) getOrCreateStateObject(addr ogTypes.Address) *StateObject {
 	state := sd.getStateObject(addr)
 	if state == nil {
 		sd.CreateAccount(addr)
@@ -265,36 +265,36 @@ func (sd *StateDB) getOrCreateStateObject(addr common.Address) *StateObject {
 
 // DeleteStateObject remove a state from StateDB. Return error
 // if it fails.
-func (sd *StateDB) DeleteStateObject(addr common.Address) error {
+func (sd *StateDB) DeleteStateObject(addr ogTypes.Address) error {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	return sd.deleteStateObject(addr)
 }
-func (sd *StateDB) deleteStateObject(addr common.Address) error {
-	_, exist := sd.states[addr]
+func (sd *StateDB) deleteStateObject(addr ogTypes.Address) error {
+	_, exist := sd.states[addr.AddressKey()]
 	if !exist {
 		return nil
 	}
-	delete(sd.states, addr)
-	delete(sd.dirtyset, addr)
+	delete(sd.states, addr.AddressKey())
+	delete(sd.dirtyset, addr.AddressKey())
 	return nil
 }
 
 // AddBalance
-func (sd *StateDB) AddBalance(addr common.Address, increment *math.BigInt) {
+func (sd *StateDB) AddBalance(addr ogTypes.Address, increment *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	sd.addBalance(addr, tkType.OGTokenID, increment)
 }
-func (sd *StateDB) AddTokenBalance(addr common.Address, tokenID int32, increment *math.BigInt) {
+func (sd *StateDB) AddTokenBalance(addr ogTypes.Address, tokenID int32, increment *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	sd.addBalance(addr, tokenID, increment)
 }
-func (sd *StateDB) addBalance(addr common.Address, tokenID int32, increment *math.BigInt) {
+func (sd *StateDB) addBalance(addr ogTypes.Address, tokenID int32, increment *math.BigInt) {
 	// check if increment is zero
 	if increment.Sign() == 0 {
 		return
@@ -304,19 +304,19 @@ func (sd *StateDB) addBalance(addr common.Address, tokenID int32, increment *mat
 }
 
 // SubBalance
-func (sd *StateDB) SubBalance(addr common.Address, decrement *math.BigInt) {
+func (sd *StateDB) SubBalance(addr ogTypes.Address, decrement *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	sd.subBalance(addr, tkType.OGTokenID, decrement)
 }
-func (sd *StateDB) SubTokenBalance(addr common.Address, tokenID int32, decrement *math.BigInt) {
+func (sd *StateDB) SubTokenBalance(addr ogTypes.Address, tokenID int32, decrement *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	sd.subBalance(addr, tokenID, decrement)
 }
-func (sd *StateDB) subBalance(addr common.Address, tokenID int32, decrement *math.BigInt) {
+func (sd *StateDB) subBalance(addr ogTypes.Address, tokenID int32, decrement *math.BigInt) {
 	// check if increment is zero
 	if decrement.Sign() == 0 {
 		return
@@ -329,15 +329,15 @@ func (sd *StateDB) GetRefund() uint64 {
 	return sd.refund
 }
 
-func (sd *StateDB) GetCodeHash(addr common.Address) common.Hash {
+func (sd *StateDB) GetCodeHash(addr ogTypes.Address) ogTypes.Hash {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
-		return common.Hash{}
+		return &ogTypes.Hash32{}
 	}
 	return stobj.GetCodeHash()
 }
 
-func (sd *StateDB) GetCode(addr common.Address) []byte {
+func (sd *StateDB) GetCode(addr ogTypes.Address) []byte {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return nil
@@ -345,14 +345,14 @@ func (sd *StateDB) GetCode(addr common.Address) []byte {
 	return stobj.GetCode(sd.db)
 }
 
-func (sd *StateDB) GetCodeSize(addr common.Address) int {
+func (sd *StateDB) GetCodeSize(addr ogTypes.Address) int {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return 0
 	}
 	l, dberr := stobj.GetCodeSize(sd.db)
 	if dberr != nil {
-		log.Errorf("get code size from obj error: %v, obj: %s", dberr, stobj.address.String())
+		log.Errorf("get code size from obj error: %v, obj: %s", dberr, stobj.address.AddressShortString())
 		return 0
 	}
 	return l
@@ -382,18 +382,18 @@ func (sd *StateDB) SetBalance(addr ogTypes.Address, balance *math.BigInt) {
 
 	sd.setBalance(addr, tkType.OGTokenID, balance)
 }
-func (sd *StateDB) SetTokenBalance(addr common.Address, tokenID int32, balance *math.BigInt) {
+func (sd *StateDB) SetTokenBalance(addr ogTypes.Address, tokenID int32, balance *math.BigInt) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	sd.setBalance(addr, tokenID, balance)
 }
-func (sd *StateDB) setBalance(addr common.Address, tokenID int32, balance *math.BigInt) {
+func (sd *StateDB) setBalance(addr ogTypes.Address, tokenID int32, balance *math.BigInt) {
 	state := sd.getOrCreateStateObject(addr)
 	state.SetBalance(tokenID, balance)
 }
 
-func (sd *StateDB) SetNonce(addr common.Address, nonce uint64) {
+func (sd *StateDB) SetNonce(addr ogTypes.Address, nonce uint64) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
@@ -418,27 +418,27 @@ func (sd *StateDB) SubRefund(decrement uint64) {
 	sd.refund -= decrement
 }
 
-func (sd *StateDB) SetStateObject(addr common.Address, stobj *StateObject) {
+func (sd *StateDB) SetStateObject(addr ogTypes.Address, stobj *StateObject) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 
 	sd.setStateObject(addr, stobj)
 }
-func (sd *StateDB) setStateObject(addr common.Address, stobj *StateObject) {
+func (sd *StateDB) setStateObject(addr ogTypes.Address, stobj *StateObject) {
 	oldobj := sd.getStateObject(addr)
 	sd.AppendJournal(&resetObjectChange{
-		account: &addr,
+		account: addr,
 		prev:    oldobj,
 	})
-	sd.states[addr] = stobj
+	sd.states[addr.AddressKey()] = stobj
 }
 
-func (sd *StateDB) SetCode(addr common.Address, code []byte) {
+func (sd *StateDB) SetCode(addr ogTypes.Address, code []byte) {
 	stobj := sd.getOrCreateStateObject(addr)
-	stobj.SetCode(crypto.Keccak256Hash(code), code)
+	stobj.SetCode(ogTypes.BytesToHash32(crypto.Keccak256Hash(code)), code)
 }
 
-func (sd *StateDB) SetState(addr common.Address, key, value common.Hash) {
+func (sd *StateDB) SetState(addr ogTypes.Address, key, value ogTypes.Hash) {
 	stobj := sd.getOrCreateStateObject(addr)
 	if stobj == nil {
 		return
@@ -451,7 +451,7 @@ Token part
 */
 
 // IssueToken creates a new token according to offered token information.
-func (sd *StateDB) IssueToken(issuer common.Address, name, symbol string, reIssuable bool, fstIssue *math.BigInt) (int32, error) {
+func (sd *StateDB) IssueToken(issuer ogTypes.Address, name, symbol string, reIssuable bool, fstIssue *math.BigInt) (int32, error) {
 	tokenID := sd.latestTokenID + 1
 
 	oldToken := sd.getTokenObject(tokenID)
@@ -535,13 +535,13 @@ func (sd *StateDB) AppendJournal(entry JournalEntry) {
 	sd.journal.append(entry)
 }
 
-func (sd *StateDB) Suicide(addr common.Address) bool {
+func (sd *StateDB) Suicide(addr ogTypes.Address) bool {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return false
 	}
 	sd.AppendJournal(&suicideChange{
-		account:     &addr,
+		account:     addr,
 		prev:        stobj.suicided,
 		prevbalance: stobj.data.Balances.Copy(),
 	})
@@ -550,7 +550,7 @@ func (sd *StateDB) Suicide(addr common.Address) bool {
 	return true
 }
 
-func (sd *StateDB) HasSuicided(addr common.Address) bool {
+func (sd *StateDB) HasSuicided(addr ogTypes.Address) bool {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return false
@@ -563,30 +563,30 @@ func (sd *StateDB) AddLog(l *vmtypes.Log) {
 	// Not implemented yet
 }
 
-func (sd *StateDB) AddPreimage(h common.Hash, b []byte) {
+func (sd *StateDB) AddPreimage(h ogTypes.Hash, b []byte) {
 	// TODO
 	// Not implemented yet
 }
 
-func (sd *StateDB) ForEachStorage(addr common.Address, f func(key, value common.Hash) bool) {
+func (sd *StateDB) ForEachStorage(addr ogTypes.Address, f func(key, value ogTypes.Hash) bool) {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
 		return
 	}
 	it := trie.NewIterator(stobj.openTrie(sd.db).NodeIterator(nil))
 	for it.Next() {
-		key := common.BytesToHash(sd.trie.GetKey(it.Key))
-		if value, dirty := stobj.dirtyStorage[key]; dirty {
+		key := ogTypes.BytesToHash32(sd.trie.GetKey(it.Key))
+		if value, dirty := stobj.dirtyStorage[key.HashKey()]; dirty {
 			f(key, value)
 			continue
 		}
-		f(key, common.BytesToHash(it.Value))
+		f(key, ogTypes.BytesToHash32(it.Value))
 	}
 }
 
 // loadState loads a state from current trie.
-func (sd *StateDB) loadStateObject(addr common.Address) (*StateObject, error) {
-	data, err := sd.trie.TryGet(addr.ToBytes())
+func (sd *StateDB) loadStateObject(addr ogTypes.Address) (*StateObject, error) {
+	data, err := sd.trie.TryGet(addr.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("get state from trie err: %v", err)
 	}
@@ -629,16 +629,16 @@ func (sd *StateDB) Commit() (ogTypes.Hash, error) {
 // commit tries to save dirty data to memory trie db.
 //
 // Note that commit doesn't hold any StateDB locks.
-func (sd *StateDB) commit() (common.Hash, error) {
+func (sd *StateDB) commit() (ogTypes.Hash, error) {
 	// update dirtyset according to journal
 	for addr := range sd.journal.dirties {
-		sd.dirtyset[addr] = struct{}{}
+		sd.dirtyset[addr.AddressKey()] = struct{}{}
 	}
 	for addr, state := range sd.states {
 		if _, isdirty := sd.dirtyset[addr]; !isdirty {
 			continue
 		}
-		log.Tracef("commit state, addr: %s, state: %s", addr.Hex(), state.String())
+		log.Tracef("commit state, addr: %s, state: %s", addr, state.String())
 		// commit state's code
 		if state.code != nil && state.dirtycode {
 			sd.db.TrieDB().Insert(state.GetCodeHash(), state.code)
@@ -650,7 +650,7 @@ func (sd *StateDB) commit() (common.Hash, error) {
 		}
 		// update state data in current trie.
 		data, _ := state.Encode()
-		if err := sd.trie.TryUpdate(addr.ToBytes(), data); err != nil {
+		if err := sd.trie.TryUpdate(addr.Bytes(), data); err != nil {
 			log.Errorf("commit statedb error: %v", err)
 		}
 		delete(sd.dirtyset, addr)
@@ -687,8 +687,8 @@ func (sd *StateDB) commit() (common.Hash, error) {
 		if account.Root != emptyStateRoot {
 			sd.db.TrieDB().Reference(account.Root, parent)
 		}
-		codehash := common.BytesToHash(account.CodeHash)
-		if codehash != emptyCodeHash {
+		codehash := ogTypes.BytesToHash32(account.CodeHash)
+		if codehash.HashKey() != emptyCodeHash.HashKey() {
 			sd.db.TrieDB().Reference(codehash, parent)
 		}
 		return nil

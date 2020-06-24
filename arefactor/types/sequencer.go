@@ -251,6 +251,23 @@ func (s *Sequencer) GetConfirmSeqHash() og_types.Hash {
 	return &og_types.Hash32{}
 }
 
+/**
+Marshaller part
+ */
+func (s *Sequencer) MarshalMsg() ([]byte, error) {
+
+}
+
+func (s *Sequencer) UnMarshalMsg(b []byte) ([]byte, error) {
+
+}
+
+func (s *Sequencer) MsgSize() int {
+	
+}
+
+
+
 type SequencerMsg struct {
 	Type           int      `json:"type"`
 	Hash           string   `json:"hash"`

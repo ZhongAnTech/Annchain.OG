@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	ogtypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 )
@@ -18,7 +19,7 @@ type TokenObject struct {
 	TokenID    int32
 	Name       string
 	Symbol     string
-	Issuer     common.Address
+	Issuer     ogtypes.Address
 	ReIssuable bool
 
 	Issues    []*math.BigInt
@@ -27,7 +28,7 @@ type TokenObject struct {
 	db StateDBInterface
 }
 
-func NewTokenObject(tokenID int32, issuer common.Address, name, symbol string, reIssuable bool, fstIssue *math.BigInt, db StateDBInterface) *TokenObject {
+func NewTokenObject(tokenID int32, issuer ogtypes.Address, name, symbol string, reIssuable bool, fstIssue *math.BigInt, db StateDBInterface) *TokenObject {
 
 	if len(name) > MaxTokenName {
 		name = name[:MaxTokenName]

@@ -168,95 +168,95 @@ func (z *Sequencer) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
-func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// array header, size 5
-	o = append(o, 0x95)
-	o, err = z.TxBase.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	if z.Issuer == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.Issuer.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
-	o, err = z.BlsJointSig.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	o, err = z.BlsJointPubKey.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	o, err = z.StateRoot.MarshalMsg(o)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		return
-	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
-		return
-	}
-	bts, err = z.TxBase.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.Issuer = nil
-	} else {
-		if z.Issuer == nil {
-			z.Issuer = new(common.Address)
-		}
-		bts, err = z.Issuer.UnmarshalMsg(bts)
-		if err != nil {
-			return
-		}
-	}
-	bts, err = z.BlsJointSig.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	bts, err = z.BlsJointPubKey.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	bts, err = z.StateRoot.UnmarshalMsg(bts)
-	if err != nil {
-		return
-	}
-	o = bts
-	return
-}
-
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Sequencer) Msgsize() (s int) {
-	s = 1 + z.TxBase.Msgsize()
-	if z.Issuer == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.Issuer.Msgsize()
-	}
-	s += z.BlsJointSig.Msgsize() + z.BlsJointPubKey.Msgsize() + z.StateRoot.Msgsize()
-	return
-}
+//// MarshalMsg implements msgp.Marshaler
+//func (z *Sequencer) MarshalMsg(b []byte) (o []byte, err error) {
+//	o = msgp.Require(b, z.Msgsize())
+//	// array header, size 5
+//	o = append(o, 0x95)
+//	o, err = z.TxBase.MarshalMsg(o)
+//	if err != nil {
+//		return
+//	}
+//	if z.Issuer == nil {
+//		o = msgp.AppendNil(o)
+//	} else {
+//		o, err = z.Issuer.MarshalMsg(o)
+//		if err != nil {
+//			return
+//		}
+//	}
+//	o, err = z.BlsJointSig.MarshalMsg(o)
+//	if err != nil {
+//		return
+//	}
+//	o, err = z.BlsJointPubKey.MarshalMsg(o)
+//	if err != nil {
+//		return
+//	}
+//	o, err = z.StateRoot.MarshalMsg(o)
+//	if err != nil {
+//		return
+//	}
+//	return
+//}
+//
+//// UnmarshalMsg implements msgp.Unmarshaler
+//func (z *Sequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
+//	var zb0001 uint32
+//	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+//	if err != nil {
+//		return
+//	}
+//	if zb0001 != 5 {
+//		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+//		return
+//	}
+//	bts, err = z.TxBase.UnmarshalMsg(bts)
+//	if err != nil {
+//		return
+//	}
+//	if msgp.IsNil(bts) {
+//		bts, err = msgp.ReadNilBytes(bts)
+//		if err != nil {
+//			return
+//		}
+//		z.Issuer = nil
+//	} else {
+//		if z.Issuer == nil {
+//			z.Issuer = new(common.Address)
+//		}
+//		bts, err = z.Issuer.UnmarshalMsg(bts)
+//		if err != nil {
+//			return
+//		}
+//	}
+//	bts, err = z.BlsJointSig.UnmarshalMsg(bts)
+//	if err != nil {
+//		return
+//	}
+//	bts, err = z.BlsJointPubKey.UnmarshalMsg(bts)
+//	if err != nil {
+//		return
+//	}
+//	bts, err = z.StateRoot.UnmarshalMsg(bts)
+//	if err != nil {
+//		return
+//	}
+//	o = bts
+//	return
+//}
+//
+//// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+//func (z *Sequencer) Msgsize() (s int) {
+//	s = 1 + z.TxBase.Msgsize()
+//	if z.Issuer == nil {
+//		s += msgp.NilSize
+//	} else {
+//		s += z.Issuer.Msgsize()
+//	}
+//	s += z.BlsJointSig.Msgsize() + z.BlsJointPubKey.Msgsize() + z.StateRoot.Msgsize()
+//	return
+//}
 
 // DecodeMsg implements msgp.Decodable
 func (z *SequencerJson) DecodeMsg(dc *msgp.Reader) (err error) {

@@ -1,6 +1,8 @@
 package consensus_interface
 
-import "github.com/libp2p/go-libp2p-core/crypto"
+import (
+	"github.com/libp2p/go-libp2p-core/crypto"
+)
 
 type Committee struct {
 }
@@ -17,6 +19,11 @@ type VerifyResult struct {
 type ExecuteResult struct {
 	Ok        bool
 	ExecuteId string
+}
+
+type ConsensusState struct {
+	LastVoteRound  int
+	PreferredRound int
 }
 
 type ProposalContextProvider interface {
@@ -49,11 +56,6 @@ type CommitteeProvider interface {
 	GetThreshold() int
 	AmILeader(round int) bool
 }
-
-type AccountHolder interface {
-	ProvidePrivateKey(createIfMissing bool) (crypto.PrivKey, error)
-}
-
 type Signer interface {
 	Sign(msg []byte, privateKey crypto.PrivKey) Signature
 }
@@ -76,6 +78,8 @@ type Ledger interface {
 	// Commit commits the pending prefix of the given blockId and prune other branches
 	Commit(blockId string)
 	GetHighQC() *QC
+	SaveConsensusState(*ConsensusState)
+	LoadConsensusState() *ConsensusState
 }
 
 type Hasher interface {

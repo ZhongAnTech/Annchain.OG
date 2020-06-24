@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/annchain/OG/arefactor/consensus"
 	"github.com/annchain/OG/arefactor/og"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/OG/common/io"
@@ -31,7 +32,6 @@ func (n *OgNode) Setup() {
 		NetworkIdConverter: &og.OgNetworkIdConverter{},
 		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
 		CryptoType:         transport_interface.CryptoTypeSecp256k1,
-		Account:            nil,
 	}
 
 	// low level transport (libp2p)
@@ -51,22 +51,31 @@ func (n *OgNode) Setup() {
 	ledger.InitDefault()
 	ledger.StaticSetup()
 
-	// consensus
-	cpConsensusPartner := &consensus.Partner{
-		paceMaker:               nil,
-		safety:                  nil,
-		Logger:                  nil,
-		Report:                  nil,
-		ProposalContextProvider: nil,
-		ProposalGenerator:       nil,
-		ProposalVerifier:        nil,
-		ProposalExecutor:        nil,
-		CommitteeProvider:       nil,
-		Signer:                  nil,
-		AccountProvider:         nil,
-		Hasher:                  nil,
-		Ledger:                  nil,
+	privateGenerator := &og.DefaultPrivateGenerator{}
+
+	// account management
+	ledgerAccountProvider := &og.LocalLedgerAccountHolder{
+		PrivateGenerator: privateGenerator,
+		AddressConverter: &og.OgAddressConverter{},
+		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "account.key")),
+		CryptoType:       types.CryptoTypeSecp256k1,
 	}
+
+	// consensus. Current all peers are Partner
+	cpConsensusPartner := &consensus.Partner{
+		Logger:                   logrus.StandardLogger(),
+		Reporter:                 nil,
+		ProposalContextProvider:  nil,
+		ProposalGenerator:        nil,
+		ProposalVerifier:         nil,
+		ProposalExecutor:         nil,
+		CommitteeProvider:        nil,
+		Signer:                   nil,
+		ConsensusAccountProvider: ledgerAccountProvider,
+		Hasher:                   &consensus.SHA256Hasher{},
+		Ledger:                   ledger,
+	}
+	cpConsensusPartner.InitDefault()
 
 	cpController := &rpc.RpcController{
 		Ledger:                    ledger,
@@ -102,6 +111,7 @@ func (n *OgNode) Setup() {
 	n.components = append(n.components, cpOgEngine)
 	n.components = append(n.components, cpRpc)
 	n.components = append(n.components, cpSyncer)
+	n.components = append(n.components, cpConsensusPartner)
 
 	// event registration
 

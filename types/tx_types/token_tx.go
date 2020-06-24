@@ -293,4 +293,5 @@ func (z *ActionTx) ToJsonMsg() ActionMsg {
 	for _, p := range z.ParentsHash {
 		a.Parents = append(a.Parents, p.Hex())
 	}
+	return a
 }

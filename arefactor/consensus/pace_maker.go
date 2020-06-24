@@ -2,12 +2,21 @@ package consensus
 
 import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
+	"io"
 	"time"
 )
+
+type LedgerAccountHolder interface {
+	ProvideAccount() (*types.OgLedgerAccount, error)
+	Generate(src io.Reader) (account *types.OgLedgerAccount, err error)
+	Load() (account *types.OgLedgerAccount, err error)
+	Save() (err error)
+}
 
 type PaceMaker struct {
 	Logger *logrus.Logger
@@ -16,7 +25,7 @@ type PaceMaker struct {
 	Safety          *Safety
 	Partner         *Partner
 	Signer          consensus_interface.Signer
-	AccountProvider consensus_interface.AccountHolder
+	AccountProvider LedgerAccountHolder
 	Ledger          consensus_interface.Ledger
 
 	CommitteeProvider consensus_interface.CommitteeProvider
@@ -217,11 +226,12 @@ func (m *PaceMaker) ensureTCCollector(round int) consensus_interface.SignatureCo
 }
 
 func (m *PaceMaker) sign(msg Signable) (signature []byte, err error) {
-	privateKey, err := m.AccountProvider.ProvidePrivateKey()
+	account, err := m.AccountProvider.ProvideAccount()
 	if err != nil {
-		logrus.WithError(err).Warn("account provider cannot provide private key")
+		logrus.WithError(err).Warn("account provider cannot provide account")
 		return
 	}
-	signature = m.Signer.Sign(msg.SignatureTarget(), privateKey)
+
+	signature = m.Signer.Sign(msg.SignatureTarget(), account.PrivateKey)
 	return
 }

@@ -176,8 +176,8 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Addres
 		//tx.Type = types.TxBaseTypeNormal
 		//tx.GetBase().Hash = tx.CalcTxHash()
 		//dag.WriteTransaction(dbBatch, tx)
-
-		dag.statedb.SetBalance(addrKey, value)
+		addr, _ := ogTypes.HexToAddress20(string(addrKey))
+		dag.statedb.SetBalance(addr, value)
 	}
 
 	dag.genesis = genesis

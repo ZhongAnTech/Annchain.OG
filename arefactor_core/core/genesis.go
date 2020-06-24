@@ -45,14 +45,14 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[ogTypes.AddressKe
 	hash := seq.CalcTxHash()
 	seq.SetHash(hash)
 
-	addr := common.HexToAddress("643d534e15a315173a3c18cd13c9f95c7484a9bc")
-	balance := map[common.Address]*math.BigInt{}
-	balance[addr] = math.NewBigInt(99999999)
+	addr, _ := ogTypes.HexToAddress20("643d534e15a315173a3c18cd13c9f95c7484a9bc")
+	balance := map[ogTypes.AddressKey]*math.BigInt{}
+	balance[addr.AddressKey()] = math.NewBigInt(99999999)
 	accounts := GetGenesisAccounts(genesisPath)
 	//accounts := GetSampleAccounts(cryptoType)
 	var buf bytes.Buffer
 	for i := 0; i < len(accounts.Accounts); i++ {
-		balance[accounts.Accounts[i].address] = math.NewBigInt(int64(accounts.Accounts[i].Balance))
+		balance[accounts.Accounts[i].address.AddressKey()] = math.NewBigInt(int64(accounts.Accounts[i].Balance))
 		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Address)
 		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Balance)
 	}
@@ -66,7 +66,7 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[ogTypes.AddressKe
 }
 
 type Account struct {
-	address common.Address `json:"-"`
+	address ogTypes.Address `json:"-"`
 	Address string         `json:"address"`
 	Balance uint64         `json:"balance"`
 }
@@ -100,30 +100,30 @@ func GetGenesisAccounts(genesisPath string) *GenesisAccounts {
 
 }
 
-func GetSampleAccounts() []*account.SampleAccount {
-	var accounts []*account.SampleAccount
-	if crypto.Signer.GetCryptoType() == crypto.CryptoTypeSecp256k1 {
-		logrus.WithField("len", MaxAccountCount).Debug("Generating secp256k1 sample accounts")
-		for i := 0; i < MaxAccountCount; i++ {
-			acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02X", i))
-			acc.Id = i
-			accounts = append(accounts, acc)
-		}
-
-	} else {
-		logrus.WithField("len", math.MinInt(len(sampleEd25519PrivKeys), MaxAccountCount)).Debug("Generating ed25519 sample accounts")
-		for i := 0; i < MaxAccountCount; i++ {
-			if i >= len(sampleEd25519PrivKeys) {
-				break
-			}
-			acc := account.NewAccount(sampleEd25519PrivKeys[i])
-			acc.Id = i
-			accounts = append(accounts, acc)
-		}
-
-	}
-	return accounts
-}
+//func GetSampleAccounts() []*account.SampleAccount {
+//	var accounts []*account.SampleAccount
+//	if crypto.Signer.GetCryptoType() == crypto.CryptoTypeSecp256k1 {
+//		logrus.WithField("len", MaxAccountCount).Debug("Generating secp256k1 sample accounts")
+//		for i := 0; i < MaxAccountCount; i++ {
+//			acc := account.NewAccount(fmt.Sprintf("0x0170E6B713CD32904D07A55B3AF5784E0B23EB38589EBF975F0AB89E6F8D786F%02X", i))
+//			acc.Id = i
+//			accounts = append(accounts, acc)
+//		}
+//
+//	} else {
+//		logrus.WithField("len", math.MinInt(len(sampleEd25519PrivKeys), MaxAccountCount)).Debug("Generating ed25519 sample accounts")
+//		for i := 0; i < MaxAccountCount; i++ {
+//			if i >= len(sampleEd25519PrivKeys) {
+//				break
+//			}
+//			acc := account.NewAccount(sampleEd25519PrivKeys[i])
+//			acc.Id = i
+//			accounts = append(accounts, acc)
+//		}
+//
+//	}
+//	return accounts
+//}
 
 func newUnsignedSequencer(height uint64, accountNonce uint64) *types.Sequencer {
 	tx := types.Sequencer{

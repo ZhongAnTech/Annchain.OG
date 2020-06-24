@@ -1,6 +1,7 @@
 package og_interface
 
 import (
+	"github.com/annchain/OG/arefactor/common/hexutil"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
 )
 
@@ -14,8 +15,6 @@ type FixLengthBytes interface {
 	Cmp(FixLengthBytes) int
 }
 
-type AddressKey string
-
 type Address interface {
 	FixLengthBytes
 	AddressKey() AddressKey
@@ -25,7 +24,12 @@ type Address interface {
 	marshaller.IMarshaller
 }
 
-type HashKey string
+type AddressKey string
+
+func (k AddressKey) Bytes() []byte {
+	b, _ := hexutil.FromHex(string(k))
+	return b
+}
 
 type Hash interface {
 	FixLengthBytes
@@ -34,4 +38,11 @@ type Hash interface {
 	HashShortString() string
 
 	marshaller.IMarshaller
+}
+
+type HashKey string
+
+func (k HashKey) Bytes() []byte {
+	b, _ := hexutil.FromHex(string(k))
+	return b
 }

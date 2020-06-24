@@ -21,7 +21,7 @@ import (
 	"github.com/annchain/OG/arefactor/utils/marshaller"
 
 	"github.com/annchain/OG/arefactor/common"
-	ogtypes "github.com/annchain/OG/arefactor/og_interface"
+	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	//"github.com/annchain/OG/common/crypto"
 	crypto "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
@@ -33,26 +33,26 @@ import (
 
 //msgp:tuple AccountData
 type AccountData struct {
-	Address  ogtypes.Address
+	Address  ogTypes.Address
 	Balances BalanceSet
 	Nonce    uint64
-	Root     ogtypes.Hash
+	Root     ogTypes.Hash
 	CodeHash []byte
 }
 
 func NewAccountData() AccountData {
 	return AccountData{
-		Address:  &ogtypes.Address20{},
+		Address:  &ogTypes.Address20{},
 		Balances: NewBalanceSet(),
 		Nonce:    0,
-		Root:     &ogtypes.Hash32{},
+		Root:     &ogTypes.Hash32{},
 		CodeHash: []byte{},
 	}
 }
 
 type StateObject struct {
-	address     ogtypes.Address
-	addressHash ogtypes.Hash
+	address     ogTypes.Address
+	addressHash ogTypes.Hash
 	data        AccountData
 
 	dbErr error
@@ -61,14 +61,14 @@ type StateObject struct {
 	dirtycode bool
 	suicided  bool // TODO suicided is useless now.
 
-	committedStorage map[ogtypes.Hash]ogtypes.Hash
-	dirtyStorage     map[ogtypes.Hash]ogtypes.Hash
+	committedStorage map[ogTypes.HashKey]ogTypes.Hash
+	dirtyStorage     map[ogTypes.HashKey]ogTypes.Hash
 
 	trie Trie
 	db   StateDBInterface
 }
 
-func NewStateObject(addr ogtypes.Address, db StateDBInterface) *StateObject {
+func NewStateObject(addr ogTypes.Address, db StateDBInterface) *StateObject {
 	a := AccountData{}
 	a.Address = addr
 	a.Balances = NewBalanceSet()
@@ -78,9 +78,9 @@ func NewStateObject(addr ogtypes.Address, db StateDBInterface) *StateObject {
 
 	s := &StateObject{}
 	s.address = addr
-	s.addressHash = ogtypes.BytesToHash32(crypto.Keccak256Hash(addr.Bytes()))
-	s.committedStorage = make(map[ogtypes.Hash]ogtypes.Hash)
-	s.dirtyStorage = make(map[ogtypes.Hash]ogtypes.Hash)
+	s.addressHash = ogTypes.BytesToHash32(crypto.Keccak256Hash(addr.Bytes()))
+	s.committedStorage = make(map[ogTypes.HashKey]ogTypes.Hash)
+	s.dirtyStorage = make(map[ogTypes.HashKey]ogTypes.Hash)
 	s.data = a
 	s.db = db
 	return s
@@ -153,16 +153,16 @@ func (s *StateObject) setNonce(nonce uint64) {
 	s.data.Nonce = nonce
 }
 
-func (s *StateObject) GetState(db Database, key ogtypes.Hash) ogtypes.Hash {
-	value, ok := s.dirtyStorage[key]
+func (s *StateObject) GetState(db Database, key ogTypes.Hash) ogTypes.Hash {
+	value, ok := s.dirtyStorage[key.HashKey()]
 	if ok {
 		return value
 	}
 	return s.GetCommittedState(db, key)
 }
 
-func (s *StateObject) GetCommittedState(db Database, key ogtypes.Hash) ogtypes.Hash {
-	value, ok := s.committedStorage[key]
+func (s *StateObject) GetCommittedState(db Database, key ogTypes.Hash) ogTypes.Hash {
+	value, ok := s.committedStorage[key.HashKey()]
 	if ok {
 		return value
 	}
@@ -173,13 +173,13 @@ func (s *StateObject) GetCommittedState(db Database, key ogtypes.Hash) ogtypes.H
 		s.setError(err)
 	}
 
-	value = ogtypes.BytesToHash32(b)
-	s.committedStorage[key] = value
+	value = ogTypes.BytesToHash32(b)
+	s.committedStorage[key.HashKey()] = value
 
 	return value
 }
 
-func (s *StateObject) SetState(db Database, key, value ogtypes.Hash) {
+func (s *StateObject) SetState(db Database, key, value ogTypes.Hash) {
 	s.db.AppendJournal(&storageChange{
 		account:  s.address,
 		key:      key,
@@ -188,8 +188,8 @@ func (s *StateObject) SetState(db Database, key, value ogtypes.Hash) {
 	s.setState(key, value)
 }
 
-func (s *StateObject) setState(key, value ogtypes.Hash) {
-	s.dirtyStorage[key] = value
+func (s *StateObject) setState(key, value ogTypes.Hash) {
+	s.dirtyStorage[key.HashKey()] = value
 }
 
 func (s *StateObject) GetCode(db Database) []byte {
@@ -207,7 +207,7 @@ func (s *StateObject) GetCode(db Database) []byte {
 	return s.code
 }
 
-func (s *StateObject) SetCode(codehash ogtypes.Hash, code []byte) {
+func (s *StateObject) SetCode(codehash ogTypes.Hash, code []byte) {
 	s.db.AppendJournal(&codeChange{
 		account:  s.address,
 		prevcode: s.code,
@@ -216,21 +216,21 @@ func (s *StateObject) SetCode(codehash ogtypes.Hash, code []byte) {
 	s.setCode(codehash, code)
 }
 
-func (s *StateObject) setCode(codehash ogtypes.Hash, code []byte) {
+func (s *StateObject) setCode(codehash ogTypes.Hash, code []byte) {
 	s.code = code
 	s.data.CodeHash = codehash.Bytes()
 	s.dirtycode = true
 }
 
-func (s *StateObject) GetCodeHash() ogtypes.Hash {
-	return ogtypes.BytesToHash32(s.data.CodeHash)
+func (s *StateObject) GetCodeHash() ogTypes.Hash {
+	return ogTypes.BytesToHash32(s.data.CodeHash)
 }
 
 func (s *StateObject) GetCodeSize(db Database) (int, error) {
 	if s.code != nil {
 		return len(s.code), nil
 	}
-	return db.ContractCodeSize(s.addressHash, ogtypes.BytesToHash32(s.data.CodeHash))
+	return db.ContractCodeSize(s.addressHash, ogTypes.BytesToHash32(s.data.CodeHash))
 }
 
 func (s *StateObject) openTrie(db Database) Trie {
@@ -239,7 +239,7 @@ func (s *StateObject) openTrie(db Database) Trie {
 	}
 	t, err := db.OpenStorageTrie(s.addressHash, s.data.Root)
 	if err != nil {
-		t, _ = db.OpenStorageTrie(s.addressHash, ogtypes.BytesToHash32([]byte{}))
+		t, _ = db.OpenStorageTrie(s.addressHash, ogTypes.BytesToHash32([]byte{}))
 	}
 	s.trie = t
 	return s.trie
@@ -287,8 +287,8 @@ func (s *StateObject) CommitStorage(db Database, preCommit bool) error {
 // Note that this function is for test debug only, should not
 // be called by other functions.
 func (s *StateObject) Uncache() {
-	s.committedStorage = make(map[ogtypes.Hash]ogtypes.Hash)
-	s.dirtyStorage = make(map[ogtypes.Hash]ogtypes.Hash)
+	s.committedStorage = make(map[ogTypes.HashKey]ogTypes.Hash)
+	s.dirtyStorage = make(map[ogTypes.HashKey]ogTypes.Hash)
 }
 
 /*
@@ -316,15 +316,16 @@ func (s *StateObject) Encode() ([]byte, error) {
 	return s.data.MarshalMsg(nil)
 }
 
+// TODO rewrite marshalling
 func (s *StateObject) Decode(b []byte, db *StateDB) error {
 	a := NewAccountData()
 	_, err := a.UnmarshalMsg(b)
 
 	s.data = a
 	s.address = a.Address
-	s.addressHash = ogtypes.BytesToHash32(crypto.Keccak256Hash(a.Address.Bytes()))
-	s.committedStorage = make(map[ogtypes.Hash]ogtypes.Hash)
-	s.dirtyStorage = make(map[ogtypes.Hash]ogtypes.Hash)
+	s.addressHash = ogTypes.BytesToHash32(crypto.Keccak256Hash(a.Address.Bytes()))
+	s.committedStorage = make(map[ogTypes.HashKey]ogTypes.Hash)
+	s.dirtyStorage = make(map[ogTypes.HashKey]ogTypes.Hash)
 	s.db = db
 	return err
 }

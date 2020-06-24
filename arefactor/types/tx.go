@@ -15,6 +15,8 @@ package types
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/utils/marshaller"
+	"math/big"
 	"math/rand"
 	"strings"
 	"time"
@@ -154,19 +156,101 @@ func (t *Tx) Dump() string {
 		t.AccountNonce, hexutil.Encode(t.Signature), hexutil.Encode(t.PublicKey), t.Height, t.MineNonce, t.Type, t.Weight, t.Data)
 }
 
-//func (t *Tx) RawTx() *RawTx {
-//	if t == nil {
-//		return nil
-//	}
-//	rawTx := &RawTx{
-//		TxBase:  t.TxBase,
-//		To:      t.To,
-//		Value:   t.Value,
-//		Data:    t.Data,
-//		TokenId: t.TokenId,
-//	}
-//	return rawTx
-//}
+/**
+marshaller part
+*/
+
+func (t *Tx) MarshalMsg() ([]byte, error) {
+	var err error
+
+	b := make([]byte, marshaller.HeaderSize)
+
+	// (byte) TokenID
+	b = marshaller.AppendInt32(b, t.TokenId)
+
+	// (BigInt) Value
+	b = marshaller.AppendBigInt(b, t.Value.Value)
+
+	// (Address) From, To
+	fromB, err := t.From.MarshalMsg()
+	if err != nil {
+		return nil, err
+	}
+	b = append(b, fromB...)
+
+	toB, err := t.To.MarshalMsg()
+	if err != nil {
+		return nil, err
+	}
+	b = append(b, toB...)
+
+	// ([]byte) Data
+	b = marshaller.AppendBytes(b, t.Data)
+
+	// (TxBase) TxBase
+	baseB, err := t.TxBase.MarshalMsg()
+	if err != nil {
+		return nil, err
+	}
+	b = append(b, baseB...)
+
+	// fill in header bytes
+	b = marshaller.FillHeaderData(b)
+
+	return b, nil
+}
+
+func (t *Tx) UnMarshalMsg(b []byte) ([]byte, error) {
+	var err error
+
+	b, _, err = marshaller.DecodeHeader(b)
+	if err != nil {
+		return nil, err
+	}
+
+	t.TokenId, b, err = marshaller.ReadInt32Bytes(b)
+	if err != nil {
+		return nil, err
+	}
+
+	valueB, b, err := marshaller.ReadBytes(b)
+	if err != nil {
+		return nil, err
+	}
+	t.Value = math.NewBigIntFromBigInt(big.NewInt(0).SetBytes(valueB))
+
+	t.From, b, err = og_types.UnMarshalAddress(b)
+	if err != nil {
+		return nil, err
+	}
+
+	t.To, b, err = og_types.UnMarshalAddress(b)
+	if err != nil {
+		return nil, err
+	}
+
+	t.Data, b, err = marshaller.ReadBytes(b)
+	if err != nil {
+		return nil, err
+	}
+
+	t.TxBase = TxBase{}
+	b, err = t.TxBase.UnMarshalMsg(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+
+func (t *Tx) MsgSize() int {
+	return marshaller.Int32Size + // TokenID
+		marshaller.CalIMarshallerSize(len(t.Value.GetBytes())) + // Value
+		marshaller.CalIMarshallerSize(t.From.MsgSize()) + // From
+		marshaller.CalIMarshallerSize(t.To.MsgSize()) + // To
+		marshaller.CalIMarshallerSize(len(t.Data)) + // Data
+		marshaller.CalIMarshallerSize(t.TxBase.MsgSize()) // TxVase
+}
 
 func (t Txs) String() string {
 	var strs []string

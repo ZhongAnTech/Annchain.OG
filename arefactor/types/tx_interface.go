@@ -52,12 +52,9 @@ type Txi interface {
 
 	//RawTxi() RawTxi // compressed txi
 
-	// implemented by msgp
-	DecodeMsg(dc *msgp.Reader) (err error)
-	EncodeMsg(en *msgp.Writer) (err error)
 	MarshalMsg(b []byte) (o []byte, err error)
-	UnmarshalMsg(bts []byte) (o []byte, err error)
-	Msgsize() (s int)
+	UnMarshalMsg(bts []byte) (o []byte, err error)
+	MsgSize() (s int)
 	GetVersion() byte
 	ToSmallCaseJson() ([]byte, error)
 	IsVerified() verifiedType
@@ -190,14 +187,14 @@ func (t Txis) Swap(i, j int) {
 //	return txs
 //}
 
-//msgp:tuple TxiSmallCaseMarshal
-type TxiSmallCaseMarshal struct {
-	Txi Txi
-}
-
-func (t *TxiSmallCaseMarshal) MarshalJSON() ([]byte, error) {
-	if t == nil || t.Txi == nil {
-		return nil, nil
-	}
-	return t.Txi.ToSmallCaseJson()
-}
+////msgp:tuple TxiSmallCaseMarshal
+//type TxiSmallCaseMarshal struct {
+//	Txi Txi
+//}
+//
+//func (t *TxiSmallCaseMarshal) MarshalJSON() ([]byte, error) {
+//	if t == nil || t.Txi == nil {
+//		return nil, nil
+//	}
+//	return t.Txi.ToSmallCaseJson()
+//}

@@ -21,14 +21,17 @@ type Address interface {
 	AddressKey() AddressKey
 	AddressString() string // just for type safety between Address and Hash
 	AddressShortString() string
+
+	marshaller.IMarshaller
 }
 
 type HashKey string
 
 type Hash interface {
-	marshaller.IMarshaller
 	FixLengthBytes
 	HashKey() HashKey
 	HashString() string
 	HashShortString() string
+
+	marshaller.IMarshaller
 }

@@ -1,6 +1,17 @@
 package marshaller
 
-import "github.com/tinylib/msgp/msgp"
+import (
+	"github.com/tinylib/msgp/msgp"
+	"math/big"
+)
+
+func AppendInt32(b []byte, i int32) []byte {
+	return msgp.AppendInt32(b, i)
+}
+
+func ReadInt32Bytes(b []byte) (i int32, o []byte, err error) {
+	return msgp.ReadInt32Bytes(b)
+}
 
 func AppendUint64(b []byte, u uint64) []byte {
 	return msgp.AppendUint64(b, u)
@@ -8,6 +19,18 @@ func AppendUint64(b []byte, u uint64) []byte {
 
 func ReadUint64Bytes(b []byte) (u uint64, o []byte, err error) {
 	return msgp.ReadUint64Bytes(b)
+}
+
+func AppendBigInt(b []byte, bi *big.Int) []byte {
+	return AppendBytes(b, bi.Bytes())
+}
+
+func ReadBigInt(b []byte) (bi *big.Int, o []byte, err error) {
+	bts, b, err := ReadBytes(b)
+	if err != nil {
+		return nil, b, err
+	}
+	return big.NewInt(0).SetBytes(bts), b, nil
 }
 
 func GetUInt16(b []byte, pos int) uint16 {

@@ -12,13 +12,6 @@ import (
 	"io/ioutil"
 )
 
-type LedgerAccountHolder interface {
-	ProvideAccount() (*types.OgLedgerAccount, error)
-	Generate(src io.Reader) (account *types.OgLedgerAccount, err error)
-	Load() (account *types.OgLedgerAccount, err error)
-	Save() (err error)
-}
-
 type LedgerAccountLocalStorage struct {
 	CryptoType int32
 	PubKey     string
@@ -27,8 +20,8 @@ type LedgerAccountLocalStorage struct {
 }
 
 type LocalLedgerAccountHolder struct {
-	PrivateGenerator PrivateGenerator
-	AddressConverter AddressConverter
+	PrivateGenerator og_interface.PrivateGenerator
+	AddressConverter og_interface.AddressConverter
 	BackFilePath     string
 	CryptoType       types.CryptoType
 	account          *types.OgLedgerAccount
@@ -120,10 +113,6 @@ func (g *LocalLedgerAccountHolder) Generate(src io.Reader) (account *types.OgLed
 	account.Address = addr
 
 	return
-}
-
-type AddressConverter interface {
-	AddressFromAccount(account *types.OgLedgerAccount) (addr og_interface.Address, err error)
 }
 
 type OgAddressConverter struct {

@@ -63,17 +63,17 @@ func (n *OgNode) Setup() {
 
 	// consensus. Current all peers are Partner
 	cpConsensusPartner := &consensus.Partner{
-		Logger:                   logrus.StandardLogger(),
-		Reporter:                 nil,
-		ProposalContextProvider:  nil,
-		ProposalGenerator:        nil,
-		ProposalVerifier:         nil,
-		ProposalExecutor:         nil,
-		CommitteeProvider:        nil,
-		Signer:                   nil,
-		ConsensusAccountProvider: ledgerAccountProvider,
-		Hasher:                   &consensus.SHA256Hasher{},
-		Ledger:                   ledger,
+		Logger:                  logrus.StandardLogger(),
+		Reporter:                nil,
+		ProposalContextProvider: nil,
+		ProposalGenerator:       nil,
+		ProposalVerifier:        nil,
+		ProposalExecutor:        nil,
+		CommitteeProvider:       nil,
+		Signer:                  nil,
+		AccountProvider:         ledgerAccountProvider,
+		Hasher:                  &consensus.SHA256Hasher{},
+		Ledger:                  ledger,
 	}
 	cpConsensusPartner.InitDefault()
 

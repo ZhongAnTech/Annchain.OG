@@ -6,10 +6,6 @@ import (
 	"io"
 )
 
-type PrivateGenerator interface {
-	GeneratePair(typ int, src io.Reader) (privKey crypto.PrivKey, pubKey crypto.PubKey, err error)
-}
-
 type DefaultPrivateGenerator struct {
 	Reader io.Reader
 }

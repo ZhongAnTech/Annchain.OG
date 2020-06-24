@@ -17,26 +17,29 @@ const (
 	Address20Length = 20
 )
 
-type Address20 [Address20Length]byte
+type Address20 struct {
+	hex string
+	b   [Address20Length]byte
+}
 
 func (a *Address20) AddressKey() AddressKey {
-	return AddressKey(a[:])
+	return AddressKey(a.hex)
 }
 
 func (a *Address20) AddressShortString() string {
-	return hexutil.ToHex(a[:10])
+	return hexutil.ToHex(a.b[:10])
 }
 
 func (a *Address20) AddressString() string {
-	return hexutil.ToHex(a.Bytes())
+	return a.hex
 }
 
 func (a *Address20) Bytes() []byte {
-	return a[:]
+	return a.b[:]
 }
 
 func (a *Address20) Hex() string {
-	return hexutil.ToHex(a[:])
+	return a.hex
 }
 
 func (a *Address20) Length() int {
@@ -44,7 +47,8 @@ func (a *Address20) Length() int {
 }
 
 func (a *Address20) FromBytes(b []byte) {
-	copy(a[:], b)
+	a.hex = hexutil.ToHex(b)
+	copy(a.b[:], b)
 }
 
 func (a *Address20) FromHex(s string) (err error) {
@@ -52,7 +56,8 @@ func (a *Address20) FromHex(s string) (err error) {
 	if err != nil {
 		return
 	}
-	a.FromBytes(bytes)
+	a.hex = s
+	copy(a.b[:], bytes)
 	return
 }
 
@@ -76,7 +81,7 @@ func (a *Address20) MarshalMsg() ([]byte, error) {
 	// add lead
 	data[pos] = FlagAddress20
 	// add hash data
-	copy(data[pos+1:], a[:])
+	copy(data[pos+1:], a.b[:])
 	return data, nil
 }
 
@@ -96,7 +101,7 @@ func (a *Address20) UnMarshalMsg(b []byte) ([]byte, error) {
 	}
 	b = b[1:]
 
-	copy(a[:], b[:FlagAddress20])
+	copy(a.b[:], b[:FlagAddress20])
 	return b[FlagAddress20:], nil
 }
 
@@ -127,7 +132,7 @@ func RandomAddress20() *Address20 {
 	adr := BigToAddress20(v.Value)
 	h := sha256.New()
 	data := []byte("abcd8342804fhddhfhisfdyr89")
-	h.Write(adr[:])
+	h.Write(adr.b[:])
 	h.Write(data)
 	sum := h.Sum(nil)
 	adr.FromBytes(sum[:20])

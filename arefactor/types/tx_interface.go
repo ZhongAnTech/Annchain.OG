@@ -16,6 +16,7 @@ package types
 
 import (
 	og_types "github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common"
 	"github.com/tinylib/msgp/msgp"
 	"strings"
@@ -37,6 +38,9 @@ type Txi interface {
 	CalcTxHash() og_types.Hash    // TxHash returns a full tx common.Hash (parents sealed by PoW stage 2)
 	CalcMinedHash() og_types.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
 	CalculateWeight(parents Txis) uint64
+	ToSmallCaseJson() ([]byte, error)
+	IsVerified() verifiedType
+	SetVerified(v verifiedType)
 
 	SetInValid(b bool)
 	InValid() bool
@@ -50,15 +54,9 @@ type Txi interface {
 	Compare(tx Txi) bool      // Compare compares two txs, return true if they are the same.
 	SignatureTargets() []byte // SignatureTargets only returns the parts that needs to be signed by sender.
 
-	//RawTxi() RawTxi // compressed txi
-
-	MarshalMsg(b []byte) (o []byte, err error)
-	UnMarshalMsg(bts []byte) (o []byte, err error)
-	MsgSize() (s int)
 	GetVersion() byte
-	ToSmallCaseJson() ([]byte, error)
-	IsVerified() verifiedType
-	SetVerified(v verifiedType)
+
+	marshaller.IMarshaller
 }
 
 type RawTxi interface {

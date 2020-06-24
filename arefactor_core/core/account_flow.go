@@ -26,7 +26,7 @@ import (
 )
 
 type AccountFlowSet struct {
-	afs map[og_types.Address]*AccountFlow
+	afs map[og_types.AddressKey]*AccountFlow
 
 	ledger Ledger
 	mu     sync.RWMutex
@@ -34,7 +34,7 @@ type AccountFlowSet struct {
 
 func NewAccountFlowSet(ledger Ledger) *AccountFlowSet {
 	return &AccountFlowSet{
-		afs:    make(map[og_types.Address]*AccountFlow),
+		afs:    make(map[og_types.AddressKey]*AccountFlow),
 		ledger: ledger,
 	}
 }
@@ -47,7 +47,7 @@ func (a *AccountFlowSet) Add(tx types.Txi) {
 		return
 	}
 
-	af := a.afs[tx.Sender()]
+	af := a.afs[tx.Sender().AddressKey()]
 	if af == nil {
 		af = NewAccountFlow(state.NewBalanceSet())
 	}
@@ -59,14 +59,14 @@ func (a *AccountFlowSet) Add(tx types.Txi) {
 		}
 	}
 	af.Add(tx)
-	a.afs[tx.Sender()] = af
+	a.afs[tx.Sender().AddressKey()] = af
 }
 
 func (a *AccountFlowSet) Get(addr og_types.Address) *AccountFlow {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	return a.afs[addr]
+	return a.afs[addr.AddressKey()]
 }
 
 func (a *AccountFlowSet) GetBalanceState(addr og_types.Address, tokenID int32) *BalanceState {
@@ -88,7 +88,7 @@ func (a *AccountFlowSet) GetTxByNonce(addr og_types.Address, nonce uint64) types
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	flow := a.afs[addr]
+	flow := a.afs[addr.AddressKey()]
 	if flow == nil {
 		return nil
 	}
@@ -99,7 +99,7 @@ func (a *AccountFlowSet) GetLatestNonce(addr og_types.Address) (uint64, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	flow := a.afs[addr]
+	flow := a.afs[addr.AddressKey()]
 	if flow == nil {
 		return 0, fmt.Errorf("no related tx in txlookup")
 	}
@@ -113,25 +113,25 @@ func (a *AccountFlowSet) ResetFlow(addr og_types.Address, originBalance state.Ba
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	a.afs[addr] = NewAccountFlow(originBalance)
+	a.afs[addr.AddressKey()] = NewAccountFlow(originBalance)
 }
 
 func (a *AccountFlowSet) MergeFlow(addr og_types.Address, af *AccountFlow) {
-	afOld := a.afs[addr]
+	afOld := a.afs[addr.AddressKey()]
 	if afOld == nil {
-		a.afs[addr] = afOld
+		a.afs[addr.AddressKey()] = afOld
 		return
 	}
 
 	afOld.MergeFlow(af)
-	a.afs[addr] = afOld
+	a.afs[addr.AddressKey()] = afOld
 }
 
 func (a *AccountFlowSet) Remove(tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	flow := a.afs[tx.Sender()]
+	flow := a.afs[tx.Sender().AddressKey()]
 	if flow == nil {
 		log.WithField("tx", tx).Warnf("remove tx from accountflows failed")
 		return
@@ -139,7 +139,7 @@ func (a *AccountFlowSet) Remove(tx types.Txi) {
 	flow.Remove(tx)
 	// remove account flow if there is no txs sent by this address in pool
 	if flow.Len() == 0 {
-		delete(a.afs, tx.Sender())
+		delete(a.afs, tx.Sender().AddressKey())
 	}
 }
 

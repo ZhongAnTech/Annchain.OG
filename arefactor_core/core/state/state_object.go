@@ -18,6 +18,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/annchain/OG/arefactor/utils/marshaller"
 
 	"github.com/annchain/OG/arefactor/common"
 	ogtypes "github.com/annchain/OG/arefactor/og_interface"
@@ -368,6 +369,8 @@ func (b *BalanceSet) IsEmpty() bool {
 	return true
 }
 
+// TODO rewrite the marshal part, to meet marshaller requirements
+
 // MarshalMsg - For every [key, value] pair, marshal it in [size (int32) + key (int32) + bigint.bytes]
 func (b *BalanceSet) MarshalMsg(bts []byte) (o []byte, err error) {
 
@@ -375,10 +378,10 @@ func (b *BalanceSet) MarshalMsg(bts []byte) (o []byte, err error) {
 	o = msgp.Require(bts, msgpSize)
 
 	// add total size
-	o = append(o, common.Int32ToBytes(int32(0))...)
+	o = append(o, marshaller.Int32ToBytes(int32(0))...)
 
 	for k, v := range *b {
-		o = append(o, common.Int32ToBytes(k)...)
+		o = append(o, marshaller.Int32ToBytes(k)...)
 
 		o, err = v.MarshalMsg(o)
 		//fmt.Println(fmt.Sprintf("cur o: %x", o))
@@ -387,17 +390,17 @@ func (b *BalanceSet) MarshalMsg(bts []byte) (o []byte, err error) {
 		}
 	}
 	size := len(o) - len(bts)
-	common.SetInt32(o, len(bts), int32(size))
+	marshaller.SetInt32(o, len(bts), int32(size))
 
 	return o, nil
 }
 
 func (b *BalanceSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	size := common.GetInt32(bts, 0)
+	size := marshaller.GetInt32(bts, 0)
 	bsBytes := bts[4:size]
 
 	for len(bsBytes) > 0 {
-		key := common.GetInt32(bsBytes, 0)
+		key := marshaller.GetInt32(bsBytes, 0)
 		bsBytes = bsBytes[4:]
 
 		value := math.BigInt{}
@@ -412,7 +415,7 @@ func (b *BalanceSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize - BalanceSet size = size (4 bytes for int32) + every key pair size
-func (b *BalanceSet) Msgsize() int {
+func (b *BalanceSet) MsgSize() int {
 	l := 4
 	for _, v := range *b {
 		l += 4 + v.Msgsize()

@@ -13,12 +13,18 @@ import (
 
 func TestAccountGenerator_Generate(t *testing.T) {
 	randomReader := rand.New(rand.NewSource(time.Now().UnixNano()))
-	g := &LedgerAccountGenerator{
+	g := &LocalLedgerAccountHolder{
+		PrivateGenerator: &DefaultPrivateGenerator{
+			Reader: randomReader,
+		},
 		AddressConverter: &OgAddressConverter{},
+		BackFilePath:     "",
+		CryptoType:       types.CryptoTypeSecp256k1,
+		account:          nil,
 	}
 
 	for method := range []int{0, 1, 2, 3} {
-		gotAccount, err := g.Generate(types.CryptoType(method), randomReader)
+		gotAccount, err := g.Generate(randomReader)
 		utilfuncs.PanicIfError(err, "generate")
 		{
 			bytes, err := gotAccount.PrivateKey.Bytes()
@@ -52,11 +58,14 @@ func TestAccountGenerator_Generate(t *testing.T) {
 			log.Info(len(bytes))
 		}
 		log.Info()
-		l := &LedgerAccountHolder{
-			CryptoType: types.CryptoType(method),
-			Account:    gotAccount,
+		l := &LocalLedgerAccountHolder{
+			PrivateGenerator: &DefaultPrivateGenerator{},
+			AddressConverter: &OgAddressConverter{},
+			BackFilePath:     fmt.Sprintf("D:\\tmp\\test\\dump_%d.json", method),
+			CryptoType:       types.CryptoTypeSecp256k1,
+			account:          gotAccount,
 		}
-		err = l.Save(fmt.Sprintf("D:\\tmp\\test\\dump_%d.json", method), gotAccount)
+		err = l.Save()
 		utilfuncs.PanicIfError(err, "save account")
 	}
 

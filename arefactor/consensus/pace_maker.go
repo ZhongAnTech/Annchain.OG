@@ -1,32 +1,45 @@
 package consensus
 
 import (
+	"io"
+	"time"
+
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
+	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
+type LedgerAccountHolder interface {
+	ProvideAccount() (*types.OgLedgerAccount, error)
+	Generate(src io.Reader) (account *types.OgLedgerAccount, err error)
+	Load() (account *types.OgLedgerAccount, err error)
+	Save() (err error)
+}
+
 type PaceMaker struct {
-	PeerIds         []string
-	MyIdIndex       int
+	Logger *logrus.Logger
+
 	CurrentRound    int
 	Safety          *Safety
+	Partner         *Partner
 	Signer          consensus_interface.Signer
-	AccountProvider consensus_interface.AccountHolder
+	AccountProvider og_interface.LedgerAccountHolder
 	Ledger          consensus_interface.Ledger
 
-	BlockTree         *BlockTree
 	CommitteeProvider consensus_interface.CommitteeProvider
-	Partner           *Partner
-	Logger            *logrus.Logger
-	lastTC            *consensus_interface.TC
-	pendingTCs        map[int]consensus_interface.SignatureCollector // round : sender list:true
-	timer             *time.Timer
-	quit              chan bool
+	Reporter          *soccerdash.Reporter
 
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
+
+	lastTC     *consensus_interface.TC
+	pendingTCs map[int]consensus_interface.SignatureCollector // round : sender list:true
+
+	timer *time.Timer
+	quit  chan bool
 }
 
 func (m *PaceMaker) InitDefault() {
@@ -92,7 +105,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	collector := m.ensureTCCollector(m.CurrentRound)
 
 	m.Safety.IncreaseLastVoteRound(m.CurrentRound)
-	m.Partner.SaveConsensusState()
+	m.Ledger.SaveConsensusState(m.Safety.ConsensusState())
 
 	timeoutMsg := m.MakeTimeoutMessage()
 	bytes := timeoutMsg.ToBytes()
@@ -138,7 +151,7 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 	m.StopLocalTimer(latestRound)
 	m.CurrentRound = latestRound + 1
 
-	m.Partner.Report.Report("CurrentRound", m.CurrentRound, false)
+	m.Reporter.Report("CurrentRound", m.CurrentRound, false)
 
 	m.lastTC = tc
 	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Warn("round advanced")
@@ -215,11 +228,12 @@ func (m *PaceMaker) ensureTCCollector(round int) consensus_interface.SignatureCo
 }
 
 func (m *PaceMaker) sign(msg Signable) (signature []byte, err error) {
-	privateKey, err := m.AccountProvider.ProvidePrivateKey(false)
+	account, err := m.AccountProvider.ProvideAccount()
 	if err != nil {
-		logrus.WithError(err).Warn("account provider cannot provide private key")
+		logrus.WithError(err).Warn("account provider cannot provide account")
 		return
 	}
-	signature = m.Signer.Sign(msg.SignatureTarget(), privateKey)
+
+	signature = m.Signer.Sign(msg.SignatureTarget(), account.PrivateKey)
 	return
 }

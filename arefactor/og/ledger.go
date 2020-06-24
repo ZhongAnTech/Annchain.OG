@@ -6,6 +6,7 @@ import (
 	"github.com/annchain/OG/arefactor/common/files"
 	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/minio/sha256-simd"
 	"github.com/sirupsen/logrus"
@@ -60,6 +61,30 @@ type IntArrayLedger struct {
 	height        int64
 	genesis       *Genesis
 	blockContents map[int64]BlockContent // height-content
+}
+
+func (d *IntArrayLedger) Speculate(prevBlockId string, blockId string, cmds string) (executeStateId string) {
+	panic("implement me")
+}
+
+func (d *IntArrayLedger) GetState(blockId string) (stateId string) {
+	panic("implement me")
+}
+
+func (d *IntArrayLedger) Commit(blockId string) {
+	panic("implement me")
+}
+
+func (d *IntArrayLedger) GetHighQC() *consensus_interface.QC {
+	panic("implement me")
+}
+
+func (d *IntArrayLedger) SaveConsensusState(state *consensus_interface.ConsensusState) {
+	panic("implement me")
+}
+
+func (d *IntArrayLedger) LoadConsensusState() *consensus_interface.ConsensusState {
+	panic("implement me")
 }
 
 func (d *IntArrayLedger) AddBlock(height int64, block BlockContent) {

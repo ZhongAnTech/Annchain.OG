@@ -3,6 +3,7 @@ package og
 import (
 	"encoding/json"
 	"github.com/annchain/OG/arefactor/common/hexutil"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
@@ -18,26 +19,34 @@ type TransportAccountHolder interface {
 	Save() (err error)
 }
 
-type LocalTransportAccountHolder struct {
-	PrivateGenerator   PrivateGenerator
-	NetworkIdConverter NetworkIdConverter
-	BackFilePath       string
-	CryptoType         transport_interface.CryptoType
-	Account            *transport_interface.TransportAccount
-}
-
-func (l *LocalTransportAccountHolder) ProvideAccount() (*transport_interface.TransportAccount, error) {
-	if l.Account == nil {
-		return l.Load()
-	}
-	return l.Account, nil
-}
-
 type TransportAccountLocalStorage struct {
 	CryptoType int32
 	PubKey     string
 	PrivKey    string
 	NetworkId  string
+}
+
+type LocalTransportAccountHolder struct {
+	PrivateGenerator   og_interface.PrivateGenerator
+	NetworkIdConverter NetworkIdConverter
+	BackFilePath       string
+	CryptoType         transport_interface.CryptoType
+	account            *transport_interface.TransportAccount
+}
+
+func (l *LocalTransportAccountHolder) ProvideAccount() (*transport_interface.TransportAccount, error) {
+	if l.account == nil {
+		return l.Load()
+	}
+	return l.account, nil
+}
+
+func (l *LocalTransportAccountHolder) Account() *transport_interface.TransportAccount {
+	return l.account
+}
+
+func (l *LocalTransportAccountHolder) SetAccount(account *transport_interface.TransportAccount) {
+	l.account = account
 }
 
 // only private key is mandatory.
@@ -67,12 +76,12 @@ func (l *LocalTransportAccountHolder) Load() (account *transport_interface.Trans
 		PrivateKey: privKey,
 	}
 	account.NodeId, err = l.NetworkIdConverter.NetworkIdFromAccount(account)
-	l.Account = account
+	l.account = account
 	return
 }
 
 func (l *LocalTransportAccountHolder) Save() (err error) {
-	account := l.Account
+	account := l.account
 	pubKeyBytes, err := account.PublicKey.Raw()
 	if err != nil {
 		return
@@ -105,7 +114,12 @@ func (l *LocalTransportAccountHolder) Generate(src io.Reader) (account *transpor
 		PublicKey:  pubKey,
 		PrivateKey: privKey,
 	}
-	account.NodeId, err = l.NetworkIdConverter.NetworkIdFromAccount(account)
+
+	nodeId, err := l.NetworkIdConverter.NetworkIdFromAccount(account)
+	if err != nil {
+		return
+	}
+	account.NodeId = nodeId
 	return
 }
 

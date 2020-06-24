@@ -250,12 +250,9 @@ func (t *TxBase) MarshalMsg() ([]byte, error) {
 }
 
 func (t *TxBase) UnMarshalMsg(b []byte) ([]byte, error) {
-	b, size, err := marshaller.DecodeHeader(b)
+	b, _, err := marshaller.DecodeHeader(b)
 	if err != nil {
 		return nil, err
-	}
-	if len(b) < size {
-		return nil, fmt.Errorf("msg is incompleted, should be len: %d, get: %d", size, len(b))
 	}
 
 	// Type, Version
@@ -329,8 +326,7 @@ func (t *TxBase) MsgSize() int {
 	// t.AccountNonce + t.Height + t.MineNonce + t.Weight + PublicKey + Signature + Version
 	size += 4*marshaller.Uint64Size +
 		marshaller.CalIMarshallerSize(len(t.PublicKey)) +
-		marshaller.CalIMarshallerSize(len(t.Signature)) +
-		1
+		marshaller.CalIMarshallerSize(len(t.Signature)) + 1
 
 	return size
 }

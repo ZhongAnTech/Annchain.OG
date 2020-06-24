@@ -70,8 +70,8 @@ func (a *Hash32) MsgSize() int {
 }
 
 func (a *Hash32) MarshalMsg() ([]byte, error) {
-	data := marshaller.InitIMarshallerBytes(Hash32Length)
-	data, pos := marshaller.EncodeHeader(data, 0, Hash32Length)
+	data := marshaller.InitIMarshallerBytes(a.MsgSize())
+	data, pos := marshaller.EncodeHeader(data, 0, a.MsgSize())
 
 	// add lead
 	data[pos] = FlagHash32

@@ -7,51 +7,51 @@ import (
 
 const (
 	// 0XXXXXXX
-	mfixint uint8 = 0x00
+	Mfixint uint8 = 0x00
 
 	// 111XXXXX
-	mnfixint uint8 = 0xe0
+	Mnfixint uint8 = 0xe0
 
 	// 1000XXXX
-	mfixmap uint8 = 0x80
+	Mfixmap uint8 = 0x80
 
 	// 1001XXXX
-	mfixarray uint8 = 0x90
+	Mfixarray uint8 = 0x90
 
 	// 101XXXXX
-	mfixstr uint8 = 0xa0
+	Mfixstr uint8 = 0xa0
 
-	mnil      uint8 = 0xc0
-	mfalse    uint8 = 0xc2
-	mtrue     uint8 = 0xc3
-	mbin8     uint8 = 0xc4
-	mbin16    uint8 = 0xc5
-	mbin32    uint8 = 0xc6
-	mext8     uint8 = 0xc7
-	mext16    uint8 = 0xc8
-	mext32    uint8 = 0xc9
-	mfloat32  uint8 = 0xca
-	mfloat64  uint8 = 0xcb
-	muint8    uint8 = 0xcc
-	muint16   uint8 = 0xcd
-	muint32   uint8 = 0xce
-	muint64   uint8 = 0xcf
-	mint8     uint8 = 0xd0
-	mint16    uint8 = 0xd1
-	mint32    uint8 = 0xd2
-	mint64    uint8 = 0xd3
-	mfixext1  uint8 = 0xd4
-	mfixext2  uint8 = 0xd5
-	mfixext4  uint8 = 0xd6
-	mfixext8  uint8 = 0xd7
-	mfixext16 uint8 = 0xd8
-	mstr8     uint8 = 0xd9
-	mstr16    uint8 = 0xda
-	mstr32    uint8 = 0xdb
-	marray16  uint8 = 0xdc
-	marray32  uint8 = 0xdd
-	mmap16    uint8 = 0xde
-	mmap32    uint8 = 0xdf
+	Mnil      uint8 = 0xc0
+	Mfalse    uint8 = 0xc2
+	Mtrue     uint8 = 0xc3
+	Mbin8     uint8 = 0xc4
+	Mbin16    uint8 = 0xc5
+	Mbin32    uint8 = 0xc6
+	Mext8     uint8 = 0xc7
+	Mext16    uint8 = 0xc8
+	Mext32    uint8 = 0xc9
+	Mfloat32  uint8 = 0xca
+	Mfloat64  uint8 = 0xcb
+	Muint8    uint8 = 0xcc
+	Muint16   uint8 = 0xcd
+	Muint32   uint8 = 0xce
+	Muint64   uint8 = 0xcf
+	Mint8     uint8 = 0xd0
+	Mint16    uint8 = 0xd1
+	Mint32    uint8 = 0xd2
+	Mint64    uint8 = 0xd3
+	Mfixext1  uint8 = 0xd4
+	Mfixext2  uint8 = 0xd5
+	Mfixext4  uint8 = 0xd6
+	Mfixext8  uint8 = 0xd7
+	Mfixext16 uint8 = 0xd8
+	Mstr8     uint8 = 0xd9
+	Mstr16    uint8 = 0xda
+	Mstr32    uint8 = 0xdb
+	Marray16  uint8 = 0xdc
+	Marray32  uint8 = 0xdd
+	Mmap16    uint8 = 0xde
+	Mmap32    uint8 = 0xdf
 )
 
 var (
@@ -113,17 +113,17 @@ func InitIMarshallerBytes(msgSize int) []byte {
 func EncodeHeader(b []byte, pos int, size int) ([]byte, int) {
 
 	if size <= math.MaxUint8 {
-		b[pos] = muint8
+		b[pos] = Muint8
 		pos += 1
 		b[pos] = uint8(size)
 		pos += 1
 	} else if size <= math.MaxUint16 {
-		b[pos] = muint16
+		b[pos] = Muint16
 		pos += 1
 		SetUInt16(b, pos, uint16(size))
 		pos += 2
 	} else if size <= math.MaxUint32 {
-		b[pos] = muint32
+		b[pos] = Muint32
 		pos += 1
 		SetUInt32(b, pos, uint32(size))
 		pos += 4
@@ -137,19 +137,25 @@ func EncodeHeader(b []byte, pos int, size int) ([]byte, int) {
 
 func DecodeHeader(b []byte) ([]byte, int, error) {
 	lead := b[0]
+	sz := 0
 	switch lead {
-	case muint8:
-		return b[2:], int(b[1]), nil
-	case muint16:
-		sz := GetUInt16(b, 1)
-		return b[3:], int(sz), nil
-	case muint32:
-		sz := GetUInt32(b, 1)
-		return b[5:], int(sz), nil
+	case Muint8:
+		sz = int(b[1])
+		b = b[2:]
+	case Muint16:
+		sz = int(GetUInt16(b, 1))
+		b = b[3:]
+	case Muint32:
+		sz = int(GetUInt32(b, 1))
+		b = b[5:]
 	default:
 		return b, 0, fmt.Errorf("unknown lead: %x", lead)
 	}
 
+	if len(b) < sz {
+		return nil, 0, fmt.Errorf("msg is incompleted, should be len: %d, get: %d", sz, len(b))
+	}
+	return b, sz, nil
 }
 
 // InitHeader create a header based on msg raw size
@@ -161,20 +167,20 @@ func InitHeader(msgSizeRaw int) []byte {
 // AppendHeader append the header to a given byte array
 func AppendHeader(b []byte, size int) []byte {
 	if size <= math.MaxUint8 {
-		b = append(b, muint8)
+		b = append(b, Muint8)
 		b = append(b, uint8(size))
 	} else if size <= math.MaxUint16 {
 		u16 := make([]byte, 2)
 		SetUInt16(u16, 0, uint16(size))
 
-		b = append(b, muint16)
+		b = append(b, Muint16)
 		b = append(b, u16...)
 
 	} else if size <= math.MaxUint32 {
 		u32 := make([]byte, 4)
 		SetUInt32(u32, 0, uint32(size))
 
-		b = append(b, muint32)
+		b = append(b, Muint32)
 		b = append(b, u32...)
 	} else {
 		// size should not be larger than 2^32-1

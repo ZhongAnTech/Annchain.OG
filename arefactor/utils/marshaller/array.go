@@ -22,7 +22,7 @@ func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
 	pos := 0
 
 	// set lead and header
-	b[0] = mfixarray
+	b[0] = Mfixarray
 	pos += 1
 	copy(b[pos:len(header)+pos], header)
 	pos += len(header)
@@ -48,7 +48,7 @@ func UnMarshalIMarshallerArrayHeader(b []byte) ([]byte, int, error) {
 	}
 
 	lead := b[0]
-	if lead != mfixarray {
+	if lead != Mfixarray {
 		return b, 0, fmt.Errorf("byte lead is not mfixarray, get: %x", lead)
 	}
 

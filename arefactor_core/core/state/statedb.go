@@ -361,15 +361,15 @@ func (sd *StateDB) GetCodeSize(addr common.Address) int {
 func (sd *StateDB) GetState(addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
-		return emptyStateHash
+		return &emptyStateHash
 	}
 	return stobj.GetState(sd.db, key)
 }
 
-func (sd *StateDB) GetCommittedState(addr common.Address, key common.Hash) common.Hash {
+func (sd *StateDB) GetCommittedState(addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
 	stobj := sd.getStateObject(addr)
 	if stobj == nil {
-		return emptyStateHash
+		return &emptyStateHash
 	}
 	return stobj.GetCommittedState(sd.db, key)
 }

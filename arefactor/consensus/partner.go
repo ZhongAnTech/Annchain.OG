@@ -3,6 +3,7 @@ package consensus
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/latifrons/soccerdash"
@@ -24,15 +25,15 @@ type Partner struct {
 	Logger   *logrus.Logger
 	Reporter *soccerdash.Reporter
 
-	ProposalContextProvider  consensus_interface.ProposalContextProvider
-	ProposalGenerator        consensus_interface.ProposalGenerator
-	ProposalVerifier         consensus_interface.ProposalVerifier
-	ProposalExecutor         consensus_interface.ProposalExecutor
-	CommitteeProvider        consensus_interface.CommitteeProvider
-	Signer                   consensus_interface.Signer
-	ConsensusAccountProvider consensus_interface.AccountHolder
-	Hasher                   consensus_interface.Hasher
-	Ledger                   consensus_interface.Ledger
+	ProposalContextProvider consensus_interface.ProposalContextProvider
+	ProposalGenerator       consensus_interface.ProposalGenerator
+	ProposalVerifier        consensus_interface.ProposalVerifier
+	ProposalExecutor        consensus_interface.ProposalExecutor
+	CommitteeProvider       consensus_interface.CommitteeProvider
+	Signer                  consensus_interface.Signer
+	AccountProvider         og_interface.LedgerAccountHolder
+	Hasher                  consensus_interface.Hasher
+	Ledger                  consensus_interface.Ledger
 
 	pendingQCs map[string]consensus_interface.SignatureCollector // collected votes per block indexed by their LedgerInfo hash
 
@@ -61,7 +62,7 @@ func (n *Partner) InitDefault() {
 		CurrentRound:      0,
 		Safety:            n.safety,
 		Signer:            n.Signer,
-		AccountProvider:   n.ConsensusAccountProvider,
+		AccountProvider:   n.AccountProvider,
 		Ledger:            n.Ledger,
 		CommitteeProvider: n.CommitteeProvider,
 		Partner:           n,
@@ -319,11 +320,11 @@ func (n *Partner) ensureQCCollector(commitInfoHash string) consensus_interface.S
 }
 
 func (n *Partner) sign(msg Signable) (signature []byte, err error) {
-	privateKey, err := n.ConsensusAccountProvider.ProvidePrivateKey()
+	account, err := n.AccountProvider.ProvideAccount()
 	if err != nil {
 		logrus.WithError(err).Warn("account provider cannot provide private key")
 		return
 	}
-	signature = n.Signer.Sign(msg.SignatureTarget(), privateKey)
+	signature = n.Signer.Sign(msg.SignatureTarget(), account.PrivateKey)
 	return
 }

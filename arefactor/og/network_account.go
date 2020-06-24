@@ -3,6 +3,7 @@ package og
 import (
 	"encoding/json"
 	"github.com/annchain/OG/arefactor/common/hexutil"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
@@ -26,7 +27,7 @@ type TransportAccountLocalStorage struct {
 }
 
 type LocalTransportAccountHolder struct {
-	PrivateGenerator   PrivateGenerator
+	PrivateGenerator   og_interface.PrivateGenerator
 	NetworkIdConverter NetworkIdConverter
 	BackFilePath       string
 	CryptoType         transport_interface.CryptoType

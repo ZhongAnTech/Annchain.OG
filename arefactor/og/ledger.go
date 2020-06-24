@@ -64,7 +64,6 @@ type IntArrayLedger struct {
 }
 
 func (d *IntArrayLedger) Speculate(prevBlockId string, blockId string, cmds string) (executeStateId string) {
-	a = 1
 	panic("implement me")
 }
 

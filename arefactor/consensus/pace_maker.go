@@ -3,6 +3,7 @@ package consensus
 import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/latifrons/soccerdash"
@@ -25,7 +26,7 @@ type PaceMaker struct {
 	Safety          *Safety
 	Partner         *Partner
 	Signer          consensus_interface.Signer
-	AccountProvider LedgerAccountHolder
+	AccountProvider og_interface.LedgerAccountHolder
 	Ledger          consensus_interface.Ledger
 
 	CommitteeProvider consensus_interface.CommitteeProvider

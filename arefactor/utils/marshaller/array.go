@@ -14,7 +14,6 @@ func MarshalIntArray() {
 }
 
 func MarshalIMarshallerArray(arr []IMarshaller) ([]byte, error) {
-
 	// init size and header
 	size, header := CalIMarshallerArrSizeAndHeader(arr)
 

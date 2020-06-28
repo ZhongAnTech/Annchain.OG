@@ -21,6 +21,10 @@ func ReadUint64Bytes(b []byte) (u uint64, o []byte, err error) {
 	return msgp.ReadUint64Bytes(b)
 }
 
+/**
+BigInteger
+ */
+
 func AppendBigInt(b []byte, bi *big.Int) []byte {
 	return AppendBytes(b, bi.Bytes())
 }
@@ -32,6 +36,14 @@ func ReadBigInt(b []byte) (bi *big.Int, o []byte, err error) {
 	}
 	return big.NewInt(0).SetBytes(bts), b, nil
 }
+
+func CalBigIntSize(bi *big.Int) int {
+	return CalIMarshallerSize(len(bi.Bytes()))
+}
+
+/**
+Getters and Readers
+ */
 
 func GetUInt16(b []byte, pos int) uint16 {
 	return uint16(b[pos]) | uint16(b[pos+1])<<8

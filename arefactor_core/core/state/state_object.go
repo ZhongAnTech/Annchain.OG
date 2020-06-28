@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
+	"math/big"
 
 	"github.com/annchain/OG/arefactor/common"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
@@ -334,35 +335,35 @@ func (s *StateObject) Decode(b []byte, db *StateDB) error {
 type BalanceSet map[int32]*math.BigInt
 
 func NewBalanceSet() BalanceSet {
-	return BalanceSet(make(map[int32]*math.BigInt))
+	return make(map[int32]*math.BigInt)
 }
 
-func (b *BalanceSet) PreAdd(tokenID int32, increment *math.BigInt) *math.BigInt {
-	bi := (*b)[tokenID]
+func (bs *BalanceSet) PreAdd(tokenID int32, increment *math.BigInt) *math.BigInt {
+	bi := (*bs)[tokenID]
 	if bi == nil {
 		bi = math.NewBigInt(0)
 	}
 	return bi.Add(increment)
 }
 
-func (b *BalanceSet) PreSub(tokenID int32, decrement *math.BigInt) *math.BigInt {
-	bi := (*b)[tokenID]
+func (bs *BalanceSet) PreSub(tokenID int32, decrement *math.BigInt) *math.BigInt {
+	bi := (*bs)[tokenID]
 	if bi == nil {
 		return math.NewBigInt(0)
 	}
 	return bi.Sub(decrement)
 }
 
-func (b *BalanceSet) Copy() BalanceSet {
+func (bs *BalanceSet) Copy() BalanceSet {
 	bs := NewBalanceSet()
-	for k, v := range *b {
+	for k, v := range *bs {
 		bs[k] = v
 	}
 	return bs
 }
 
-func (b *BalanceSet) IsEmpty() bool {
-	for _, v := range *b {
+func (bs *BalanceSet) IsEmpty() bool {
+	for _, v := range *bs {
 		if v.GetInt64() != int64(0) {
 			return false
 		}
@@ -370,58 +371,60 @@ func (b *BalanceSet) IsEmpty() bool {
 	return true
 }
 
-// TODO rewrite the marshal part, to meet marshaller requirements
+/**
+marshaller part
+ */
 
-// MarshalMsg - For every [key, value] pair, marshal it in [size (int32) + key (int32) + bigint.bytes]
-func (b *BalanceSet) MarshalMsg(bts []byte) (o []byte, err error) {
+func (bs *BalanceSet) MarshalMsg() (b []byte, err error) {
+	b = make([]byte, marshaller.HeaderSize)
 
-	msgpSize := b.Msgsize()
-	o = msgp.Require(bts, msgpSize)
-
-	// add total size
-	o = append(o, marshaller.Int32ToBytes(int32(0))...)
-
-	for k, v := range *b {
-		o = append(o, marshaller.Int32ToBytes(k)...)
-
-		o, err = v.MarshalMsg(o)
-		//fmt.Println(fmt.Sprintf("cur o: %x", o))
-		if err != nil {
-			return
-		}
+	for k, v := range *bs {
+		// marshal key
+		b = marshaller.AppendInt32(b, k)
+		// marshal value
+		b = marshaller.AppendBigInt(b, v.Value)
 	}
-	size := len(o) - len(bts)
-	marshaller.SetInt32(o, len(bts), int32(size))
 
-	return o, nil
+	b = marshaller.FillHeaderDataNum(b, len(*bs))
+
+	return b, nil
 }
 
-func (b *BalanceSet) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	size := marshaller.GetInt32(bts, 0)
-	bsBytes := bts[4:size]
+func (bs *BalanceSet) UnmarshalMsg(bts []byte) (b []byte, err error) {
 
-	for len(bsBytes) > 0 {
-		key := marshaller.GetInt32(bsBytes, 0)
-		bsBytes = bsBytes[4:]
-
-		value := math.BigInt{}
-		bsBytes, err = value.UnmarshalMsg(bsBytes)
-		if err != nil {
-			return bsBytes, err
-		}
-		(*b)[key] = &value
+	b, mapSize, err := marshaller.DecodeHeader(bts)
+	if err != nil {
+		return nil, err
 	}
 
-	return bts[size:], nil
+	bsRaw := BalanceSet(make(map[int32]*math.BigInt))
+	var k int32
+	var v *big.Int
+	for i := 0; i < mapSize; i++ {
+		k, b, err = marshaller.ReadInt32Bytes(b)
+		if err != nil {
+			return nil, err
+		}
+		v, b, err = marshaller.ReadBigInt(b)
+		if err != nil {
+			return nil, err
+		}
+
+		bsRaw[k] = math.NewBigIntFromBigInt(v)
+	}
+
+	bs = &bsRaw
+
+	return b, nil
 }
 
-// Msgsize - BalanceSet size = size (4 bytes for int32) + every key pair size
-func (b *BalanceSet) MsgSize() int {
-	l := 4
-	for _, v := range *b {
-		l += 4 + v.Msgsize()
+func (bs *BalanceSet) MsgSize() int {
+	sz := 0
+	for _, v := range *bs {
+		sz += marshaller.Int32Size + marshaller.CalBigIntSize(v.Value)
 	}
-	return l
+
+	return sz
 }
 
 /*

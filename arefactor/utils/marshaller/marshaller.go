@@ -190,12 +190,22 @@ func AppendHeader(b []byte, size int) []byte {
 	return b
 }
 
-// FillHeaderData fills the header data into a byte array
+// FillHeaderData fills the header data with body length
 func FillHeaderData(b []byte) []byte {
 	header := InitHeader(len(b) - HeaderSize)
+	return fillHeader(b, header)
+}
+
+// FillHeaderData fills the header data with specific size
+func FillHeaderDataNum(b []byte, sz int) []byte {
+	header := InitHeader(sz - HeaderSize)
+	return fillHeader(b, header)
+}
+
+// fillHeader fills the header data into a byte array
+func fillHeader(b, header []byte,  ) []byte {
 	b = b[HeaderSize-len(header):]
 	copy(b[0:len(header)], header)
-
 	return b
 }
 

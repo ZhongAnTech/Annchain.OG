@@ -16,7 +16,6 @@ package types
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
-	"math/big"
 	"math/rand"
 	"strings"
 	"time"
@@ -213,11 +212,11 @@ func (t *Tx) UnMarshalMsg(b []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	valueB, b, err := marshaller.ReadBytes(b)
+	valueB, b, err := marshaller.ReadBigInt(b)
 	if err != nil {
 		return nil, err
 	}
-	t.Value = math.NewBigIntFromBigInt(big.NewInt(0).SetBytes(valueB))
+	t.Value = math.NewBigIntFromBigInt(valueB)
 
 	t.From, b, err = og_types.UnMarshalAddress(b)
 	if err != nil {

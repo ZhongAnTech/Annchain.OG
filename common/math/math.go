@@ -33,3 +33,11 @@ func MaxUint64(x, y uint64) uint64 {
 	}
 	return y
 }
+
+func Sum64(numbers []int64) int64 {
+	sum := int64(0)
+	for _, v := range numbers {
+		sum += v
+	}
+	return sum
+}

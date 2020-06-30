@@ -43,6 +43,10 @@ type Og struct {
 
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 
+	enableReporter bool
+	reporterCh chan struct{}
+	//reporter *soccerdash.Reporter
+
 	NetworkId uint64
 	quit      chan bool
 }
@@ -113,21 +117,19 @@ func NewOg(config OGConfig) (*Og, error) {
 	}
 	og.TxPool = core.NewTxPool(txpoolconfig, og.Dag)
 
-	// // initialize
-	// if !og.Dag.LoadLastState() {
-	// 	logrus.Trace("no existing data found in db")
-	// 	// TODO use config to load the genesis
-	// 	seq, balance := core.DefaultGenesis(config.CryptoType)
-	// 	if err := og.Dag.Init(seq, balance); err != nil {
-	// 		return nil, err
-	// 	}
-	// }
 	seq := og.Dag.LatestSequencer()
 	if seq == nil {
 		return nil, fmt.Errorf("dag's latest sequencer is not initialized")
 	}
 	og.TxPool.Init(seq)
-	// TODO account manager and protocol manager
+
+	// reporter
+	if viper.GetBool("report.enable") {
+		og.enableReporter = true
+		og.reporterCh = make(chan struct{})
+	} else {
+		og.enableReporter = false
+	}
 
 	return og, nil
 }
@@ -198,18 +200,7 @@ func (og *Og) GetSequencerByHash(hash common.Hash) *tx_types.Sequencer {
 func (og *Og) BroadcastLatestSequencer() {
 	var notSend bool
 	var mu sync.RWMutex
-	// var enableReport = viper.GetBool("report.enable")
-	// var reportKey string
-	// if v, ok := os.LookupEnv("HOSTNAME"); ok {
-	// 	reportKey = v
-	// } else {
-	// 	reportKey = "node_" + fmt.Sprintf("%d", viper.GetInt("debug.node_id"))
-	// }
-	// r := &soccerdash.Reporter{
-	// 	Id:            reportKey,
-	// 	TargetAddress: viper.GetString("report.address"),
-	// }
-	// var reportTime = time.Now()
+
 	for {
 		select {
 		case <-og.NewLatestSequencerCh:
@@ -234,17 +225,12 @@ func (og *Og) BroadcastLatestSequencer() {
 				og.Manager.BroadcastMessage(p2p_message.MessageTypeSequencerHeader, &msg)
 			}
 			goroutine.New(function)
-			// if enableReport {
-			// 	re := func() {
-			// 		r.Report("height", seq.GetHeight(), false)
-			// 		r.Report("hash", seq.GetTxHash().Hex(), false)
-			// 		r.Report("from", seq.GetSender().Hex(), false)
-			// 		r.Report("nonce", seq.GetNonce(), false)
-			// 		r.Report("root", seq.StateRoot.Hex(), false)
-			// 	}
-			// 	goroutine.New(re)
-			// 	reportTime = time.Now()
-			// }
+
+			// reporter
+			goroutine.New(func (){
+				og.reporterCh <- struct{}{}
+			})
+
 		case <-time.After(200 * time.Millisecond):
 			if notSend && !og.Manager.Hub.Downloader.Synchronising() {
 				mu.Lock()
@@ -261,14 +247,6 @@ func (og *Og) BroadcastLatestSequencer() {
 				}
 				goroutine.New(function)
 			}
-			// if enableReport && time.Now().Sub(reportTime) > time.Second*15 {
-			// 	re := func() {
-			// 		r.Report("msg", "synchronising or stopping?", false)
-			// 		r.Report("height", og.Dag.LatestSequencer().Height, false)
-			// 	}
-			// 	goroutine.New(re)
-			// 	reportTime = time.Now()
-			// }
 		case <-og.quit:
 			logrus.Info("hub BroadcastLatestSequencer received quit message. Quitting...")
 			return
@@ -315,7 +293,7 @@ func (og *Og) PushNodeData() {
 	goroutine.New(func() {
 		for {
 			select {
-			case <-og.NewLatestSequencerCh:
+			case <-og.reporterCh:
 				r.Report("LatestSequencer", og.Dag.LatestSequencer(), false)
 
 			case <-og.quit:

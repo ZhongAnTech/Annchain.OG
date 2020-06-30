@@ -227,9 +227,11 @@ func (og *Og) BroadcastLatestSequencer() {
 			goroutine.New(function)
 
 			// reporter
-			goroutine.New(func (){
-				og.reporterCh <- struct{}{}
-			})
+			if og.enableReporter {
+				goroutine.New(func (){
+					og.reporterCh <- struct{}{}
+				})
+			}
 
 		case <-time.After(200 * time.Millisecond):
 			if notSend && !og.Manager.Hub.Downloader.Synchronising() {
@@ -290,17 +292,19 @@ func (og *Og) PushNodeData() {
 		r.Report("NodeName", og.Manager.Hub.NodeInfo().Name, false)
 	})
 
-	goroutine.New(func() {
-		for {
-			select {
-			case <-og.reporterCh:
-				r.Report("LatestSequencer", og.Dag.LatestSequencer(), false)
+	if og.enableReporter {
+		goroutine.New(func() {
+			for {
+				select {
+				case <-og.reporterCh:
+					r.Report("LatestSequencer", og.Dag.LatestSequencer(), false)
 
-			case <-og.quit:
-				return
+				case <-og.quit:
+					return
+				}
 			}
-		}
-	})
+		})
+	}
 
 	s.StartBlocking()
 

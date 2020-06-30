@@ -20,6 +20,7 @@ import (
 	"github.com/annchain/OG/common/goroutine"
 	"github.com/annchain/OG/status"
 	"github.com/annchain/OG/types/tx_types"
+	"github.com/syndtr/goleveldb/leveldb"
 	"sort"
 	"strconv"
 	"time"
@@ -1137,6 +1138,20 @@ func (dag *Dag) Revert(snapShotID int, txs types.Txis) {
 			log.WithField("tx ", txi).WithError(err).Error("delete tx error")
 		}
 	}
+}
+
+func (dag *Dag) GetLedgerSize() int64 {
+	if v, ok := dag.db.(*ogdb.LevelDB); ok {
+		stats := &leveldb.DBStats{}
+		error := v.LDB().Stats(stats)
+		if error != nil {
+			return -1
+		}
+		// sum up stats
+		ledgerSize := math.Sum64(stats.LevelSizes)
+		return ledgerSize
+	}
+	return 0
 }
 
 type txcached struct {

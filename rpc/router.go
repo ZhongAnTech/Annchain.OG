@@ -65,6 +65,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("new_transaction", rpc.NewTransaction)
 	router.POST("new_transactions", rpc.NewTransactions)
 	router.POST("new_account", rpc.NewAccount)
+	router.POST("new_archive", rpc.NewArchive)
 	router.GET("auto_tx", rpc.AutoTx)
 
 	// query API
@@ -85,7 +86,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("performance", rpc.Performance)
 	router.GET("consensus", rpc.ConStatus)
 	router.GET("confirm_status", rpc.ConfirmStatus)
-	router.POST("new_archive", rpc.NewArchive)
+
 	router.GET("debug/bft_status", rpc.BftStatus)
 	router.GET("debug/pool_hashes", rpc.GetPoolHashes)
 	router.POST("token/second_offering", rpc.NewSecondOffering) //NewSecondOffering
@@ -94,6 +95,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	router.GET("token/latestId", rpc.LatestTokenId)
 	router.GET("token/list", rpc.Tokens)
 	router.GET("token", rpc.GetToken)
+	router.GET("ledger_size", rpc.GetLedgerSize)
 
 	return router
 
@@ -104,48 +106,49 @@ func (rpc *RpcController) writeListOfEndpoints(c *gin.Context) {
 
 	routerMap := map[string]string{
 		// info API
-		"status":            "",
-		"net_info":          "",
-		"peers_info":        "",
-		"validators":        "",
-		"sequencer":         "",
-		"/v1/sequencer":     "",
-		"og_peers_info":     "",
-		"genesis":           "",
-		"sync_status":       "",
-		"performance":       "",
-		"consensus":         "",
-		"monitor":           "",
-		"tps":               "",
-		"net_io":            "",
-		"confirm_status":    "",
-		"debug/pool_hashes": "",
-		"debug/bft_status":  "",
+		"status":             "",
+		"net_info":           "",
+		"peers_info":         "",
+		"og_peers_info":      "",
+		"transaction":        "hash",
+		"transaction_size":   "hash",
+		"confirm":            "hash",
+		"transactions":       "height,address",
+		"transaction_hashes": "height",
+		"validators":         "",
+		"sequencer":          "",
+		"/v1/sequencer":      "",
+		"genesis":            "",
 
-		// broadcast API
 		"new_transaction": "tx",
-		"auto_tx":         "interval_us",
-		"new_archive":     "tx",
+		//"new_transaction":  "POSTBODY",
+		"new_transactions": "",
+		"new_account":      "POSTBODY",
+		"new_archive":      "tx",
+		"auto_tx":          "interval_us",
 
-		// query API
 		"query":            "query",
 		"query_nonce":      "address",
 		"query_balance":    "address",
 		"query_share":      "pubkey",
 		"contract_payload": "payload, abistr",
+		"query_receipt":    "hash",
+		"query_contract":   "address,data",
+		"net_io":           "",
+		"debug":            "f",
+		"tps":              "",
+		"monitor":          "",
+		"sync_status":      "",
+		"performance":      "",
+		"consensus":        "",
+		"confirm_status":   "",
 
-		"query_receipt":      "hash",
-		"transaction":        "hash",
-		"transactions":       "height,address",
-		"transaction_hashes": "height",
-		"confirm":            "hash",
-		"query_contract":     "address,data",
-		"token/list":         "",
-		"token":              "id",
-		"new_transactions":   "",
-
-		// debug
-		"debug": "f",
+		"debug/bft_status":  "",
+		"debug/pool_hashes": "",
+		"token/latestId":    "",
+		"token/list":        "",
+		"token":             "id",
+		"ledger_size":       "",
 	}
 	noArgNames := []string{}
 	argNames := []string{}

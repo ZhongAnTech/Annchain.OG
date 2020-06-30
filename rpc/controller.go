@@ -600,6 +600,11 @@ func (r *RpcController) QueryContract(c *gin.Context) {
 	return
 }
 
+func (r *RpcController) GetLedgerSize(c *gin.Context) {
+	ledgerSize := r.Og.Dag.GetLedgerSize()
+	Response(c, http.StatusOK, nil, ledgerSize)
+}
+
 func checkError(err error, c *gin.Context, status int, message string) bool {
 	if err != nil {
 		c.JSON(status, gin.H{

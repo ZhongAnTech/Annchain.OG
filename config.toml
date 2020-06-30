@@ -86,7 +86,7 @@ title = "OG configuration"
   port = 8003
 
 [report]
-  address = "127.0.0.1:8080"
+  address = "172.28.152.102:32033"
   enable = true
 
 [rpc]

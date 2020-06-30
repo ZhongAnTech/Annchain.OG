@@ -83,6 +83,10 @@ mode="normal"
 [profiling]
   port = 8003
 
+[report]
+  address = "172.28.152.102:32033"
+  enable = true
+
 [rpc]
   enabled = true
   port = 8000

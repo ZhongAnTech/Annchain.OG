@@ -33,7 +33,7 @@ func (t *TestIMarshaller) MarshalMsg() ([]byte, error) {
 	return b, nil
 }
 
-func (t *TestIMarshaller) UnMarshalMsg(b []byte) ([]byte, error) {
+func (t *TestIMarshaller) UnmarshalMsg(b []byte) ([]byte, error) {
 	b, size, err := marshaller.DecodeHeader(b)
 	if err != nil {
 		return nil, err

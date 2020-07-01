@@ -81,77 +81,77 @@ func (z *AccountData) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
-func (z *AccountData) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// array header, size 5
-	o = append(o, 0x95)
-	o, err = z.Address.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "Address")
-		return
-	}
-	o, err = z.Balances.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "Balances")
-		return
-	}
-	o = msgp.AppendUint64(o, z.Nonce)
-	o, err = z.Root.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "Root")
-		return
-	}
-	o = msgp.AppendBytes(o, z.CodeHash)
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *AccountData) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	if zb0001 != 5 {
-		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
-		return
-	}
-	bts, err = z.Address.UnmarshalMsg(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Address")
-		return
-	}
-	bts, err = z.Balances.UnmarshalMsg(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Balances")
-		return
-	}
-	z.Nonce, bts, err = msgp.ReadUint64Bytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Nonce")
-		return
-	}
-	bts, err = z.Root.UnmarshalMsg(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "Root")
-		return
-	}
-	z.CodeHash, bts, err = msgp.ReadBytesBytes(bts, z.CodeHash)
-	if err != nil {
-		err = msgp.WrapError(err, "CodeHash")
-		return
-	}
-	o = bts
-	return
-}
-
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *AccountData) Msgsize() (s int) {
-	s = 1 + z.Address.Msgsize() + z.Balances.Msgsize() + msgp.Uint64Size + z.Root.Msgsize() + msgp.BytesPrefixSize + len(z.CodeHash)
-	return
-}
+//// MarshalMsg implements msgp.Marshaler
+//func (z *AccountData) MarshalMsg(b []byte) (o []byte, err error) {
+//	o = msgp.Require(b, z.Msgsize())
+//	// array header, size 5
+//	o = append(o, 0x95)
+//	o, err = z.Address.MarshalMsg(o)
+//	if err != nil {
+//		err = msgp.WrapError(err, "Address")
+//		return
+//	}
+//	o, err = z.Balances.MarshalMsg(o)
+//	if err != nil {
+//		err = msgp.WrapError(err, "Balances")
+//		return
+//	}
+//	o = msgp.AppendUint64(o, z.Nonce)
+//	o, err = z.Root.MarshalMsg(o)
+//	if err != nil {
+//		err = msgp.WrapError(err, "Root")
+//		return
+//	}
+//	o = msgp.AppendBytes(o, z.CodeHash)
+//	return
+//}
+//
+//// UnmarshalMsg implements msgp.Unmarshaler
+//func (z *AccountData) UnmarshalMsg(bts []byte) (o []byte, err error) {
+//	var zb0001 uint32
+//	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+//	if err != nil {
+//		err = msgp.WrapError(err)
+//		return
+//	}
+//	if zb0001 != 5 {
+//		err = msgp.ArrayError{Wanted: 5, Got: zb0001}
+//		return
+//	}
+//	bts, err = z.Address.UnmarshalMsg(bts)
+//	if err != nil {
+//		err = msgp.WrapError(err, "Address")
+//		return
+//	}
+//	bts, err = z.Balances.UnmarshalMsg(bts)
+//	if err != nil {
+//		err = msgp.WrapError(err, "Balances")
+//		return
+//	}
+//	z.Nonce, bts, err = msgp.ReadUint64Bytes(bts)
+//	if err != nil {
+//		err = msgp.WrapError(err, "Nonce")
+//		return
+//	}
+//	bts, err = z.Root.UnmarshalMsg(bts)
+//	if err != nil {
+//		err = msgp.WrapError(err, "Root")
+//		return
+//	}
+//	z.CodeHash, bts, err = msgp.ReadBytesBytes(bts, z.CodeHash)
+//	if err != nil {
+//		err = msgp.WrapError(err, "CodeHash")
+//		return
+//	}
+//	o = bts
+//	return
+//}
+//
+//// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+//func (z *AccountData) Msgsize() (s int) {
+//	s = 1 + z.Address.Msgsize() + z.Balances.Msgsize() + msgp.Uint64Size + z.Root.Msgsize() + msgp.BytesPrefixSize + len(z.CodeHash)
+//	return
+//}
 
 // DecodeMsg implements msgp.Decodable
 func (z *StateObject) DecodeMsg(dc *msgp.Reader) (err error) {

@@ -59,7 +59,7 @@ var (
 )
 
 // IMarshaller should meet these requirements:
-// 1. MarshalMsg and UnMarshalMsg should be opposite to each other. UnMarshalMsg should
+// 1. MarshalMsg and UnmarshalMsg should be opposite to each other. UnmarshalMsg should
 //    be able to restore the origin struct by the byte array provided by MarshalMsg.
 // 2. MarshalMsg will create a byte array as a pair structure like [header - body].
 //    The header part declares the size of body, the body part includes all the specific
@@ -71,7 +71,7 @@ var (
 // 3. MsgSize returns the cap size of body. It should be no less than the true body size.
 type IMarshaller interface {
 	MarshalMsg() ([]byte, error)
-	UnMarshalMsg([]byte) ([]byte, error)
+	UnmarshalMsg([]byte) ([]byte, error)
 	MsgSize() int
 }
 
@@ -198,12 +198,12 @@ func FillHeaderData(b []byte) []byte {
 
 // FillHeaderData fills the header data with specific size
 func FillHeaderDataNum(b []byte, sz int) []byte {
-	header := InitHeader(sz - HeaderSize)
+	header := InitHeader(sz)
 	return fillHeader(b, header)
 }
 
 // fillHeader fills the header data into a byte array
-func fillHeader(b, header []byte,  ) []byte {
+func fillHeader(b, header []byte) []byte {
 	b = b[HeaderSize-len(header):]
 	copy(b[0:len(header)], header)
 	return b

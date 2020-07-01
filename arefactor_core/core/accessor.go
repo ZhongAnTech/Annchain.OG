@@ -203,7 +203,7 @@ func (da *Accessor) ReadGenesis() *types.Sequencer {
 
 // WriteGenesis writes geneis into db.
 func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
-	data, err := genesis.MarshalMsg(nil)
+	data, err := genesis.MarshalMsg()
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 
 // WriteGenesis writes latest sequencer into db.
 func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *types.Sequencer) error {
-	data, err := seq.MarshalMsg(nil)
+	data, err := seq.MarshalMsg()
 	if err != nil {
 		return err
 	}
@@ -262,7 +262,7 @@ func (da *Accessor) ReadTransaction(hash og_types.Hash) types.Txi {
 	data = data[prefixLen:]
 	if bytes.Equal(prefix, contentPrefixTransaction) {
 		tx := types.Tx{}
-		_, err := tx.UnMarshalMsg(data)
+		_, err := tx.UnmarshalMsg(data)
 		if err != nil {
 			log.WithError(err).Warn("unmarshal tx error")
 			return nil
@@ -545,7 +545,7 @@ func (da *Accessor) ReadSequencerByHeight(SeqHeight uint64) (*types.Sequencer, e
 
 // WriteSequencerByHeight stores the sequencer into db and indexed by its id.
 func (da *Accessor) WriteSequencerByHeight(putter *Putter, seq *types.Sequencer) error {
-	data, err := seq.MarshalMsg(nil)
+	data, err := seq.MarshalMsg()
 	if err != nil {
 		return err
 	}

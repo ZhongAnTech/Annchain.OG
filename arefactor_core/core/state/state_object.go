@@ -21,13 +21,11 @@ import (
 	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"math/big"
 
-	"github.com/annchain/OG/arefactor/common"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	//"github.com/annchain/OG/common/crypto"
 	crypto "github.com/annchain/OG/arefactor/ogcrypto"
 	"github.com/annchain/OG/common/math"
 	log "github.com/sirupsen/logrus"
-	"github.com/tinylib/msgp/msgp"
 )
 
 //go:generate msgp
@@ -313,11 +311,14 @@ func (s *StateObject) String() string {
 	return string(b)
 }
 
+/**
+marshalling part
+ */
+
 func (s *StateObject) Encode() ([]byte, error) {
-	return s.data.MarshalMsg(nil)
+	return s.data.MarshalMsg()
 }
 
-// TODO rewrite marshalling
 func (s *StateObject) Decode(b []byte, db *StateDB) error {
 	a := NewAccountData()
 	_, err := a.UnmarshalMsg(b)
@@ -331,7 +332,99 @@ func (s *StateObject) Decode(b []byte, db *StateDB) error {
 	return err
 }
 
-// BalanceSet
+func (a *AccountData) MarshalMsg() (b []byte, err error) {
+	b = make([]byte, marshaller.HeaderSize)
+
+	// (Address) Address
+	addrB, err := a.Address.MarshalMsg()
+	if err != nil {
+		return b, err
+	}
+	b = append(b, addrB...)
+
+	// (BalanceSet) Balances
+	blcB, err := a.Balances.MarshalMsg()
+	if err != nil {
+		return b, err
+	}
+	b = append(b, blcB...)
+
+	// (uint64) Nonce
+	b = marshaller.AppendUint64(b, a.Nonce)
+
+	// (Hash) Root
+	hashB, err := a.Root.MarshalMsg()
+	if err != nil {
+		return b, err
+	}
+	b = append(b, hashB...)
+
+	// ([]byte) CodeHash
+	b = marshaller.AppendBytes(b, a.CodeHash)
+
+	// Fill header
+	b = marshaller.FillHeaderData(b)
+
+	return b, nil
+}
+
+func (a *AccountData) UnmarshalMsg(b []byte) ([]byte, error) {
+	b, _, err := marshaller.DecodeHeader(b)
+	if err != nil {
+		return b, err
+	}
+
+	// Address
+	a.Address, b, err = ogTypes.UnmarshalAddress(b)
+	if err != nil {
+		return b, err
+	}
+
+	// BalanceSet
+	bs := &BalanceSet{}
+	b, err = bs.UnmarshalMsg(b)
+	if err != nil {
+		return b, err
+	}
+	a.Balances = *bs
+
+	// Nonce
+	a.Nonce, b, err = marshaller.ReadUint64Bytes(b)
+	if err != nil {
+		return b, err
+	}
+
+	// Hash Root
+	a.Root, b, err = ogTypes.UnmarshalHash(b)
+	if err != nil {
+		return b, err
+	}
+
+	// ([]byte) CodeHash
+	a.CodeHash, b, err = marshaller.ReadBytes(b)
+	if err != nil {
+		return b, err
+	}
+
+	return b, nil
+}
+
+func (a *AccountData) MsgSize() int {
+	// Address + Balances + Root + CodeHash
+	size := marshaller.CalIMarshallerSize(a.Address.MsgSize()) +
+		marshaller.CalIMarshallerSize(a.Balances.MsgSize()) +
+		marshaller.CalIMarshallerSize(a.Root.MsgSize()) +
+		marshaller.CalIMarshallerSize(len(a.CodeHash))
+	// Nonce
+	size += marshaller.Uint64Size
+
+	return size
+}
+
+/**
+BalanceSet
+ */
+
 type BalanceSet map[int32]*math.BigInt
 
 func NewBalanceSet() BalanceSet {
@@ -355,11 +448,11 @@ func (bs *BalanceSet) PreSub(tokenID int32, decrement *math.BigInt) *math.BigInt
 }
 
 func (bs *BalanceSet) Copy() BalanceSet {
-	bs := NewBalanceSet()
+	b := NewBalanceSet()
 	for k, v := range *bs {
-		bs[k] = v
+		b[k] = v
 	}
-	return bs
+	return b
 }
 
 func (bs *BalanceSet) IsEmpty() bool {

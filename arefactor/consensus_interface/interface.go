@@ -47,6 +47,7 @@ type ProposalExecutor interface {
 }
 
 type CommitteeProvider interface {
+	InitCommittee(peerIds []string, myIndex int)
 	GetSessionId() int
 	GetAllMemberPeedIds() []string
 	GetMyPeerId() string
@@ -55,6 +56,8 @@ type CommitteeProvider interface {
 	GetPeerIndex(id string) (index int, err error)
 	GetThreshold() int
 	AmILeader(round int) bool
+	AmIIn() bool
+	IsIn(id string) bool
 }
 type Signer interface {
 	Sign(msg []byte, privateKey crypto.PrivKey) Signature

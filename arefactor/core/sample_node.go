@@ -34,7 +34,6 @@ func (n *SampleNode) Setup() {
 		NetworkIdConverter: &og.OgNetworkIdConverter{},
 		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
 		CryptoType:         transport_interface.CryptoTypeSecp256k1,
-		account:            nil,
 	}
 
 	// low level transport (libp2p)

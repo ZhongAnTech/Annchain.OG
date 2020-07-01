@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/hexutil"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
-	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"testing"
@@ -19,7 +19,7 @@ func TestAccountGenerator_Generate(t *testing.T) {
 		},
 		AddressConverter: &OgAddressConverter{},
 		BackFilePath:     "",
-		CryptoType:       types.CryptoTypeSecp256k1,
+		CryptoType:       og_interface.CryptoTypeSecp256k1,
 		account:          nil,
 	}
 
@@ -62,7 +62,7 @@ func TestAccountGenerator_Generate(t *testing.T) {
 			PrivateGenerator: &DefaultPrivateGenerator{},
 			AddressConverter: &OgAddressConverter{},
 			BackFilePath:     fmt.Sprintf("D:\\tmp\\test\\dump_%d.json", method),
-			CryptoType:       types.CryptoTypeSecp256k1,
+			CryptoType:       og_interface.CryptoTypeSecp256k1,
 			account:          gotAccount,
 		}
 		err = l.Save()

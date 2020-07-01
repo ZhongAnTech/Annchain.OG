@@ -1,7 +1,6 @@
 package og_interface
 
 import (
-	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"io"
 )
@@ -41,14 +40,14 @@ type NewHeightDetectedEventSubscriber interface {
 }
 
 type LedgerAccountHolder interface {
-	ProvideAccount() (*types.OgLedgerAccount, error)
-	Generate(src io.Reader) (account *types.OgLedgerAccount, err error)
-	Load() (account *types.OgLedgerAccount, err error)
+	ProvideAccount() (*OgLedgerAccount, error)
+	Generate(src io.Reader) (account *OgLedgerAccount, err error)
+	Load() (account *OgLedgerAccount, err error)
 	Save() (err error)
 }
 
 type AddressConverter interface {
-	AddressFromAccount(account *types.OgLedgerAccount) (addr Address, err error)
+	AddressFromAccount(account *OgLedgerAccount) (addr Address, err error)
 }
 
 type PrivateGenerator interface {

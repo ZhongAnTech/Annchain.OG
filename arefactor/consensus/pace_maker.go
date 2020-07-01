@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
-	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
@@ -13,9 +12,9 @@ import (
 )
 
 type LedgerAccountHolder interface {
-	ProvideAccount() (*types.OgLedgerAccount, error)
-	Generate(src io.Reader) (account *types.OgLedgerAccount, err error)
-	Load() (account *types.OgLedgerAccount, err error)
+	ProvideAccount() (*og_interface.OgLedgerAccount, error)
+	Generate(src io.Reader) (account *og_interface.OgLedgerAccount, err error)
+	Load() (account *og_interface.OgLedgerAccount, err error)
 	Save() (err error)
 }
 

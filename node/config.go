@@ -125,6 +125,9 @@ func NewP2PServer(privKey *ecdsa.PrivateKey, isBootNode bool) *p2p.Server {
 	p2pConfig.TrustedNodes = parserNodes(trustNode)
 	nodeName := viper.GetString("p2p.node_name")
 	if nodeName == "" {
+		nodeName = GetHostName()
+	}
+	if nodeName == "" {
 		nodeName = "og"
 	}
 	p2pConfig.NodeName = nodeName
@@ -149,6 +152,17 @@ func NewP2PServer(privKey *ecdsa.PrivateKey, isBootNode bool) *p2p.Server {
 	}
 
 	return &p2p.Server{Config: p2pConfig}
+}
+
+func GetHostName() string {
+	// Kubernetes first
+	if v, ok := os.LookupEnv("HOSTNAME"); ok {
+		return v
+	}
+	if v, err := os.Hostname(); err == nil {
+		return v
+	}
+	return ""
 }
 
 func parserNodes(nodeString string) []*onode.Node {

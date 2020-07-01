@@ -35,6 +35,8 @@ import (
 	"github.com/latifrons/soccerdash"
 )
 
+var ReleaseVersion = "og/1.0.0"
+
 type Og struct {
 	Dag      *core.Dag
 	TxPool   *core.TxPool
@@ -44,7 +46,7 @@ type Og struct {
 	NewLatestSequencerCh chan bool //for broadcasting new latest sequencer to record height
 
 	enableReporter bool
-	reporterCh chan struct{}
+	reporterCh     chan struct{}
 	//reporter *soccerdash.Reporter
 
 	NetworkId uint64
@@ -228,7 +230,7 @@ func (og *Og) BroadcastLatestSequencer() {
 
 			// reporter
 			if og.enableReporter {
-				goroutine.New(func (){
+				goroutine.New(func() {
 					og.reporterCh <- struct{}{}
 				})
 			}
@@ -288,7 +290,7 @@ func (og *Og) PushNodeData() {
 	// })
 
 	s.Every(1).Minute().Do(func() {
-		r.Report("Version", viper.GetString("node.Version"), false)
+		r.Report("Version", ReleaseVersion, false)
 		r.Report("NodeName", og.Manager.Hub.NodeInfo().Name, false)
 	})
 

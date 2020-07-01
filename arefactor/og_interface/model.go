@@ -1,7 +1,6 @@
-package types
+package og_interface
 
 import (
-	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	cryptopb "github.com/libp2p/go-libp2p-core/crypto/pb"
 )
@@ -17,5 +16,21 @@ const CryptoTypeECDSA = CryptoType(cryptopb.KeyType_ECDSA)
 type OgLedgerAccount struct {
 	PublicKey  crypto.PubKey
 	PrivateKey crypto.PrivKey
-	Address    og_interface.Address
+	Address    Address
+}
+
+type OgTx struct {
+	Hash        Hash
+	ParentsHash []Hash
+	MineNonce   uint64
+	From        Address
+	To          Address
+	Value       string // bigint
+	TokenId     int32
+	PublicKey   []byte
+	Data        []byte
+	Signature   []byte
+}
+
+type OgSequencer struct {
 }

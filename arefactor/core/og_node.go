@@ -3,7 +3,7 @@ package core
 import (
 	"github.com/annchain/OG/arefactor/consensus"
 	"github.com/annchain/OG/arefactor/og"
-	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/OG/common/io"
@@ -58,7 +58,7 @@ func (n *OgNode) Setup() {
 		PrivateGenerator: privateGenerator,
 		AddressConverter: &og.OgAddressConverter{},
 		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "account.key")),
-		CryptoType:       types.CryptoTypeSecp256k1,
+		CryptoType:       og_interface.CryptoTypeSecp256k1,
 	}
 
 	// consensus. Current all peers are Partner

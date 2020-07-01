@@ -29,6 +29,6 @@ func UnmarshalHash(b []byte) (Hash, []byte, error) {
 		return nil, nil, fmt.Errorf("unknown Hash lead: %x", lead)
 	}
 
-	b, err := h.UnMarshalMsg(b)
+	b, err := h.UnmarshalMsg(b)
 	return h, b, err
 }

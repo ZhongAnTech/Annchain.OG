@@ -199,7 +199,7 @@ func (t *Tx) MarshalMsg() ([]byte, error) {
 	return b, nil
 }
 
-func (t *Tx) UnMarshalMsg(b []byte) ([]byte, error) {
+func (t *Tx) UnmarshalMsg(b []byte) ([]byte, error) {
 	var err error
 
 	b, _, err = marshaller.DecodeHeader(b)
@@ -218,12 +218,12 @@ func (t *Tx) UnMarshalMsg(b []byte) ([]byte, error) {
 	}
 	t.Value = math.NewBigIntFromBigInt(valueB)
 
-	t.From, b, err = og_types.UnMarshalAddress(b)
+	t.From, b, err = og_types.UnmarshalAddress(b)
 	if err != nil {
 		return nil, err
 	}
 
-	t.To, b, err = og_types.UnMarshalAddress(b)
+	t.To, b, err = og_types.UnmarshalAddress(b)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +234,7 @@ func (t *Tx) UnMarshalMsg(b []byte) ([]byte, error) {
 	}
 
 	t.TxBase = TxBase{}
-	b, err = t.TxBase.UnMarshalMsg(b)
+	b, err = t.TxBase.UnmarshalMsg(b)
 	if err != nil {
 		return nil, err
 	}

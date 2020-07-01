@@ -80,7 +80,7 @@ func (a *Hash32) MarshalMsg() ([]byte, error) {
 	return data, nil
 }
 
-func (a *Hash32) UnMarshalMsg(data []byte) ([]byte, error) {
+func (a *Hash32) UnmarshalMsg(data []byte) ([]byte, error) {
 	data, msgLen, err := marshaller.DecodeHeader(data)
 	if err != nil {
 		return data, fmt.Errorf("get marshaller header error: %v", err)

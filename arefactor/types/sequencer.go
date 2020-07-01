@@ -258,7 +258,7 @@ func (s *Sequencer) MarshalMsg() ([]byte, error) {
 
 }
 
-func (s *Sequencer) UnMarshalMsg(b []byte) ([]byte, error) {
+func (s *Sequencer) UnmarshalMsg(b []byte) ([]byte, error) {
 
 }
 

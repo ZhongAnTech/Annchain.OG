@@ -249,7 +249,7 @@ func (t *TxBase) MarshalMsg() ([]byte, error) {
 	return b, nil
 }
 
-func (t *TxBase) UnMarshalMsg(b []byte) ([]byte, error) {
+func (t *TxBase) UnmarshalMsg(b []byte) ([]byte, error) {
 	b, _, err := marshaller.DecodeHeader(b)
 	if err != nil {
 		return nil, err

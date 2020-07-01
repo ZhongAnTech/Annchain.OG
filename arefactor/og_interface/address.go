@@ -14,7 +14,7 @@ func MarshalAddress(addr Address) ([]byte, error) {
 	return addr.MarshalMsg()
 }
 
-func UnMarshalAddress(b []byte) (Address, []byte, error) {
+func UnmarshalAddress(b []byte) (Address, []byte, error) {
 	var addr Address
 
 	if len(b) == 0 {
@@ -29,6 +29,6 @@ func UnMarshalAddress(b []byte) (Address, []byte, error) {
 		return nil, nil, fmt.Errorf("unknown Address lead: %x", lead)
 	}
 
-	b, err := addr.UnMarshalMsg(b)
+	b, err := addr.UnmarshalMsg(b)
 	return addr, b, err
 }

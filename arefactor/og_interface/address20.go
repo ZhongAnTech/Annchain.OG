@@ -85,7 +85,7 @@ func (a *Address20) MarshalMsg() ([]byte, error) {
 	return data, nil
 }
 
-func (a *Address20) UnMarshalMsg(b []byte) ([]byte, error) {
+func (a *Address20) UnmarshalMsg(b []byte) ([]byte, error) {
 	b, msgLen, err := marshaller.DecodeHeader(b)
 	if err != nil {
 		return b, fmt.Errorf("get marshaller header error: %v", err)

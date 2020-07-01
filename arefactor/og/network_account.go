@@ -120,6 +120,7 @@ func (l *LocalTransportAccountHolder) Generate(src io.Reader) (account *transpor
 		return
 	}
 	account.NodeId = nodeId
+	l.account = account
 	return
 }
 

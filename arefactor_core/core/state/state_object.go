@@ -389,7 +389,7 @@ func (a *AccountData) UnmarshalMsg(b []byte) ([]byte, error) {
 	a.Balances = *bs
 
 	// Nonce
-	a.Nonce, b, err = marshaller.ReadUint64Bytes(b)
+	a.Nonce, b, err = marshaller.ReadUint64(b)
 	if err != nil {
 		return b, err
 	}
@@ -494,7 +494,7 @@ func (bs *BalanceSet) UnmarshalMsg(bts []byte) (b []byte, err error) {
 	var k int32
 	var v *big.Int
 	for i := 0; i < mapSize; i++ {
-		k, b, err = marshaller.ReadInt32Bytes(b)
+		k, b, err = marshaller.ReadInt32(b)
 		if err != nil {
 			return nil, err
 		}

@@ -261,19 +261,19 @@ func (t *TxBase) UnmarshalMsg(b []byte) ([]byte, error) {
 	b = b[2:]
 
 	// (uint64) AccountNonce, Height, MineNonce, Weight
-	t.AccountNonce, b, err = marshaller.ReadUint64Bytes(b)
+	t.AccountNonce, b, err = marshaller.ReadUint64(b)
 	if err != nil {
 		return nil, err
 	}
-	t.Height, b, err = marshaller.ReadUint64Bytes(b)
+	t.Height, b, err = marshaller.ReadUint64(b)
 	if err != nil {
 		return nil, err
 	}
-	t.MineNonce, b, err = marshaller.ReadUint64Bytes(b)
+	t.MineNonce, b, err = marshaller.ReadUint64(b)
 	if err != nil {
 		return nil, err
 	}
-	t.Weight, b, err = marshaller.ReadUint64Bytes(b)
+	t.Weight, b, err = marshaller.ReadUint64(b)
 	if err != nil {
 		return nil, err
 	}

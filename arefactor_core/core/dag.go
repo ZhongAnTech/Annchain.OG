@@ -841,8 +841,8 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		return nil, receipt, nil
 	}
 	if tx.GetType() == types.TxBaseAction {
-		actionTx := tx.(*tx_types.ActionTx)
-		receipt, err := dag.processTokenTransaction(actionTx)
+		actionTx := tx.(*types.ActionTx)
+		receipt, err := ActionTxProcessor(dag.statedb, actionTx)
 		if err != nil {
 			return nil, receipt, fmt.Errorf("process action tx error: %v", err)
 		}
@@ -926,53 +926,6 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 	return ret, receipt, nil
 }
 
-func (dag *Dag) processTokenTransaction(tx *tx_types.ActionTx) (*Receipt, error) {
-
-	actionData := tx.ActionData.(*tx_types.PublicOffering)
-	if tx.Action == tx_types.ActionTxActionIPO {
-		issuer := tx.Sender()
-		name := actionData.TokenName
-		reIssuable := actionData.EnableSPO
-		amount := actionData.Value
-
-		tokenID, err := dag.statedb.IssueToken(issuer, name, "", reIssuable, amount)
-		if err != nil {
-			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
-			return receipt, err
-		}
-		actionData.TokenId = tokenID
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, strconv.Itoa(int(tokenID)), emptyAddress)
-		return receipt, nil
-	}
-	if tx.Action == tx_types.ActionTxActionSPO {
-		tokenID := actionData.TokenId
-		amount := actionData.Value
-
-		err := dag.statedb.ReIssueToken(tokenID, amount)
-		if err != nil {
-			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
-			return receipt, err
-		}
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, strconv.Itoa(int(tokenID)), emptyAddress)
-		return receipt, nil
-	}
-	if tx.Action == tx_types.ActionTxActionDestroy {
-		tokenID := actionData.TokenId
-
-		err := dag.statedb.DestroyToken(tokenID)
-		if err != nil {
-			receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
-			return receipt, err
-		}
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, strconv.Itoa(int(tokenID)), emptyAddress)
-		return receipt, nil
-	}
-
-	err := fmt.Errorf("unknown tx action: %d", tx.Action)
-	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusFailed, err.Error(), emptyAddress)
-	return receipt, err
-}
-
 // CallContract calls contract but disallow any modifications on
 // statedb. This method will call ovm.StaticCall() to satisfy this.
 func (dag *Dag) CallContract(addr ogTypes.Address20, data []byte) ([]byte, error) {
@@ -1016,32 +969,35 @@ func (dag *Dag) Revert(snapShotID int, txs types.Txis) {
 type txcached struct {
 	maxsize int
 	order   []ogTypes.Hash
-	txs     map[ogTypes.Hash]types.Txi
+	txs     map[ogTypes.HashKey]types.Txi
 }
 
 func newTxcached(maxsize int) *txcached {
 	return &txcached{
 		maxsize: maxsize,
 		order:   make([]ogTypes.Hash, 0),
-		txs:     make(map[ogTypes.Hash]types.Txi),
+		txs:     make(map[ogTypes.HashKey]types.Txi),
 	}
 }
 
 func (tc *txcached) get(hash ogTypes.Hash) types.Txi {
-	return tc.txs[hash]
+	return tc.txs[hash.HashKey()]
 }
 
 func (tc *txcached) add(tx types.Txi) {
-	if _, ok := tc.txs[tx.GetTxHash()]; ok {
+	if tx == nil {
+		return
+	}
+	if _, ok := tc.txs[tx.GetTxHash().HashKey()]; ok {
 		return
 	}
 	if len(tc.order) >= tc.maxsize {
 		fstHash := tc.order[0]
-		delete(tc.txs, fstHash)
+		delete(tc.txs, fstHash.HashKey())
 		tc.order = tc.order[1:]
 	}
 	tc.order = append(tc.order, tx.GetTxHash())
-	tc.txs[tx.GetTxHash()] = tx
+	tc.txs[tx.GetTxHash().HashKey()] = tx
 }
 
 type PushBatch struct {

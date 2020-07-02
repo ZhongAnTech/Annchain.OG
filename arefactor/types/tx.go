@@ -207,7 +207,7 @@ func (t *Tx) UnmarshalMsg(b []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	t.TokenId, b, err = marshaller.ReadInt32Bytes(b)
+	t.TokenId, b, err = marshaller.ReadInt32(b)
 	if err != nil {
 		return nil, err
 	}

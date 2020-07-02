@@ -40,7 +40,7 @@ type ActionData interface {
 	String() string
 }
 
-//msgp:tuple PublicOffering
+//msgp:tuple InitialOffering
 type PublicOffering struct {
 	TokenId int32        `json:"token_id"` //for Secondary Public Issues
 	Value   *math.BigInt `json:"value"`

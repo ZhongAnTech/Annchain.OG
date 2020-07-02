@@ -42,7 +42,7 @@ func (t *TestIMarshaller) UnmarshalMsg(b []byte) ([]byte, error) {
 		return nil, fmt.Errorf("msg is incompleted, should be len: %d, get: %d", size, len(b))
 	}
 
-	t.a, b, err = marshaller.ReadUint64Bytes(b)
+	t.a, b, err = marshaller.ReadUint64(b)
 	if err != nil {
 		return nil, err
 	}

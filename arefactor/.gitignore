@@ -17,5 +17,5 @@
 # vendor/
 
 dump*
-/data/nodedata/data
-/data/nodedata/log
+/data/nodedata/data/
+/data/nodedata/log/

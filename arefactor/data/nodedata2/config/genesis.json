@@ -1,0 +1,28 @@
+{
+    "RootSequencerHash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "FirstCommittee": {
+        "Version": 1,
+        "Peers": [
+            {
+                "PeerIndex": 0,
+                "MemberId": "386a516c6217b8f9cef8679a619bb35e749b638c",
+                "PublicKey": "02e5469bc06e656f7a66d60f877757859edb1d78438cce18846731c44fd932c93f"
+            },
+            {
+                "PeerIndex": 1,
+                "MemberId": "57ba40e550cc3c905a783e44003fe2a2eba98e2f",
+                "PublicKey": "02faca446de5f2be197899a78baed608249e90e81bc1240b4e611d966528b039f2"
+            },
+            {
+                "PeerIndex": 2,
+                "MemberId": "2ccd700c8baff5220e69c462ae3888ed2030d4b5",
+                "PublicKey": "03878d5709091500f0b42721441fa7d1f29a10a594c0bf261ed738bb41d8cc572a"
+            },
+            {
+                "PeerIndex": 3,
+                "MemberId": "dd70c9b928737fa98688af4ee172db09838aa3a1",
+                "PublicKey": "03c089f5efd2fcbe404ed9aaec2f6f04bd4a622710f57b784c730374c308275717"
+            }
+        ]
+    }
+}

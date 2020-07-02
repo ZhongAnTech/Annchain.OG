@@ -7,13 +7,12 @@ import (
 	"github.com/latifrons/goffchan"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
-	"io"
 	"time"
 )
 
 type LedgerAccountHolder interface {
 	ProvideAccount() (*og_interface.OgLedgerAccount, error)
-	Generate(src io.Reader) (account *og_interface.OgLedgerAccount, err error)
+	Generate() (account *og_interface.OgLedgerAccount, err error)
 	Load() (account *og_interface.OgLedgerAccount, err error)
 	Save() (err error)
 }
@@ -25,7 +24,7 @@ type PaceMaker struct {
 	Safety          *Safety
 	Partner         *Partner
 	Signer          consensus_interface.Signer
-	AccountProvider og_interface.LedgerAccountHolder
+	AccountProvider og_interface.LedgerAccountProvider
 	Ledger          consensus_interface.Ledger
 
 	CommitteeProvider consensus_interface.CommitteeProvider

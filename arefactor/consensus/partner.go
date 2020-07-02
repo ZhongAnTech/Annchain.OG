@@ -31,7 +31,7 @@ type Partner struct {
 	ProposalExecutor        consensus_interface.ProposalExecutor
 	CommitteeProvider       consensus_interface.CommitteeProvider
 	Signer                  consensus_interface.Signer
-	AccountProvider         og_interface.LedgerAccountHolder
+	AccountProvider         og_interface.LedgerAccountProvider
 	Hasher                  consensus_interface.Hasher
 	Ledger                  consensus_interface.Ledger
 

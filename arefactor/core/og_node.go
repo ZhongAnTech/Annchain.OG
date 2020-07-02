@@ -14,8 +14,9 @@ import (
 
 // OgNode is the basic entry point for all modules to start.
 type OgNode struct {
-	components             []Component
-	transportAccountHolder og.TransportAccountHolder
+	components               []Component
+	transportAccountProvider og.TransportAccountProvider
+	ogAddressConverter       og_interface.AddressConverter
 }
 
 // InitDefault only set necessary data structures.
@@ -26,16 +27,42 @@ func (n *OgNode) InitDefault() {
 
 func (n *OgNode) Setup() {
 	// load private info
+	privateGenerator := &og.CachedPrivateGenerator{}
+
 	// check if file exists
-	n.transportAccountHolder = &og.LocalTransportAccountHolder{
-		PrivateGenerator:   &og.DefaultPrivateGenerator{},
+	n.transportAccountProvider = &og.LocalTransportAccountProvider{
+		PrivateGenerator:   privateGenerator,
 		NetworkIdConverter: &og.OgNetworkIdConverter{},
 		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
 		CryptoType:         transport_interface.CryptoTypeSecp256k1,
 	}
+	// load transport key
+	ensureTransportAccountProvider(n.transportAccountProvider)
+
+	// account management
+	n.ogAddressConverter = &og.OgAddressConverter{}
+
+	ledgerAccountProvider := &og.LocalLedgerAccountProvider{
+		PrivateGenerator: privateGenerator,
+		AddressConverter: n.ogAddressConverter,
+		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "account.key")),
+		CryptoType:       og_interface.CryptoTypeSecp256k1,
+	}
+
+	// load account key (for consensus)
+	ensureLedgerAccountProvider(ledgerAccountProvider)
+
+	// ledger implementation
+	ledger := &og.IntArrayLedger{}
+	ledger.InitDefault()
+	ledger.StaticSetup()
+	//ledger.DumpGenesis()
+
+	// load from ledger
+	blsCommitteeProvider := loadLedgerCommittee(ledger, ledgerAccountProvider)
 
 	// low level transport (libp2p)
-	cpTransport := getTransport(n.transportAccountHolder)
+	cpTransport := getTransport(n.transportAccountProvider)
 	cpPerformanceMonitor := getPerformanceMonitor()
 
 	// peer relationship management
@@ -46,21 +73,6 @@ func (n *OgNode) Setup() {
 	cpCommunityManager.InitDefault()
 	cpCommunityManager.StaticSetup()
 
-	// ledger implementation
-	ledger := &og.IntArrayLedger{}
-	ledger.InitDefault()
-	ledger.StaticSetup()
-
-	privateGenerator := &og.DefaultPrivateGenerator{}
-
-	// account management
-	ledgerAccountProvider := &og.LocalLedgerAccountHolder{
-		PrivateGenerator: privateGenerator,
-		AddressConverter: &og.OgAddressConverter{},
-		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "account.key")),
-		CryptoType:       og_interface.CryptoTypeSecp256k1,
-	}
-
 	// consensus. Current all peers are Partner
 	cpConsensusPartner := &consensus.Partner{
 		Logger:                  logrus.StandardLogger(),
@@ -69,7 +81,7 @@ func (n *OgNode) Setup() {
 		ProposalGenerator:       nil,
 		ProposalVerifier:        nil,
 		ProposalExecutor:        nil,
-		CommitteeProvider:       nil,
+		CommitteeProvider:       blsCommitteeProvider,
 		Signer:                  nil,
 		AccountProvider:         ledgerAccountProvider,
 		Hasher:                  &consensus.SHA256Hasher{},

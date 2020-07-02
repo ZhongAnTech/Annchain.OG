@@ -1,6 +1,9 @@
 package hexutil
 
-import "encoding/hex"
+import (
+	"encoding/hex"
+	"github.com/annchain/OG/arefactor/common/utilfuncs"
+)
 
 // FromHex returns the bytes represented by the hexadecimal string s.
 func FromHex(s string) ([]byte, error) {
@@ -13,6 +16,13 @@ func FromHex(s string) ([]byte, error) {
 		s = "0" + s
 	}
 	return hex.DecodeString(s)
+}
+
+// FromHex returns the bytes represented by the hexadecimal string s.
+func FromHexNoError(s string) []byte {
+	v, err := FromHex(s)
+	utilfuncs.PanicIfError(err, "decoding hex")
+	return v
 }
 
 func ToHex(b []byte) string {

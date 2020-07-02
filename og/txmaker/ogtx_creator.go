@@ -140,7 +140,7 @@ func (m *OGTxCreator) NewTxWithSeal(req TxWithSealBuildRequest) (tx types.Txi, e
 //			Type:         types.TxBaseAction,
 //		},
 //		Action: req.Action,
-//		ActionData: &types.PublicOffering{
+//		ActionData: &types.InitialOffering{
 //			Value:     req.Value,
 //			EnableSPO: req.EnableSpo,
 //			TokenId:   req.TokenId,

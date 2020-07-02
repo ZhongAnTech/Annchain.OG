@@ -5,11 +5,19 @@ import (
 	"math/big"
 )
 
+func AppendUint8(b []byte, i uint8) []byte {
+	return msgp.AppendUint8(b, i)
+}
+
+func ReadUint8(b []byte) (uint8, []byte, error) {
+	return msgp.ReadUint8Bytes(b)
+}
+
 func AppendInt32(b []byte, i int32) []byte {
 	return msgp.AppendInt32(b, i)
 }
 
-func ReadInt32Bytes(b []byte) (i int32, o []byte, err error) {
+func ReadInt32(b []byte) (i int32, o []byte, err error) {
 	return msgp.ReadInt32Bytes(b)
 }
 
@@ -17,7 +25,7 @@ func AppendUint64(b []byte, u uint64) []byte {
 	return msgp.AppendUint64(b, u)
 }
 
-func ReadUint64Bytes(b []byte) (u uint64, o []byte, err error) {
+func ReadUint64(b []byte) (u uint64, o []byte, err error) {
 	return msgp.ReadUint64Bytes(b)
 }
 

@@ -75,6 +75,14 @@ type IMarshaller interface {
 	MsgSize() int
 }
 
+func AppendIMarshaller(b []byte, im IMarshaller) ([]byte, error) {
+	bts, err := im.MarshalMsg()
+	if err != nil {
+		return b, err
+	}
+	return append(b, bts...), nil
+}
+
 func CalIMarshallerSize(imSize int) int {
 	// 1 for header lead
 	sz := 1
@@ -109,6 +117,10 @@ func InitIMarshallerBytes(msgSize int) []byte {
 
 	return make([]byte, headerLen+msgSize)
 }
+
+/**
+Header part
+*/
 
 func EncodeHeader(b []byte, pos int, size int) ([]byte, int) {
 

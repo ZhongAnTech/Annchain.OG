@@ -7,7 +7,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 	"golang.org/x/crypto/sha3"
-	"io"
 	"io/ioutil"
 )
 
@@ -18,7 +17,7 @@ type LedgerAccountLocalStorage struct {
 	Address    string
 }
 
-type LocalLedgerAccountHolder struct {
+type LocalLedgerAccountProvider struct {
 	PrivateGenerator og_interface.PrivateGenerator
 	AddressConverter og_interface.AddressConverter
 	BackFilePath     string
@@ -26,22 +25,18 @@ type LocalLedgerAccountHolder struct {
 	account          *og_interface.OgLedgerAccount
 }
 
-func (l *LocalLedgerAccountHolder) ProvideAccount() (*og_interface.OgLedgerAccount, error) {
+func (l *LocalLedgerAccountProvider) ProvideAccount() (*og_interface.OgLedgerAccount, error) {
 	if l.account == nil {
 		return l.Load()
 	}
 	return l.account, nil
 }
 
-func (l *LocalLedgerAccountHolder) Account() *og_interface.OgLedgerAccount {
-	return l.account
-}
-
-func (l *LocalLedgerAccountHolder) SetAccount(account *og_interface.OgLedgerAccount) {
+func (l *LocalLedgerAccountProvider) SetAccount(account *og_interface.OgLedgerAccount) {
 	l.account = account
 }
 
-func (l *LocalLedgerAccountHolder) Load() (account *og_interface.OgLedgerAccount, err error) {
+func (l *LocalLedgerAccountProvider) Load() (account *og_interface.OgLedgerAccount, err error) {
 	byteContent, err := ioutil.ReadFile(l.BackFilePath)
 	if err != nil {
 		return
@@ -71,7 +66,7 @@ func (l *LocalLedgerAccountHolder) Load() (account *og_interface.OgLedgerAccount
 	return
 }
 
-func (l *LocalLedgerAccountHolder) Save() (err error) {
+func (l *LocalLedgerAccountProvider) Save() (err error) {
 	account := l.account
 	pubKeyBytes, err := account.PublicKey.Raw()
 	if err != nil {
@@ -96,8 +91,8 @@ func (l *LocalLedgerAccountHolder) Save() (err error) {
 	return
 }
 
-func (g *LocalLedgerAccountHolder) Generate(src io.Reader) (account *og_interface.OgLedgerAccount, err error) {
-	privKey, pubKey, err := g.PrivateGenerator.GeneratePair(int(g.CryptoType), src)
+func (g *LocalLedgerAccountProvider) Generate() (account *og_interface.OgLedgerAccount, err error) {
+	privKey, pubKey, err := g.PrivateGenerator.GeneratePair(int(g.CryptoType))
 	if err != nil {
 		return
 	}
@@ -110,7 +105,7 @@ func (g *LocalLedgerAccountHolder) Generate(src io.Reader) (account *og_interfac
 		return
 	}
 	account.Address = addr
-
+	g.account = account
 	return
 }
 

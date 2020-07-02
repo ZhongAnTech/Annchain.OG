@@ -2,7 +2,6 @@ package og_interface
 
 import (
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"io"
 )
 
 type PeerJoinedEvent struct {
@@ -39,9 +38,9 @@ type NewHeightDetectedEventSubscriber interface {
 	NewHeightDetectedEventChannel() chan *NewHeightDetectedEvent
 }
 
-type LedgerAccountHolder interface {
+type LedgerAccountProvider interface {
 	ProvideAccount() (*OgLedgerAccount, error)
-	Generate(src io.Reader) (account *OgLedgerAccount, err error)
+	Generate() (account *OgLedgerAccount, err error)
 	Load() (account *OgLedgerAccount, err error)
 	Save() (err error)
 }
@@ -51,5 +50,5 @@ type AddressConverter interface {
 }
 
 type PrivateGenerator interface {
-	GeneratePair(typ int, src io.Reader) (privKey crypto.PrivKey, pubKey crypto.PubKey, err error)
+	GeneratePair(typ int) (privKey crypto.PrivKey, pubKey crypto.PubKey, err error)
 }

@@ -8,13 +8,12 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"io"
 	"io/ioutil"
 )
 
-type TransportAccountHolder interface {
+type TransportAccountProvider interface {
 	ProvideAccount() (*transport_interface.TransportAccount, error)
-	Generate(src io.Reader) (account *transport_interface.TransportAccount, err error)
+	Generate() (account *transport_interface.TransportAccount, err error)
 	Load() (account *transport_interface.TransportAccount, err error)
 	Save() (err error)
 }
@@ -26,7 +25,7 @@ type TransportAccountLocalStorage struct {
 	NetworkId  string
 }
 
-type LocalTransportAccountHolder struct {
+type LocalTransportAccountProvider struct {
 	PrivateGenerator   og_interface.PrivateGenerator
 	NetworkIdConverter NetworkIdConverter
 	BackFilePath       string
@@ -34,23 +33,23 @@ type LocalTransportAccountHolder struct {
 	account            *transport_interface.TransportAccount
 }
 
-func (l *LocalTransportAccountHolder) ProvideAccount() (*transport_interface.TransportAccount, error) {
+func (l *LocalTransportAccountProvider) ProvideAccount() (*transport_interface.TransportAccount, error) {
 	if l.account == nil {
 		return l.Load()
 	}
 	return l.account, nil
 }
 
-func (l *LocalTransportAccountHolder) Account() *transport_interface.TransportAccount {
+func (l *LocalTransportAccountProvider) Account() *transport_interface.TransportAccount {
 	return l.account
 }
 
-func (l *LocalTransportAccountHolder) SetAccount(account *transport_interface.TransportAccount) {
+func (l *LocalTransportAccountProvider) SetAccount(account *transport_interface.TransportAccount) {
 	l.account = account
 }
 
 // only private key is mandatory.
-func (l *LocalTransportAccountHolder) Load() (account *transport_interface.TransportAccount, err error) {
+func (l *LocalTransportAccountProvider) Load() (account *transport_interface.TransportAccount, err error) {
 	bytes, err := ioutil.ReadFile(l.BackFilePath)
 	if err != nil {
 		return
@@ -80,7 +79,7 @@ func (l *LocalTransportAccountHolder) Load() (account *transport_interface.Trans
 	return
 }
 
-func (l *LocalTransportAccountHolder) Save() (err error) {
+func (l *LocalTransportAccountProvider) Save() (err error) {
 	account := l.account
 	pubKeyBytes, err := account.PublicKey.Raw()
 	if err != nil {
@@ -105,8 +104,8 @@ func (l *LocalTransportAccountHolder) Save() (err error) {
 	return
 }
 
-func (l *LocalTransportAccountHolder) Generate(src io.Reader) (account *transport_interface.TransportAccount, err error) {
-	privKey, pubKey, err := l.PrivateGenerator.GeneratePair(int(l.CryptoType), src)
+func (l *LocalTransportAccountProvider) Generate() (account *transport_interface.TransportAccount, err error) {
+	privKey, pubKey, err := l.PrivateGenerator.GeneratePair(int(l.CryptoType))
 	if err != nil {
 		return
 	}

@@ -13,8 +13,8 @@ import (
 
 func TestAccountGenerator_Generate(t *testing.T) {
 	randomReader := rand.New(rand.NewSource(time.Now().UnixNano()))
-	g := &LocalLedgerAccountHolder{
-		PrivateGenerator: &DefaultPrivateGenerator{
+	g := &LocalLedgerAccountProvider{
+		PrivateGenerator: &CachedPrivateGenerator{
 			Reader: randomReader,
 		},
 		AddressConverter: &OgAddressConverter{},
@@ -24,7 +24,7 @@ func TestAccountGenerator_Generate(t *testing.T) {
 	}
 
 	for method := range []int{0, 1, 2, 3} {
-		gotAccount, err := g.Generate(randomReader)
+		gotAccount, err := g.Generate()
 		utilfuncs.PanicIfError(err, "generate")
 		{
 			bytes, err := gotAccount.PrivateKey.Bytes()
@@ -58,8 +58,8 @@ func TestAccountGenerator_Generate(t *testing.T) {
 			log.Info(len(bytes))
 		}
 		log.Info()
-		l := &LocalLedgerAccountHolder{
-			PrivateGenerator: &DefaultPrivateGenerator{},
+		l := &LocalLedgerAccountProvider{
+			PrivateGenerator: &CachedPrivateGenerator{},
 			AddressConverter: &OgAddressConverter{},
 			BackFilePath:     fmt.Sprintf("D:\\tmp\\test\\dump_%d.json", method),
 			CryptoType:       og_interface.CryptoTypeSecp256k1,

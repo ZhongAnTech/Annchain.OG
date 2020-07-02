@@ -4,13 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/files"
+	"github.com/annchain/OG/arefactor/common/hexutil"
 	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 	"github.com/minio/sha256-simd"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"math/rand"
 	"path"
 	"strconv"
@@ -31,7 +35,7 @@ type BlockContent interface {
 
 type Ledger interface {
 	CurrentHeight() int64
-	CurrentCommittee() *Committee
+	CurrentCommittee() *consensus_interface.Committee
 	GetBlock(height int64) BlockContent
 	AddBlock(height int64, block BlockContent)
 }
@@ -117,30 +121,7 @@ func (d *IntArrayLedger) StaticSetup() {
 	rootHash := &og_interface.Hash32{}
 	rootHash.FromHexNoError("0x00")
 
-	d.genesis = &Genesis{
-		RootSequencerHash: rootHash,
-		FirstCommittee: &Committee{
-			Peers: []*PeerMember{
-				{
-					PeerId:    "16Uiu2HAmSPLF68qLtob31r3hYga7Qs84TPas9wNkanKQtKezjRne",
-					PublicKey: nil,
-				},
-				{
-					PeerId:    "16Uiu2HAmKK8gG13RdesZenARuPmsYnXQH5iLad85eMoepRQS6Pi9",
-					PublicKey: nil,
-				},
-				{
-					PeerId:    "16Uiu2HAmGWF1gqXsJ5oZzy213bQRh1aWqSRdiowRecNNH2DEqkYL",
-					PublicKey: nil,
-				},
-				{
-					PeerId:    "16Uiu2HAmTb7wFyTqjWTMrjdUNZXRUdXh4byQi6nBNGGnYe8vhdG3",
-					PublicKey: nil,
-				},
-			},
-			Version: 1,
-		},
-	}
+	d.LoadGenesis()
 	//for i := 1; i < 10000; i ++{
 	//	d.AddRandomBlock(int64(i))
 	//}
@@ -149,11 +130,86 @@ func (d *IntArrayLedger) StaticSetup() {
 	//d.AddRandomBlock(3)
 	//d.AddRandomBlock(4)
 	//d.AddRandomBlock(5)
-	//d.dumpLedger()
+	//d.DumpLedger()
 	d.loadLedger()
 }
 
-func (d *IntArrayLedger) dumpLedger() {
+func (d *IntArrayLedger) LoadGenesis() {
+	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "config")
+	byteContent, err := ioutil.ReadFile(path.Join(datadir, "genesis.json"))
+	if err != nil {
+		return
+	}
+
+	gs := &GenesisStore{}
+	err = json.Unmarshal(byteContent, gs)
+	if err != nil {
+		return
+	}
+
+	// convert to genesis
+	hash := &og_interface.Hash32{}
+	err = hash.FromHex(gs.RootSequencerHash)
+	utilfuncs.PanicIfError(err, "root seq hash")
+
+	peers := []*consensus_interface.CommitteeMember{}
+	unmarshaller := crypto.PubKeyUnmarshallers[pb.KeyType_Secp256k1]
+
+	for _, v := range gs.FirstCommittee.Peers {
+		pubKeyBytes, err := hexutil.FromHex(v.PublicKey)
+		utilfuncs.PanicIfError(err, "pubkey")
+
+		pubKey, err := unmarshaller(pubKeyBytes)
+		utilfuncs.PanicIfError(err, "pubkey")
+
+		peers = append(peers, &consensus_interface.CommitteeMember{
+			PeerIndex: v.PeerIndex,
+			MemberId:  v.MemberId,
+			PublicKey: pubKey,
+		})
+	}
+
+	g := &Genesis{
+		RootSequencerHash: hash,
+		FirstCommittee: &consensus_interface.Committee{
+			Peers:   peers,
+			Version: gs.FirstCommittee.Version,
+		},
+	}
+	d.genesis = g
+}
+
+func (d *IntArrayLedger) DumpGenesis() {
+
+	peers := []CommitteeMemberStore{}
+	for _, v := range d.genesis.FirstCommittee.Peers {
+		pubKeyBytes, err := v.PublicKey.Raw()
+		utilfuncs.PanicIfError(err, "pubkey raw")
+		peers = append(peers, CommitteeMemberStore{
+			PeerIndex: v.PeerIndex,
+			MemberId:  v.MemberId,
+			PublicKey: hexutil.ToHex(pubKeyBytes),
+		})
+	}
+
+	gs := &GenesisStore{
+		RootSequencerHash: d.genesis.RootSequencerHash.HashString(),
+		FirstCommittee: CommitteeStore{
+			Version: d.genesis.FirstCommittee.Version,
+			Peers:   peers,
+		},
+	}
+
+	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "config")
+
+	bytes, err := json.MarshalIndent(gs, "", "    ")
+	if err != nil {
+		return
+	}
+	err = ioutil.WriteFile(path.Join(datadir, "genesis.json"), bytes, 0600)
+}
+
+func (d *IntArrayLedger) DumpLedger() {
 	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
 	lines := []string{}
 	for i := int64(1); i <= d.height; i++ {
@@ -204,7 +260,7 @@ func (d *IntArrayLedger) CurrentHeight() int64 {
 	return d.height
 }
 
-func (d *IntArrayLedger) CurrentCommittee() *Committee {
+func (d *IntArrayLedger) CurrentCommittee() *consensus_interface.Committee {
 	// currently no general election. always return committee in genesis
 	return d.genesis.FirstCommittee
 }

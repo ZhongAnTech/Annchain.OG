@@ -15,7 +15,7 @@ import (
 // OgNode is the basic entry point for all modules to start.
 type SampleNode struct {
 	components             []Component
-	transportAccountHolder og.TransportAccountHolder
+	transportAccountHolder og.TransportAccountProvider
 	cpTransport            *transport.PhysicalCommunicator
 	cpBouncer              *bouncer.Bouncer
 }
@@ -29,8 +29,8 @@ func (n *SampleNode) InitDefault() {
 func (n *SampleNode) Setup() {
 	// load private info
 	// check if file exists
-	n.transportAccountHolder = &og.LocalTransportAccountHolder{
-		PrivateGenerator:   &og.DefaultPrivateGenerator{},
+	n.transportAccountHolder = &og.LocalTransportAccountProvider{
+		PrivateGenerator:   &og.CachedPrivateGenerator{},
 		NetworkIdConverter: &og.OgNetworkIdConverter{},
 		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
 		CryptoType:         transport_interface.CryptoTypeSecp256k1,

@@ -4,7 +4,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
+type CommitteeMember struct {
+	PeerIndex int           // order of peer in the committee
+	MemberId  string        // peer identifier. current use address
+	PublicKey crypto.PubKey // account public key to verify messages
+}
+
 type Committee struct {
+	Peers   []*CommitteeMember
+	Version int
 }
 
 type ProposalContext struct {
@@ -47,9 +55,10 @@ type ProposalExecutor interface {
 }
 
 type CommitteeProvider interface {
-	InitCommittee(peerIds []string, myIndex int)
-	GetSessionId() int
+	InitCommittee(version int, peers []CommitteeMember, myMemberId string)
+	GetVersion() int
 	GetAllMemberPeedIds() []string
+	GetAllMembers() []CommitteeMember
 	GetMyPeerId() string
 	GetMyPeerIndex() int
 	GetLeaderPeerId(round int) string

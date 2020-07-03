@@ -5,6 +5,35 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
+func AppendIMarshallerArray(b []byte, arr []IMarshaller) ([]byte, error) {
+	data := make([]byte, HeaderSize)
+	for _, element := range arr {
+		eleBytes, err := element.MarshalMsg()
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, eleBytes...)
+	}
+	b = FillHeaderDataNum(b, len(arr))
+
+	return append(b, data...), nil
+}
+
+func AppendBytesArray(b []byte, arr [][]byte) ([]byte, error) {
+	data := make([]byte, HeaderSize)
+
+	for _, bts := range arr {
+		data = AppendBytes(data, bts)
+	}
+	data = FillHeaderDataNum(data, len(arr))
+
+	return append(b, data...), nil
+}
+
+func ReadBytesArray(b []byte) ([][]byte, []byte, error) {
+
+}
+
 func MarshalStrArray() {
 
 }

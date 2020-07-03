@@ -14,22 +14,16 @@
 package core
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/annchain/OG/types/tx_types"
 	"sort"
-	"strconv"
-	// "fmt"
 	"sync"
 
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
 	"github.com/annchain/OG/arefactor_core/core/state"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
 	"github.com/annchain/OG/status"
-	//"github.com/annchain/OG/arefactor/types"
 	evm "github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/annchain/OG/vm/ovm"
 	vmtypes "github.com/annchain/OG/vm/types"
@@ -639,8 +633,7 @@ func (dag *Dag) push(batch *PushBatch) error {
 
 	// store the tx and update the state
 	sort.Sort(batch.Txs)
-	txhashes := []ogTypes.Hash{}
-	consTxs := []types.Txi{}
+	var txhashes []ogTypes.Hash
 	sId := dag.statedb.Snapshot()
 
 	for _, txi := range batch.Txs {
@@ -654,15 +647,7 @@ func (dag *Dag) push(batch *PushBatch) error {
 			return err
 		}
 		receipts[txi.GetTxHash().Hex()] = receipt
-
 		txhashes = append(txhashes, txi.GetTxHash())
-		// TODO
-		// Consensus related txs should not some specific types, should be
-		// changed to a modular way.
-		txType := txi.GetType()
-		if txType == types.TxBaseTypeCampaign || txType == types.TxBaseTypeTermChange {
-			consTxs = append(consTxs, txi)
-		}
 	}
 	var writedTxs types.Txis
 	for _, txi := range batch.Txs {
@@ -768,22 +753,6 @@ func (dag *Dag) push(batch *PushBatch) error {
 
 	return nil
 }
-
-//func (dag *Dag) writeConfirmTime(cf *types.ConfirmTime) error {
-//	return dag.accessor.writeConfirmTime(cf)
-//}
-
-//func (dag *Dag) TestWriteConfirmTIme(cf *types.ConfirmTime) error {
-//	dag.mu.Lock()
-//	defer dag.mu.Unlock()
-//	dag.latestSequencer = tx_types.RandomSequencer()
-//	dag.latestSequencer.Height = cf.SeqHeight
-//	return dag.writeConfirmTime(cf)
-//}
-//
-//func (dag *Dag) ReadConfirmTime(seqHeight uint64) *types.ConfirmTime {
-//	return dag.accessor.readConfirmTime(seqHeight)
-//}
 
 // WriteTransaction write the tx or sequencer into ogdb. It first writes
 // the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
@@ -919,7 +888,7 @@ func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt
 		return nil, receipt, fmt.Errorf("vm processing error: %v", err)
 	}
 	if txnormal.To.Cmp(emptyAddress) == 0 {
-		receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, contractAddress.Hex(), contractAddress)
+		receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, contractAddress.Hex(), &contractAddress)
 	} else {
 		receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, fmt.Sprintf("%x", ret), emptyAddress)
 	}
@@ -932,7 +901,7 @@ func (dag *Dag) CallContract(addr ogTypes.Address20, data []byte) ([]byte, error
 	// create ovm object.
 	//
 	// TODO gaslimit not implemented yet.
-	vmContext := ovm.NewOVMContext(&ovm.DefaultChainContext{}, &DefaultCoinbase, dag.statedb)
+	vmContext := ovm.NewOVMContext(&ovm.DefaultChainContext{}, DefaultCoinbase, dag.statedb)
 	txContext := &ovm.TxContext{
 		From:       DefaultCoinbase,
 		Value:      math.NewBigInt(0),
@@ -952,7 +921,7 @@ func (dag *Dag) CallContract(addr ogTypes.Address20, data []byte) ([]byte, error
 	}
 	ogvm := ovm.NewOVM(vmContext, []ovm.Interpreter{evmInterpreter}, ovmconf)
 
-	ret, _, err := ogvm.StaticCall(vmtypes.AccountRef(txContext.From), addr, txContext.Data, txContext.GasLimit)
+	ret, _, err := ogvm.StaticCall(vmtypes.AccountRef(*txContext.From), addr, txContext.Data, txContext.GasLimit)
 	return ret, err
 }
 

@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 	ogtypes "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common/math"
 )
 
@@ -116,10 +116,40 @@ func (t *TokenObject) CopyRaw(tObj *TokenObject) {
 }
 
 func (t *TokenObject) Encode() ([]byte, error) {
-	return t.MarshalMsg(nil)
+	return t.MarshalMsg()
 }
 
 func (t *TokenObject) Decode(b []byte) error {
 	_, err := t.UnmarshalMsg(b)
 	return err
+}
+
+/**
+Marshaller part
+ */
+
+func (t *TokenObject) MarshalMsg() ([]byte, error) {
+	var err error
+	b := make([]byte, marshaller.HeaderSize)
+
+	// int32 TokenID
+	b = marshaller.AppendInt32(b, t.TokenID)
+	// string Name
+	b = marshaller.AppendString(b, t.Name)
+	// string Symbol
+	b = marshaller.AppendString(b, t.Symbol)
+	// Address
+	b, err = marshaller.AppendIMarshaller(b, t.Issuer)
+	if err != nil {
+		return b, err
+	}
+	// bool ReIssuable
+	b = marshaller.AppendBool(b, t.ReIssuable)
+	// []math.BigInt issues
+	var imArr []marshaller.IMarshaller
+	for _, bi := range t.Issues {
+		imArr = append(imArr, bi)
+	}
+	marshaller.AppendIMarshallerArray()
+
 }

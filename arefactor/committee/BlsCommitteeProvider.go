@@ -8,15 +8,16 @@ import (
 // BlsCommitteeProvider holds a single round of committee.
 type BlsCommitteeProvider struct {
 	Version     int
-	MyAccount   Account
+	myAccount   consensus_interface.ConsensusAccount // bls consensus account
 	memberIds   []string
-	members     []consensus_interface.CommitteeMember
+	members     []consensus_interface.CommitteeMember // other members
 	myIndex     int
 	memberIdMap map[string]consensus_interface.CommitteeMember
 }
 
-func (b *BlsCommitteeProvider) InitCommittee(version int, peers []consensus_interface.CommitteeMember, myMemberId string) {
+func (b *BlsCommitteeProvider) InitCommittee(version int, peers []consensus_interface.CommitteeMember, myAccount consensus_interface.ConsensusAccount) {
 	b.Version = version
+	b.myAccount = myAccount
 	b.memberIds = []string{}
 	b.members = []consensus_interface.CommitteeMember{}
 	b.memberIdMap = make(map[string]consensus_interface.CommitteeMember)

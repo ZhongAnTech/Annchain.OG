@@ -3,7 +3,6 @@ package consensus
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/consensus_interface"
-	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/latifrons/soccerdash"
@@ -25,12 +24,13 @@ type Partner struct {
 	Logger   *logrus.Logger
 	Reporter *soccerdash.Reporter
 
-	ProposalContextProvider consensus_interface.ProposalContextProvider
-	ProposalGenerator       consensus_interface.ProposalGenerator
-	ProposalVerifier        consensus_interface.ProposalVerifier
-	ProposalExecutor        consensus_interface.ProposalExecutor
-	CommitteeProvider       consensus_interface.CommitteeProvider
-	Signer                  consensus_interface.Signer
+	ProposalContextProvider  consensus_interface.ProposalContextProvider
+	ProposalGenerator        consensus_interface.ProposalGenerator
+	ProposalVerifier         consensus_interface.ProposalVerifier
+	ProposalExecutor         consensus_interface.ProposalExecutor
+	CommitteeProvider        consensus_interface.CommitteeProvider
+	Signer                   consensus_interface.Signer
+	ConsensusAccountProvider consensus_interface.ConsensusAccountProvider
 	//AccountProvider         og_interface.LedgerAccountProvider
 	Hasher consensus_interface.Hasher
 	Ledger consensus_interface.Ledger
@@ -64,7 +64,7 @@ func (n *Partner) InitDefault() {
 		CurrentRound:      0,
 		Safety:            n.safety,
 		Signer:            n.Signer,
-		AccountProvider:   n.AccountProvider,
+		AccountProvider:   n.ConsensusAccountProvider,
 		Ledger:            n.Ledger,
 		CommitteeProvider: n.CommitteeProvider,
 		Partner:           n,
@@ -323,7 +323,7 @@ func (n *Partner) ensureQCCollector(commitInfoHash string) consensus_interface.S
 }
 
 func (n *Partner) sign(msg Signable) (signature []byte, err error) {
-	account, err := n.AccountProvider.ProvideAccount()
+	account, err := n.ConsensusAccountProvider.ProvideAccount()
 	if err != nil {
 		logrus.WithError(err).Warn("account provider cannot provide private key")
 		return

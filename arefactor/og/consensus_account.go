@@ -7,18 +7,23 @@ type BlsConsensusAccountProvider struct {
 	account      *consensus_interface.ConsensusAccount
 }
 
-func (b BlsConsensusAccountProvider) ProvideAccount() (*consensus_interface.ConsensusAccount, error) {
+func (b *BlsConsensusAccountProvider) ProvideAccount() (*consensus_interface.ConsensusAccount, error) {
+	if b.account == nil {
+		return b.Load()
+	}
+	return b.account, nil
+}
+
+func (b *BlsConsensusAccountProvider) Generate() (account *consensus_interface.ConsensusAccount, err error) {
+	// how to generate a bls key?
+	// by discuss?
 	panic("implement me")
 }
 
-func (b BlsConsensusAccountProvider) Generate() (account *consensus_interface.ConsensusAccount, err error) {
+func (b *BlsConsensusAccountProvider) Load() (account *consensus_interface.ConsensusAccount, err error) {
 	panic("implement me")
 }
 
-func (b BlsConsensusAccountProvider) Load() (err error) {
-	panic("implement me")
-}
-
-func (b BlsConsensusAccountProvider) Save() (err error) {
+func (b *BlsConsensusAccountProvider) Save() (err error) {
 	panic("implement me")
 }

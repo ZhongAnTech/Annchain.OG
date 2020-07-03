@@ -171,8 +171,8 @@ type (
 )
 
 func (ch createObjectChange) Revert(s *StateDB) {
-	delete(s.states, ch.account)
-	delete(s.dirtyset, ch.account)
+	delete(s.states, ch.account.AddressKey())
+	delete(s.dirtyset, ch.account.AddressKey())
 }
 
 func (ch createObjectChange) Dirtied() og_types.Address {
@@ -185,9 +185,9 @@ func (ch createObjectChange) TokenDirtied() int32 {
 
 func (ch resetObjectChange) Revert(s *StateDB) {
 	if ch.prev == nil {
-		delete(s.states, ch.account)
+		delete(s.states, ch.account.AddressKey())
 	} else {
-		s.states[ch.prev.address] = ch.prev
+		s.states[ch.prev.address.AddressKey()] = ch.prev
 	}
 }
 

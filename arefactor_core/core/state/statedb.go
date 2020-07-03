@@ -2,12 +2,12 @@ package state
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"sync"
 	"time"
 
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	crypto "github.com/annchain/OG/arefactor/ogcrypto"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/trie"
 	tkType "github.com/annchain/OG/types/token"
@@ -87,7 +87,7 @@ func NewStateDB(conf StateDBConfig, db Database, root ogTypes.Hash) (*StateDB, e
 	latestTokenID := int32(0)
 	data, err := tr.TryGet(tkType.LatestTokenIDTrieKey())
 	if err == nil && len(data) >= 4 {
-		latestTokenID = common.GetInt32(data, 0)
+		latestTokenID = marshaller.GetInt32(data, 0)
 	}
 
 	sd := &StateDB{
@@ -671,14 +671,16 @@ func (sd *StateDB) commit() (ogTypes.Hash, error) {
 		delete(sd.dirtyTokens, tokenID)
 	}
 	if sd.dirtyLatestTokenID {
-		if err := sd.trie.TryUpdate(tkType.LatestTokenIDTrieKey(), common.ByteInt32(sd.latestTokenID)); err != nil {
+		data := make([]byte, 4)
+		marshaller.SetInt32(data, 0, sd.latestTokenID)
+		if err := sd.trie.TryUpdate(tkType.LatestTokenIDTrieKey(), data); err != nil {
 			log.Errorf("commit latest token id %d to trie error: %d", sd.latestTokenID, err)
 		}
 		sd.dirtyLatestTokenID = false
 	}
 
 	// commit current trie into triedb.
-	rootHash, err := sd.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	rootHash, err := sd.trie.Commit(func(leaf []byte, parent ogTypes.Hash) error {
 		account := NewAccountData()
 		if _, err := account.UnmarshalMsg(leaf); err != nil {
 			return nil

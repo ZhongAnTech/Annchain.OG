@@ -20,9 +20,6 @@ import (
 	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types/tx_types"
-
-	//"github.com/annchain/OG/common"
 
 	"github.com/annchain/OG/arefactor/types"
 	"github.com/annchain/OG/common/math"
@@ -71,36 +68,36 @@ func latestSequencerKey() []byte {
 }
 
 func receiptKey(seqID uint64) []byte {
-	return append(prefixReceiptKey, encodeUint64(seqID)...)
+	return marshaller.AppendUint64(prefixReceiptKey, seqID)
 }
 
 func transactionKey(hash og_types.Hash) []byte {
-	return append(prefixTransactionKey, hash.Bytes()...)
+	return marshaller.AppendBytes(prefixTransactionKey, hash.Bytes())
 }
 
 func confirmTimeKey(SeqHeight uint64) []byte {
-	return append(prefixConfirmtime, encodeUint64(SeqHeight)...)
+	return marshaller.AppendUint64(prefixConfirmtime, SeqHeight)
 }
 
 func txHashFlowKey(addr og_types.Address, nonce uint64) []byte {
-	keybody := append(addr.Bytes(), encodeUint64(nonce)...)
-	return append(prefixTxHashFlowKey, keybody...)
+	key := marshaller.AppendBytes(prefixTxHashFlowKey, addr.Bytes())
+	return marshaller.AppendUint64(key, nonce)
 }
 
 func addrLatestNonceKey(addr og_types.Address) []byte {
-	return append(prefixAddrLatestNonceKey, addr.Bytes()...)
+	return marshaller.AppendBytes(prefixAddrLatestNonceKey, addr.Bytes())
 }
 
 func addressBalanceKey(addr og_types.Address) []byte {
-	return append(prefixAddressBalanceKey, addr.Bytes()...)
+	return marshaller.AppendBytes(prefixAddressBalanceKey, addr.Bytes())
 }
 
 func seqHeightKey(seqID uint64) []byte {
-	return append(prefixSeqHeightKey, encodeUint64(seqID)...)
+	return marshaller.AppendUint64(prefixSeqHeightKey, seqID)
 }
 
 func txIndexKey(seqID uint64) []byte {
-	return append(prefixTxIndexKey, encodeUint64(seqID)...)
+	return marshaller.AppendUint64(prefixTxIndexKey, seqID)
 }
 
 func stateRootKey() []byte {

@@ -31,9 +31,9 @@ type Partner struct {
 	ProposalExecutor        consensus_interface.ProposalExecutor
 	CommitteeProvider       consensus_interface.CommitteeProvider
 	Signer                  consensus_interface.Signer
-	AccountProvider         og_interface.LedgerAccountProvider
-	Hasher                  consensus_interface.Hasher
-	Ledger                  consensus_interface.Ledger
+	//AccountProvider         og_interface.LedgerAccountProvider
+	Hasher consensus_interface.Hasher
+	Ledger consensus_interface.Ledger
 
 	pendingQCs map[string]consensus_interface.SignatureCollector // collected votes per block indexed by their LedgerInfo hash
 
@@ -51,6 +51,7 @@ func (n *Partner) InitDefault() {
 		Logger: n.Logger,
 		Ledger: n.Ledger,
 	}
+	n.pendingBlockTree.InitDefault()
 
 	n.safety = &Safety{
 		Ledger:   n.Ledger,
@@ -58,6 +59,7 @@ func (n *Partner) InitDefault() {
 		Logger:   n.Logger,
 		Hasher:   n.Hasher,
 	}
+	n.safety.InitDefault()
 	n.paceMaker = &PaceMaker{
 		CurrentRound:      0,
 		Safety:            n.safety,
@@ -68,6 +70,7 @@ func (n *Partner) InitDefault() {
 		Partner:           n,
 		Logger:            n.Logger,
 	}
+	n.paceMaker.InitDefault()
 
 	n.pendingQCs = make(map[string]consensus_interface.SignatureCollector)
 	n.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)

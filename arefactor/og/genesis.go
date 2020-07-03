@@ -2,12 +2,11 @@ package og
 
 import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
-	"github.com/annchain/OG/arefactor/og_interface"
 )
 
 type Genesis struct {
-	RootSequencerHash og_interface.Hash
-	FirstCommittee    *consensus_interface.Committee
+	//RootSequencerHash og_interface.Hash
+	FirstCommittee *consensus_interface.Committee
 }
 
 type CommitteeMemberStore struct {
@@ -22,6 +21,6 @@ type CommitteeStore struct {
 }
 
 type GenesisStore struct {
-	RootSequencerHash string
-	FirstCommittee    CommitteeStore
+	//RootSequencerHash string
+	FirstCommittee CommitteeStore
 }

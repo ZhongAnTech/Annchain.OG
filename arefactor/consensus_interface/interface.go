@@ -47,7 +47,7 @@ type ConsensusState struct {
 type ConsensusAccountProvider interface {
 	ProvideAccount() (*ConsensusAccount, error)
 	Generate() (account *ConsensusAccount, err error)
-	Load() (err error)
+	Load() (account *ConsensusAccount, err error)
 	Save() (err error)
 }
 

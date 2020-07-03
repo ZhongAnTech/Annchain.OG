@@ -49,6 +49,13 @@ func (n *OgNode) Setup() {
 		CryptoType:       og_interface.CryptoTypeSecp256k1,
 	}
 
+	blsAccountProvider := &og.LocalLedgerAccountProvider{
+		PrivateGenerator: privateGenerator,
+		AddressConverter: n.ogAddressConverter,
+		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "bls.key")),
+		CryptoType:       og_interface.CryptoTypeSecp256k1,
+	}
+
 	// load account key (for consensus)
 	ensureLedgerAccountProvider(ledgerAccountProvider)
 
@@ -56,10 +63,10 @@ func (n *OgNode) Setup() {
 	ledger := &og.IntArrayLedger{}
 	ledger.InitDefault()
 	ledger.StaticSetup()
-	//ledger.DumpGenesis()
+	//ledger.DumpConsensusGenesis()
 
 	// load from ledger
-	blsCommitteeProvider := loadLedgerCommittee(ledger, ledgerAccountProvider)
+	blsCommitteeProvider := loadLedgerCommittee(ledger, blsAccountProvider)
 
 	// low level transport (libp2p)
 	cpTransport := getTransport(n.transportAccountProvider)

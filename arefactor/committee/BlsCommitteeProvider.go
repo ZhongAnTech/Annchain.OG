@@ -8,6 +8,7 @@ import (
 // BlsCommitteeProvider holds a single round of committee.
 type BlsCommitteeProvider struct {
 	Version     int
+	MyAccount   Account
 	memberIds   []string
 	members     []consensus_interface.CommitteeMember
 	myIndex     int

@@ -242,7 +242,9 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 		content := value.(*IntArrayBlockContent)
 
 		messageContent := &message.MessageContentInt{
-			Values: content.Values,
+			Step:        content.Step,
+			PreviousSum: content.PreviousSum,
+			MySum:       content.MySum,
 		}
 
 		// inner data
@@ -287,7 +289,9 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 			utilfuncs.PanicIfError(err, "parse content")
 
 			bc := &IntArrayBlockContent{
-				Values: messageContent.Values,
+				Step:        messageContent.Step,
+				PreviousSum: messageContent.PreviousSum,
+				MySum:       messageContent.MySum,
 			}
 			b.Ledger.AddBlock(m.Height, bc)
 			// TODO: announce event

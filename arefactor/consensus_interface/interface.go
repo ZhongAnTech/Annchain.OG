@@ -4,10 +4,16 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
+// OgLedgerAccount represents a full account of a user.
+type ConsensusAccount struct {
+	PublicKey  crypto.PubKey
+	PrivateKey crypto.PrivKey
+}
+
 type CommitteeMember struct {
-	PeerIndex int           // order of peer in the committee
-	MemberId  string        // peer identifier. current use address
-	PublicKey crypto.PubKey // account public key to verify messages
+	PeerIndex        int              // order of peer in the committee
+	MemberId         string           // peer identifier. current use address
+	ConsensusAccount ConsensusAccount // account public key to verify messages
 }
 
 type Committee struct {
@@ -90,8 +96,11 @@ type Ledger interface {
 	// Commit commits the pending prefix of the given blockId and prune other branches
 	Commit(blockId string)
 	GetHighQC() *QC
+	SetHighQC(qc *QC)
 	SaveConsensusState(*ConsensusState)
-	LoadConsensusState() *ConsensusState
+	CurrentHeight() int64
+	CurrentCommittee() *Committee
+	//LoadConsensusState() *ConsensusState
 }
 
 type Hasher interface {

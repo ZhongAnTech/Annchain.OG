@@ -10,6 +10,10 @@ type ConsensusAccount struct {
 	PrivateKey crypto.PrivKey
 }
 
+func (c *ConsensusAccount) Id() string {
+	return ""
+}
+
 type CommitteeMember struct {
 	PeerIndex        int              // order of peer in the committee
 	MemberId         string           // peer identifier. current use address
@@ -40,6 +44,13 @@ type ConsensusState struct {
 	PreferredRound int
 }
 
+type ConsensusAccountProvider interface {
+	ProvideAccount() (*ConsensusAccount, error)
+	Generate() (account *ConsensusAccount, err error)
+	Load() (err error)
+	Save() (err error)
+}
+
 type ProposalContextProvider interface {
 	GetProposalContext() *ProposalContext
 }
@@ -61,7 +72,7 @@ type ProposalExecutor interface {
 }
 
 type CommitteeProvider interface {
-	InitCommittee(version int, peers []CommitteeMember, myMemberId string)
+	InitCommittee(version int, peers []CommitteeMember, myAccount ConsensusAccount)
 	GetVersion() int
 	GetAllMemberPeedIds() []string
 	GetAllMembers() []CommitteeMember

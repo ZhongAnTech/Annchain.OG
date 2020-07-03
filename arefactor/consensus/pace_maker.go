@@ -2,20 +2,12 @@ package consensus
 
 import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
-	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"time"
 )
-
-type LedgerAccountHolder interface {
-	ProvideAccount() (*og_interface.OgLedgerAccount, error)
-	Generate() (account *og_interface.OgLedgerAccount, err error)
-	Load() (account *og_interface.OgLedgerAccount, err error)
-	Save() (err error)
-}
 
 type PaceMaker struct {
 	Logger *logrus.Logger
@@ -24,7 +16,7 @@ type PaceMaker struct {
 	Safety          *Safety
 	Partner         *Partner
 	Signer          consensus_interface.Signer
-	AccountProvider og_interface.LedgerAccountProvider
+	AccountProvider consensus_interface.ConsensusAccountProvider
 	Ledger          consensus_interface.Ledger
 
 	CommitteeProvider consensus_interface.CommitteeProvider

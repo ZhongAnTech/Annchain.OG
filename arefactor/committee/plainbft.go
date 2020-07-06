@@ -6,12 +6,13 @@ import (
 )
 
 type PlainBftCommitteeProvider struct {
-	Version     int
-	myAccount   consensus_interface.ConsensusAccount // bls consensus account
-	memberIds   []string
-	members     []consensus_interface.CommitteeMember // other members
-	myIndex     int
-	memberIdMap map[string]consensus_interface.CommitteeMember
+	Version            int
+	myAccount          consensus_interface.ConsensusAccount // bls consensus account
+	memberIds          []string
+	memberTransportIds []string
+	members            []consensus_interface.CommitteeMember // other members
+	myIndex            int
+	memberIdMap        map[string]consensus_interface.CommitteeMember
 }
 
 func (b *PlainBftCommitteeProvider) InitCommittee(version int, peers []consensus_interface.CommitteeMember,
@@ -20,6 +21,7 @@ func (b *PlainBftCommitteeProvider) InitCommittee(version int, peers []consensus
 	b.Version = version
 	b.myAccount = myAccount
 	b.memberIds = []string{}
+	b.memberTransportIds = []string{}
 	b.members = []consensus_interface.CommitteeMember{}
 	b.memberIdMap = make(map[string]consensus_interface.CommitteeMember)
 	b.myIndex = 0
@@ -30,6 +32,7 @@ func (b *PlainBftCommitteeProvider) InitCommittee(version int, peers []consensus
 		b.memberIdMap[peer.MemberId] = peer
 		b.members = append(b.members, peer)
 		b.memberIds = append(b.memberIds, peer.MemberId)
+		b.memberTransportIds = append(b.memberTransportIds, peer.TransportPeerId)
 	}
 }
 
@@ -54,6 +57,10 @@ func (b PlainBftCommitteeProvider) GetAllMemberPeedIds() []string {
 	return b.memberIds
 }
 
+func (b PlainBftCommitteeProvider) GetAllMemberTransportIds() []string {
+	return b.memberTransportIds
+}
+
 func (b *PlainBftCommitteeProvider) GetAllMembers() []consensus_interface.CommitteeMember {
 	return b.members
 }
@@ -66,8 +73,8 @@ func (b PlainBftCommitteeProvider) GetMyPeerIndex() int {
 	return b.myIndex
 }
 
-func (b PlainBftCommitteeProvider) GetLeaderPeerId(round int64) string {
-	return b.memberIds[round%int64(len(b.memberIds))]
+func (b PlainBftCommitteeProvider) GetLeader(round int64) consensus_interface.CommitteeMember {
+	return b.members[round%int64(len(b.memberIds))]
 }
 
 func (b PlainBftCommitteeProvider) GetPeerIndex(id string) (index int, err error) {
@@ -86,5 +93,5 @@ func (b PlainBftCommitteeProvider) AmILeader(round int64) bool {
 	if !b.AmIIn() {
 		return false
 	}
-	return b.GetLeaderPeerId(round) == b.memberIds[b.myIndex]
+	return b.GetLeader(round).MemberId == b.memberIds[b.myIndex]
 }

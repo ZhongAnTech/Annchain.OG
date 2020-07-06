@@ -25,7 +25,7 @@ func (z *Block) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, err = dc.ReadInt()
+			z.Round, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -112,7 +112,7 @@ func (z *Block) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Round)
+	err = en.WriteInt64(z.Round)
 	if err != nil {
 		err = msgp.WrapError(err, "Round")
 		return
@@ -179,7 +179,7 @@ func (z *Block) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 4
 	// string "Round"
 	o = append(o, 0x84, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.Round)
+	o = msgp.AppendInt64(o, z.Round)
 	// string "Payload"
 	o = append(o, 0xa7, 0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64)
 	o = msgp.AppendString(o, z.Payload)
@@ -225,7 +225,7 @@ func (z *Block) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, bts, err = msgp.ReadIntBytes(bts)
+			z.Round, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -306,7 +306,7 @@ func (z *Block) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Block) Msgsize() (s int) {
-	s = 1 + 6 + msgp.IntSize + 8 + msgp.StringPrefixSize + len(z.Payload) + 9
+	s = 1 + 6 + msgp.Int64Size + 8 + msgp.StringPrefixSize + len(z.Payload) + 9
 	if z.ParentQC == nil {
 		s += msgp.NilSize
 	} else {
@@ -367,7 +367,7 @@ func (z *ContentProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 					}
 					switch msgp.UnsafeString(field) {
 					case "Round":
-						z.TC.Round, err = dc.ReadInt()
+						z.TC.Round, err = dc.ReadInt64()
 						if err != nil {
 							err = msgp.WrapError(err, "TC", "Round")
 							return
@@ -432,7 +432,7 @@ func (z *ContentProposal) EncodeMsg(en *msgp.Writer) (err error) {
 		if err != nil {
 			return
 		}
-		err = en.WriteInt(z.TC.Round)
+		err = en.WriteInt64(z.TC.Round)
 		if err != nil {
 			err = msgp.WrapError(err, "TC", "Round")
 			return
@@ -470,7 +470,7 @@ func (z *ContentProposal) MarshalMsg(b []byte) (o []byte, err error) {
 		// map header, size 2
 		// string "Round"
 		o = append(o, 0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-		o = msgp.AppendInt(o, z.TC.Round)
+		o = msgp.AppendInt64(o, z.TC.Round)
 		// string "JointSignature"
 		o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 		o = msgp.AppendBytes(o, []byte(z.TC.JointSignature))
@@ -528,7 +528,7 @@ func (z *ContentProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 					}
 					switch msgp.UnsafeString(field) {
 					case "Round":
-						z.TC.Round, bts, err = msgp.ReadIntBytes(bts)
+						z.TC.Round, bts, err = msgp.ReadInt64Bytes(bts)
 						if err != nil {
 							err = msgp.WrapError(err, "TC", "Round")
 							return
@@ -570,7 +570,7 @@ func (z *ContentProposal) Msgsize() (s int) {
 	if z.TC == nil {
 		s += msgp.NilSize
 	} else {
-		s += 1 + 6 + msgp.IntSize + 15 + msgp.BytesPrefixSize + len([]byte(z.TC.JointSignature))
+		s += 1 + 6 + msgp.Int64Size + 15 + msgp.BytesPrefixSize + len([]byte(z.TC.JointSignature))
 	}
 	return
 }
@@ -697,7 +697,7 @@ func (z *ContentTimeout) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, err = dc.ReadInt()
+			z.Round, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -780,7 +780,7 @@ func (z *ContentTimeout) DecodeMsg(dc *msgp.Reader) (err error) {
 					}
 					switch msgp.UnsafeString(field) {
 					case "Round":
-						z.TC.Round, err = dc.ReadInt()
+						z.TC.Round, err = dc.ReadInt64()
 						if err != nil {
 							err = msgp.WrapError(err, "TC", "Round")
 							return
@@ -823,7 +823,7 @@ func (z *ContentTimeout) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Round)
+	err = en.WriteInt64(z.Round)
 	if err != nil {
 		err = msgp.WrapError(err, "Round")
 		return
@@ -878,7 +878,7 @@ func (z *ContentTimeout) EncodeMsg(en *msgp.Writer) (err error) {
 		if err != nil {
 			return
 		}
-		err = en.WriteInt(z.TC.Round)
+		err = en.WriteInt64(z.TC.Round)
 		if err != nil {
 			err = msgp.WrapError(err, "TC", "Round")
 			return
@@ -903,7 +903,7 @@ func (z *ContentTimeout) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 3
 	// string "Round"
 	o = append(o, 0x83, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.Round)
+	o = msgp.AppendInt64(o, z.Round)
 	// string "HighQC"
 	o = append(o, 0xa6, 0x48, 0x69, 0x67, 0x68, 0x51, 0x43)
 	if z.HighQC == nil {
@@ -929,7 +929,7 @@ func (z *ContentTimeout) MarshalMsg(b []byte) (o []byte, err error) {
 		// map header, size 2
 		// string "Round"
 		o = append(o, 0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-		o = msgp.AppendInt(o, z.TC.Round)
+		o = msgp.AppendInt64(o, z.TC.Round)
 		// string "JointSignature"
 		o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 		o = msgp.AppendBytes(o, []byte(z.TC.JointSignature))
@@ -956,7 +956,7 @@ func (z *ContentTimeout) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, bts, err = msgp.ReadIntBytes(bts)
+			z.Round, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -1037,7 +1037,7 @@ func (z *ContentTimeout) UnmarshalMsg(bts []byte) (o []byte, err error) {
 					}
 					switch msgp.UnsafeString(field) {
 					case "Round":
-						z.TC.Round, bts, err = msgp.ReadIntBytes(bts)
+						z.TC.Round, bts, err = msgp.ReadInt64Bytes(bts)
 						if err != nil {
 							err = msgp.WrapError(err, "TC", "Round")
 							return
@@ -1075,7 +1075,7 @@ func (z *ContentTimeout) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *ContentTimeout) Msgsize() (s int) {
-	s = 1 + 6 + msgp.IntSize + 7
+	s = 1 + 6 + msgp.Int64Size + 7
 	if z.HighQC == nil {
 		s += msgp.NilSize
 	} else {
@@ -1085,7 +1085,7 @@ func (z *ContentTimeout) Msgsize() (s int) {
 	if z.TC == nil {
 		s += msgp.NilSize
 	} else {
-		s += 1 + 6 + msgp.IntSize + 15 + msgp.BytesPrefixSize + len([]byte(z.TC.JointSignature))
+		s += 1 + 6 + msgp.Int64Size + 15 + msgp.BytesPrefixSize + len([]byte(z.TC.JointSignature))
 	}
 	return
 }
@@ -1227,7 +1227,7 @@ func (z *ContentVote) DecodeMsg(dc *msgp.Reader) (err error) {
 					}
 					switch msgp.UnsafeString(field) {
 					case "Round":
-						z.TC.Round, err = dc.ReadInt()
+						z.TC.Round, err = dc.ReadInt64()
 						if err != nil {
 							err = msgp.WrapError(err, "TC", "Round")
 							return
@@ -1347,7 +1347,7 @@ func (z *ContentVote) EncodeMsg(en *msgp.Writer) (err error) {
 		if err != nil {
 			return
 		}
-		err = en.WriteInt(z.TC.Round)
+		err = en.WriteInt64(z.TC.Round)
 		if err != nil {
 			err = msgp.WrapError(err, "TC", "Round")
 			return
@@ -1410,7 +1410,7 @@ func (z *ContentVote) MarshalMsg(b []byte) (o []byte, err error) {
 		// map header, size 2
 		// string "Round"
 		o = append(o, 0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-		o = msgp.AppendInt(o, z.TC.Round)
+		o = msgp.AppendInt64(o, z.TC.Round)
 		// string "JointSignature"
 		o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 		o = msgp.AppendBytes(o, []byte(z.TC.JointSignature))
@@ -1553,7 +1553,7 @@ func (z *ContentVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
 					}
 					switch msgp.UnsafeString(field) {
 					case "Round":
-						z.TC.Round, bts, err = msgp.ReadIntBytes(bts)
+						z.TC.Round, bts, err = msgp.ReadInt64Bytes(bts)
 						if err != nil {
 							err = msgp.WrapError(err, "TC", "Round")
 							return
@@ -1601,7 +1601,7 @@ func (z *ContentVote) Msgsize() (s int) {
 	if z.TC == nil {
 		s += msgp.NilSize
 	} else {
-		s += 1 + 6 + msgp.IntSize + 15 + msgp.BytesPrefixSize + len([]byte(z.TC.JointSignature))
+		s += 1 + 6 + msgp.Int64Size + 15 + msgp.BytesPrefixSize + len([]byte(z.TC.JointSignature))
 	}
 	return
 }
@@ -2227,7 +2227,7 @@ func (z *TC) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, err = dc.ReadInt()
+			z.Round, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -2261,7 +2261,7 @@ func (z *TC) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Round)
+	err = en.WriteInt64(z.Round)
 	if err != nil {
 		err = msgp.WrapError(err, "Round")
 		return
@@ -2285,7 +2285,7 @@ func (z *TC) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 2
 	// string "Round"
 	o = append(o, 0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.Round)
+	o = msgp.AppendInt64(o, z.Round)
 	// string "JointSignature"
 	o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	o = msgp.AppendBytes(o, []byte(z.JointSignature))
@@ -2311,7 +2311,7 @@ func (z *TC) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, bts, err = msgp.ReadIntBytes(bts)
+			z.Round, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -2340,7 +2340,7 @@ func (z *TC) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TC) Msgsize() (s int) {
-	s = 1 + 6 + msgp.IntSize + 15 + msgp.BytesPrefixSize + len([]byte(z.JointSignature))
+	s = 1 + 6 + msgp.Int64Size + 15 + msgp.BytesPrefixSize + len([]byte(z.JointSignature))
 	return
 }
 
@@ -2369,7 +2369,7 @@ func (z *VoteInfo) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "Round":
-			z.Round, err = dc.ReadInt()
+			z.Round, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -2381,7 +2381,7 @@ func (z *VoteInfo) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "ParentRound":
-			z.ParentRound, err = dc.ReadInt()
+			z.ParentRound, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "ParentRound")
 				return
@@ -2393,7 +2393,7 @@ func (z *VoteInfo) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "GrandParentRound":
-			z.GrandParentRound, err = dc.ReadInt()
+			z.GrandParentRound, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "GrandParentRound")
 				return
@@ -2433,7 +2433,7 @@ func (z *VoteInfo) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Round)
+	err = en.WriteInt64(z.Round)
 	if err != nil {
 		err = msgp.WrapError(err, "Round")
 		return
@@ -2453,7 +2453,7 @@ func (z *VoteInfo) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.ParentRound)
+	err = en.WriteInt64(z.ParentRound)
 	if err != nil {
 		err = msgp.WrapError(err, "ParentRound")
 		return
@@ -2473,7 +2473,7 @@ func (z *VoteInfo) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.GrandParentRound)
+	err = en.WriteInt64(z.GrandParentRound)
 	if err != nil {
 		err = msgp.WrapError(err, "GrandParentRound")
 		return
@@ -2500,19 +2500,19 @@ func (z *VoteInfo) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendString(o, z.Id)
 	// string "Round"
 	o = append(o, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.Round)
+	o = msgp.AppendInt64(o, z.Round)
 	// string "ParentId"
 	o = append(o, 0xa8, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x49, 0x64)
 	o = msgp.AppendString(o, z.ParentId)
 	// string "ParentRound"
 	o = append(o, 0xab, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.ParentRound)
+	o = msgp.AppendInt64(o, z.ParentRound)
 	// string "GrandParentId"
 	o = append(o, 0xad, 0x47, 0x72, 0x61, 0x6e, 0x64, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x49, 0x64)
 	o = msgp.AppendString(o, z.GrandParentId)
 	// string "GrandParentRound"
 	o = append(o, 0xb0, 0x47, 0x72, 0x61, 0x6e, 0x64, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.GrandParentRound)
+	o = msgp.AppendInt64(o, z.GrandParentRound)
 	// string "ExecStateId"
 	o = append(o, 0xab, 0x45, 0x78, 0x65, 0x63, 0x53, 0x74, 0x61, 0x74, 0x65, 0x49, 0x64)
 	o = msgp.AppendString(o, z.ExecStateId)
@@ -2544,7 +2544,7 @@ func (z *VoteInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "Round":
-			z.Round, bts, err = msgp.ReadIntBytes(bts)
+			z.Round, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -2556,7 +2556,7 @@ func (z *VoteInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "ParentRound":
-			z.ParentRound, bts, err = msgp.ReadIntBytes(bts)
+			z.ParentRound, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "ParentRound")
 				return
@@ -2568,7 +2568,7 @@ func (z *VoteInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "GrandParentRound":
-			z.GrandParentRound, bts, err = msgp.ReadIntBytes(bts)
+			z.GrandParentRound, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "GrandParentRound")
 				return
@@ -2593,6 +2593,6 @@ func (z *VoteInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *VoteInfo) Msgsize() (s int) {
-	s = 1 + 3 + msgp.StringPrefixSize + len(z.Id) + 6 + msgp.IntSize + 9 + msgp.StringPrefixSize + len(z.ParentId) + 12 + msgp.IntSize + 14 + msgp.StringPrefixSize + len(z.GrandParentId) + 17 + msgp.IntSize + 12 + msgp.StringPrefixSize + len(z.ExecStateId)
+	s = 1 + 3 + msgp.StringPrefixSize + len(z.Id) + 6 + msgp.Int64Size + 9 + msgp.StringPrefixSize + len(z.ParentId) + 12 + msgp.Int64Size + 14 + msgp.StringPrefixSize + len(z.GrandParentId) + 17 + msgp.Int64Size + 12 + msgp.StringPrefixSize + len(z.ExecStateId)
 	return
 }

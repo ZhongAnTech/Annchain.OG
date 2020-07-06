@@ -99,7 +99,7 @@ func (n *Partner) Start() {
 			//}
 
 		case <-n.paceMaker.timer.C:
-			logrus.WithField("round", n.paceMaker.CurrentRound).Warn("timeout")
+			logrus.WithField("round", n.paceMaker.CurrentRound).Warn("packer timeout")
 			n.paceMaker.LocalTimeoutRound()
 		}
 		logrus.Trace("partner loop round end")
@@ -132,9 +132,9 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 		return
 	}
 
-	if msg.SenderId != n.CommitteeProvider.GetLeaderPeerId(currentRound) {
+	if msg.SenderId != n.CommitteeProvider.GetLeader(currentRound).MemberId {
 		n.Logger.WithField("msg.SenderId", msg.SenderId).
-			WithField("current leader", n.CommitteeProvider.GetLeaderPeerId(currentRound)).
+			WithField("current leader", n.CommitteeProvider.GetLeader(currentRound).MemberId).
 			Warn("current leader not match.")
 		return
 	}
@@ -157,7 +157,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	voteMsg := n.safety.MakeVote(p.Proposal.Id, p.Proposal.Round, p.Proposal.ParentQC)
 	if voteMsg != nil {
 		bytes := voteMsg.ToBytes()
-		voteAggregator := n.CommitteeProvider.GetLeaderPeerId(currentRound + 1)
+		voteAggregator := n.CommitteeProvider.GetLeader(currentRound + 1)
 
 		signature, err := n.sign(voteMsg)
 		if err != nil {
@@ -174,7 +174,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 			Msg:            outMsg,
 			SendType:       transport_interface.SendTypeUnicast,
 			CloseAfterSent: false,
-			EndReceivers:   []string{voteAggregator},
+			EndReceivers:   []string{voteAggregator.TransportPeerId},
 		}
 
 		n.notifyNewOutgoingMessage(letter)
@@ -263,7 +263,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 		Msg:            outMsg,
 		SendType:       transport_interface.SendTypeMulticast,
 		CloseAfterSent: false,
-		EndReceivers:   n.CommitteeProvider.GetAllMemberPeedIds(),
+		EndReceivers:   n.CommitteeProvider.GetAllMemberTransportIds(),
 	}
 	n.notifyNewOutgoingMessage(letter)
 }

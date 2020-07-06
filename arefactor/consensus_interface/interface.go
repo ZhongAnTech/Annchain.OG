@@ -9,6 +9,7 @@ type ConsensusAccount interface {
 type CommitteeMember struct {
 	PeerIndex        int              // order of peer in the committee
 	MemberId         string           // peer identifier. current use address
+	TransportPeerId  string           // for transport only. In the future this should not be revealed.
 	ConsensusAccount ConsensusAccount // account public key to verify messages
 }
 
@@ -67,11 +68,12 @@ type ProposalExecutor interface {
 type CommitteeProvider interface {
 	InitCommittee(version int, peers []CommitteeMember, myAccount ConsensusAccount)
 	GetVersion() int
+	GetAllMemberTransportIds() []string
 	GetAllMemberPeedIds() []string
 	GetAllMembers() []CommitteeMember
 	GetMyPeerId() string
 	GetMyPeerIndex() int
-	GetLeaderPeerId(round int64) string
+	GetLeader(round int64) CommitteeMember
 	GetPeerIndex(id string) (index int, err error)
 	GetThreshold() int
 	AmILeader(round int64) bool

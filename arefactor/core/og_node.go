@@ -48,8 +48,8 @@ func (n *OgNode) Setup() {
 	}
 
 	// bls account should be loaded along with the committee number.
-	consensusAccountProvider := &og.BlsConsensusAccountProvider{
-		BackFilePath: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "bls.key")),
+	consensusAccountProvider := &dummy.DummyConsensusAccountProvider{
+		BackFilePath: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "dummy_consensus.key")),
 	}
 
 	// load transport key
@@ -61,6 +61,8 @@ func (n *OgNode) Setup() {
 	// load consensus key
 	ensureConsensusAccountProvider(consensusAccountProvider)
 
+	consensusAccountProvider.Save()
+
 	// ledger implementation
 	ledger := &dummy.IntArrayLedger{}
 	ledger.InitDefault()
@@ -71,7 +73,7 @@ func (n *OgNode) Setup() {
 	committeeProvider := loadLedgerCommittee(ledger, consensusAccountProvider)
 
 	// consensus signer
-	consensusSigner := consensus.BlsSignatureCollector{}
+	//consensusSigner := consensus.BlsSignatureCollector{}
 
 	// low level transport (libp2p)
 	cpTransport := getTransport(n.transportAccountProvider)
@@ -139,15 +141,17 @@ func (n *OgNode) Setup() {
 
 	// event registration
 
-	// message sender
+	// message senders
 	cpOgEngine.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpCommunityManager.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpSyncer.AddSubscriberNewOutgoingMessageEvent(cpTransport)
+	cpConsensusPartner.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 
 	// message receivers
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpOgEngine)
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpCommunityManager)
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpSyncer)
+	cpTransport.AddSubscriberNewIncomingMessageEvent(cpConsensusPartner)
 
 	// peer connected
 	cpTransport.AddSubscriberPeerConnectedEvent(cpCommunityManager)

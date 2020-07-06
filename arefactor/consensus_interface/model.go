@@ -53,7 +53,7 @@ func (b Block) String() string {
 type HotStuffSignedMessage struct {
 	HotStuffMessageType int    // what ContentByte is (one of HotStuffMessageType).
 	ContentBytes        []byte // this Byte will be recovered to implementation of Content interface
-	SenderId            string
+	SenderId            string // member id of the sender
 	Signature           []byte
 }
 

@@ -114,7 +114,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 		Msg:            outMsg,
 		SendType:       transport_interface.SendTypeMulticast,
 		CloseAfterSent: false,
-		EndReceivers:   m.CommitteeProvider.GetAllMemberPeedIds(),
+		EndReceivers:   m.CommitteeProvider.GetAllMemberTransportIds(),
 	}
 	m.notifyNewOutgoingMessage(letter)
 
@@ -168,7 +168,7 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 			Msg:            outMsg,
 			SendType:       transport_interface.SendTypeUnicast,
 			CloseAfterSent: false,
-			EndReceivers:   []string{m.CommitteeProvider.GetLeaderPeerId(m.CurrentRound)},
+			EndReceivers:   []string{m.CommitteeProvider.GetLeader(m.CurrentRound).TransportPeerId},
 		}
 		m.notifyNewOutgoingMessage(letter)
 	}

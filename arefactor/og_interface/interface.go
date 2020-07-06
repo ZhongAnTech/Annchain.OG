@@ -1,6 +1,7 @@
 package og_interface
 
 import (
+	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
@@ -32,6 +33,9 @@ type NewHeightDetectedEvent struct {
 type AccountHolder interface {
 	ProvidePrivateKey(createIfMissing bool) ([]byte, error)
 }
+type LedgerSigner interface {
+	Sign(msg []byte, account OgLedgerAccount) []byte
+}
 
 type NewHeightDetectedEventSubscriber interface {
 	Name() string
@@ -51,4 +55,18 @@ type AddressConverter interface {
 
 type PrivateGenerator interface {
 	GeneratePair(typ int) (privKey crypto.PrivKey, pubKey crypto.PubKey, err error)
+}
+
+type BlockContent interface {
+	GetType() BlockContentType
+	String() string
+	FromString(string)
+	GetHash() Hash
+}
+
+type Ledger interface {
+	CurrentHeight() int64
+	CurrentCommittee() *consensus_interface.Committee
+	GetBlock(height int64) BlockContent
+	AddBlock(height int64, block BlockContent)
 }

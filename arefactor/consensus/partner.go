@@ -17,25 +17,25 @@ Maofan Yin, Dahlia Malkhi, Michael K. Reiter, Guy Golan Gueta and Ittai Abraham
 */
 
 type Partner struct {
-	paceMaker        *PaceMaker
-	safety           *Safety
-	pendingBlockTree *PendingBlockTree
 	//BlockTree        *BlockTree
 	Logger   *logrus.Logger
 	Reporter *soccerdash.Reporter
 
-	ProposalContextProvider  consensus_interface.ProposalContextProvider
 	ProposalGenerator        consensus_interface.ProposalGenerator
 	ProposalVerifier         consensus_interface.ProposalVerifier
-	ProposalExecutor         consensus_interface.ProposalExecutor
 	CommitteeProvider        consensus_interface.CommitteeProvider
-	Signer                   consensus_interface.Signer
+	ConsensusSigner          consensus_interface.ConsensusSigner
 	ConsensusAccountProvider consensus_interface.ConsensusAccountProvider
 	//AccountProvider         og_interface.LedgerAccountProvider
 	Hasher consensus_interface.Hasher
 	Ledger consensus_interface.Ledger
 
-	pendingQCs map[string]consensus_interface.SignatureCollector // collected votes per block indexed by their LedgerInfo hash
+	safety                  *Safety
+	pendingBlockTree        *PendingBlockTree
+	paceMaker               *PaceMaker
+	proposalContextProvider consensus_interface.ProposalContextProvider
+	proposalExecutor        consensus_interface.ProposalExecutor
+	pendingQCs              map[string]consensus_interface.SignatureCollector // collected votes per block indexed by their LedgerInfo hash
 
 	// event handlers
 	myNewIncomingMessageEventChan chan *transport_interface.IncomingLetter
@@ -63,7 +63,7 @@ func (n *Partner) InitDefault() {
 	n.paceMaker = &PaceMaker{
 		CurrentRound:      0,
 		Safety:            n.safety,
-		Signer:            n.Signer,
+		ConsensusSigner:   n.ConsensusSigner,
 		AccountProvider:   n.ConsensusAccountProvider,
 		Ledger:            n.Ledger,
 		CommitteeProvider: n.CommitteeProvider,
@@ -72,6 +72,12 @@ func (n *Partner) InitDefault() {
 	}
 	n.paceMaker.InitDefault()
 
+	n.proposalExecutor = n.pendingBlockTree
+	n.proposalContextProvider = &DefaultProposalContextProvider{
+		PaceMaker:        n.paceMaker,
+		PendingBlockTree: n.pendingBlockTree,
+		Ledger:           n.Ledger,
+	}
 	n.pendingQCs = make(map[string]consensus_interface.SignatureCollector)
 	n.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
 	n.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
@@ -143,8 +149,8 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	// execute the block
 	// TODO: execute the block async
 	//n.BlockTree.ExecuteAndInsert(&p.HotStuffMessageTypeProposal)
-	// TODO: who is ProposalExecutor?
-	n.ProposalExecutor.ExecuteProposal(&p.Proposal)
+	// TODO: who is proposalExecutor?
+	n.proposalExecutor.ExecuteProposal(&p.Proposal)
 
 	// vote after execution
 
@@ -218,7 +224,7 @@ func (t *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature c
 }
 
 func (n *Partner) ProcessCertificates(qc *consensus_interface.QC, tc *consensus_interface.TC, reason string) {
-	n.paceMaker.AdvanceRound(qc, tc, reason+"ProcessCertificates"+strconv.Itoa(n.paceMaker.CurrentRound))
+	n.paceMaker.AdvanceRound(qc, tc, reason+"ProcessCertificates"+strconv.FormatInt(n.paceMaker.CurrentRound, 10))
 	if qc != nil {
 		n.safety.UpdatePreferredRound(qc)
 		if qc.VoteData.ExecStateId != "" {
@@ -234,7 +240,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 		return
 	}
 	//proposal := n.BlockTree.GenerateProposal(n.paceMaker.CurrentRound, strconv.Itoa(RandInt()))
-	proposalContext := n.ProposalContextProvider.GetProposalContext()
+	proposalContext := n.proposalContextProvider.GetProposalContext()
 
 	proposal := n.ProposalGenerator.GenerateProposal(proposalContext)
 	n.Logger.WithField("proposal", proposal).Warn("I'm the current leader")
@@ -328,6 +334,6 @@ func (n *Partner) sign(msg Signable) (signature []byte, err error) {
 		logrus.WithError(err).Warn("account provider cannot provide private key")
 		return
 	}
-	signature = n.Signer.Sign(msg.SignatureTarget(), account.PrivateKey)
+	signature = n.ConsensusSigner.Sign(msg.SignatureTarget(), account)
 	return
 }

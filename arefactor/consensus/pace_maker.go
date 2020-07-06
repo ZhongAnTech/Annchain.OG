@@ -12,10 +12,10 @@ import (
 type PaceMaker struct {
 	Logger *logrus.Logger
 
-	CurrentRound    int
+	CurrentRound    int64
 	Safety          *Safety
 	Partner         *Partner
-	Signer          consensus_interface.Signer
+	ConsensusSigner consensus_interface.ConsensusSigner
 	AccountProvider consensus_interface.ConsensusAccountProvider
 	Ledger          consensus_interface.Ledger
 
@@ -25,7 +25,7 @@ type PaceMaker struct {
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 
 	lastTC     *consensus_interface.TC
-	pendingTCs map[int]consensus_interface.SignatureCollector // round : sender list:true
+	pendingTCs map[int64]consensus_interface.SignatureCollector // round : sender list:true
 
 	timer *time.Timer
 	quit  chan bool
@@ -33,7 +33,7 @@ type PaceMaker struct {
 
 func (m *PaceMaker) InitDefault() {
 	m.quit = make(chan bool)
-	m.pendingTCs = make(map[int]consensus_interface.SignatureCollector)
+	m.pendingTCs = make(map[int64]consensus_interface.SignatureCollector)
 	m.timer = time.NewTimer(time.Second * 2)
 	m.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 
@@ -126,7 +126,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_interface.TC, reason string) {
 	m.Logger.WithField("qc", qc).WithField("tc", tc).WithField("reason", reason).Trace("advancing round")
 
-	latestRound := 0
+	latestRound := int64(0)
 	if qc != nil && latestRound < qc.VoteData.Round {
 		latestRound = qc.VoteData.Round
 	}
@@ -184,7 +184,7 @@ func (m *PaceMaker) MakeTimeoutMessage() *consensus_interface.ContentTimeout {
 	}
 }
 
-func (m *PaceMaker) StopLocalTimer(r int) {
+func (m *PaceMaker) StopLocalTimer(r int64) {
 	if !m.timer.Stop() {
 		logrus.Warn("timer stopped ahead")
 		select {
@@ -195,16 +195,16 @@ func (m *PaceMaker) StopLocalTimer(r int) {
 	logrus.Warn("timer stopped and cleared")
 }
 
-func (m *PaceMaker) GetRoundTimer(round int) time.Duration {
+func (m *PaceMaker) GetRoundTimer(round int64) time.Duration {
 	return time.Second * 10
 }
 
-func (m *PaceMaker) StartLocalTimer(round int, duration time.Duration) {
+func (m *PaceMaker) StartLocalTimer(round int64, duration time.Duration) {
 	logrus.Warn("Starting local timer")
 	m.timer.Reset(duration)
 }
 
-func (m *PaceMaker) ensureTCCollector(round int) consensus_interface.SignatureCollector {
+func (m *PaceMaker) ensureTCCollector(round int64) consensus_interface.SignatureCollector {
 	if _, ok := m.pendingTCs[round]; !ok {
 		collector := &BlsSignatureCollector{
 			CommitteeProvider: m.CommitteeProvider,
@@ -223,6 +223,6 @@ func (m *PaceMaker) sign(msg Signable) (signature []byte, err error) {
 		return
 	}
 
-	signature = m.Signer.Sign(msg.SignatureTarget(), account.PrivateKey)
+	signature = m.ConsensusSigner.Sign(msg.SignatureTarget(), account)
 	return
 }

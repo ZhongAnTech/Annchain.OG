@@ -5,8 +5,7 @@ import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
 )
 
-// BlsCommitteeProvider holds a single round of committee.
-type BlsCommitteeProvider struct {
+type PlainBftCommitteeProvider struct {
 	Version     int
 	myAccount   consensus_interface.ConsensusAccount // bls consensus account
 	memberIds   []string
@@ -15,7 +14,9 @@ type BlsCommitteeProvider struct {
 	memberIdMap map[string]consensus_interface.CommitteeMember
 }
 
-func (b *BlsCommitteeProvider) InitCommittee(version int, peers []consensus_interface.CommitteeMember, myAccount consensus_interface.ConsensusAccount) {
+func (b *PlainBftCommitteeProvider) InitCommittee(version int, peers []consensus_interface.CommitteeMember,
+	myAccount consensus_interface.ConsensusAccount) {
+
 	b.Version = version
 	b.myAccount = myAccount
 	b.memberIds = []string{}
@@ -23,7 +24,7 @@ func (b *BlsCommitteeProvider) InitCommittee(version int, peers []consensus_inte
 	b.memberIdMap = make(map[string]consensus_interface.CommitteeMember)
 	b.myIndex = 0
 	for i, peer := range peers {
-		if b.myIndex == 0 && peer.MemberId == myMemberId {
+		if b.myIndex == 0 && peer.MemberId == myAccount.Id() {
 			b.myIndex = i
 		}
 		b.memberIdMap[peer.MemberId] = peer
@@ -32,11 +33,11 @@ func (b *BlsCommitteeProvider) InitCommittee(version int, peers []consensus_inte
 	}
 }
 
-func (b BlsCommitteeProvider) AmIIn() bool {
+func (b PlainBftCommitteeProvider) AmIIn() bool {
 	return b.myIndex >= 0
 }
 
-func (b BlsCommitteeProvider) IsIn(id string) bool {
+func (b PlainBftCommitteeProvider) IsIn(id string) bool {
 	for _, v := range b.memberIds {
 		if v == id {
 			return true
@@ -45,31 +46,31 @@ func (b BlsCommitteeProvider) IsIn(id string) bool {
 	return false
 }
 
-func (b BlsCommitteeProvider) GetVersion() int {
+func (b PlainBftCommitteeProvider) GetVersion() int {
 	return b.Version
 }
 
-func (b BlsCommitteeProvider) GetAllMemberPeedIds() []string {
+func (b PlainBftCommitteeProvider) GetAllMemberPeedIds() []string {
 	return b.memberIds
 }
 
-func (b *BlsCommitteeProvider) GetAllMembers() []consensus_interface.CommitteeMember {
+func (b *PlainBftCommitteeProvider) GetAllMembers() []consensus_interface.CommitteeMember {
 	return b.members
 }
 
-func (b BlsCommitteeProvider) GetMyPeerId() string {
+func (b PlainBftCommitteeProvider) GetMyPeerId() string {
 	return b.memberIds[b.myIndex]
 }
 
-func (b BlsCommitteeProvider) GetMyPeerIndex() int {
+func (b PlainBftCommitteeProvider) GetMyPeerIndex() int {
 	return b.myIndex
 }
 
-func (b BlsCommitteeProvider) GetLeaderPeerId(round int) string {
-	return b.memberIds[round%len(b.memberIds)]
+func (b PlainBftCommitteeProvider) GetLeaderPeerId(round int64) string {
+	return b.memberIds[round%int64(len(b.memberIds))]
 }
 
-func (b BlsCommitteeProvider) GetPeerIndex(id string) (index int, err error) {
+func (b PlainBftCommitteeProvider) GetPeerIndex(id string) (index int, err error) {
 	if v, ok := b.memberIdMap[id]; ok {
 		index = v.PeerIndex
 	}
@@ -77,11 +78,11 @@ func (b BlsCommitteeProvider) GetPeerIndex(id string) (index int, err error) {
 	return
 }
 
-func (b BlsCommitteeProvider) GetThreshold() int {
+func (b PlainBftCommitteeProvider) GetThreshold() int {
 	return len(b.memberIds) * 2 / 3
 }
 
-func (b BlsCommitteeProvider) AmILeader(round int) bool {
+func (b PlainBftCommitteeProvider) AmILeader(round int64) bool {
 	if !b.AmIIn() {
 		return false
 	}

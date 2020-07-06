@@ -1,17 +1,9 @@
 package consensus_interface
 
-import (
-	"github.com/libp2p/go-libp2p-core/crypto"
-)
-
 // OgLedgerAccount represents a full account of a user.
-type ConsensusAccount struct {
-	PublicKey  crypto.PubKey
-	PrivateKey crypto.PrivKey
-}
-
-func (c *ConsensusAccount) Id() string {
-	return ""
+type ConsensusAccount interface {
+	Id() string
+	//PubKey() crypto.PubKey
 }
 
 type CommitteeMember struct {
@@ -28,6 +20,7 @@ type Committee struct {
 type ProposalContext struct {
 	CurrentRound int64
 	HighQC       *QC
+	TC           *TC
 }
 
 type VerifyResult struct {
@@ -40,14 +33,14 @@ type ExecuteResult struct {
 }
 
 type ConsensusState struct {
-	LastVoteRound  int
-	PreferredRound int
+	LastVoteRound  int64
+	PreferredRound int64
 }
 
 type ConsensusAccountProvider interface {
-	ProvideAccount() (*ConsensusAccount, error)
-	Generate() (account *ConsensusAccount, err error)
-	Load() (account *ConsensusAccount, err error)
+	ProvideAccount() (ConsensusAccount, error)
+	Generate() (account ConsensusAccount, err error)
+	Load() (account ConsensusAccount, err error)
 	Save() (err error)
 }
 
@@ -78,15 +71,15 @@ type CommitteeProvider interface {
 	GetAllMembers() []CommitteeMember
 	GetMyPeerId() string
 	GetMyPeerIndex() int
-	GetLeaderPeerId(round int) string
+	GetLeaderPeerId(round int64) string
 	GetPeerIndex(id string) (index int, err error)
 	GetThreshold() int
-	AmILeader(round int) bool
+	AmILeader(round int64) bool
 	AmIIn() bool
 	IsIn(id string) bool
 }
-type Signer interface {
-	Sign(msg []byte, privateKey crypto.PrivKey) Signature
+type ConsensusSigner interface {
+	Sign(msg []byte, account ConsensusAccount) Signature
 }
 
 type SignatureCollector interface {

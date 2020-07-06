@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
@@ -28,7 +29,7 @@ func (d *DefaultUnknownManager) Enqueue(task og_interface.Unknown) {
 }
 
 type BlockByBlockSyncer struct {
-	Ledger             Ledger
+	Ledger             og_interface.Ledger
 	peerHeights        map[string]int64
 	knownMaxPeerHeight int64
 	unknownManager     og_interface.UnknownManager
@@ -239,7 +240,7 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 			return
 		}
 
-		content := value.(*IntArrayBlockContent)
+		content := value.(*dummy.IntArrayBlockContent)
 
 		messageContent := &message.MessageContentInt{
 			Step:        content.Step,
@@ -288,7 +289,7 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 			err := messageContent.FromBytes(resource.ResourceContent)
 			utilfuncs.PanicIfError(err, "parse content")
 
-			bc := &IntArrayBlockContent{
+			bc := &dummy.IntArrayBlockContent{
 				Step:        messageContent.Step,
 				PreviousSum: messageContent.PreviousSum,
 				MySum:       messageContent.MySum,

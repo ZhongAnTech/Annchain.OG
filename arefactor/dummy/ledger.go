@@ -1,4 +1,4 @@
-package og
+package dummy
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
@@ -20,27 +21,8 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 )
-
-type BlockContentType int
-
-const (
-	BlockContentTypeInt BlockContentType = iota
-)
-
-type BlockContent interface {
-	GetType() BlockContentType
-	String() string
-	FromString(string)
-	GetHash() og_interface.Hash
-}
-
-type Ledger interface {
-	CurrentHeight() int64
-	CurrentCommittee() *consensus_interface.Committee
-	GetBlock(height int64) BlockContent
-	AddBlock(height int64, block BlockContent)
-}
 
 type IntArrayBlockContent struct {
 	Step        int
@@ -53,8 +35,8 @@ func (i *IntArrayBlockContent) FromString(s string) {
 	utilfuncs.PanicIfError(err, "ledger unmarshal")
 }
 
-func (i *IntArrayBlockContent) GetType() BlockContentType {
-	return BlockContentTypeInt
+func (i *IntArrayBlockContent) GetType() og_interface.BlockContentType {
+	return og_interface.BlockContentTypeInt
 }
 
 func (i *IntArrayBlockContent) String() string {
@@ -75,8 +57,8 @@ func (i *IntArrayBlockContent) GetHash() og_interface.Hash {
 
 type IntArrayLedger struct {
 	height         int64
-	genesis        *Genesis
-	blockContents  map[int64]BlockContent // height-content
+	genesis        *og.Genesis
+	blockContents  map[int64]og_interface.BlockContent // height-content
 	highQC         *consensus_interface.QC
 	consensusState *consensus_interface.ConsensusState
 }
@@ -131,12 +113,12 @@ func (d *IntArrayLedger) loadConsensusState() (err error) {
 	return
 }
 
-func (d *IntArrayLedger) AddBlock(height int64, block BlockContent) {
+func (d *IntArrayLedger) AddBlock(height int64, block og_interface.BlockContent) {
 	d.blockContents[height] = block
 	d.height = math.BiggerInt64(height, d.height)
 }
 
-func (d *IntArrayLedger) GetBlock(height int64) BlockContent {
+func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {
 	return d.blockContents[height]
 }
 
@@ -151,7 +133,7 @@ func (d *IntArrayLedger) AddRandomBlock(height int64) {
 }
 
 func (d *IntArrayLedger) InitDefault() {
-	d.blockContents = make(map[int64]BlockContent)
+	d.blockContents = make(map[int64]og_interface.BlockContent)
 }
 
 // StaticSetup supposely will load ledger from disk.
@@ -229,7 +211,7 @@ func (d *IntArrayLedger) LoadConsensusGenesis() (err error) {
 		return
 	}
 
-	gs := &GenesisStore{}
+	gs := &og.GenesisStore{}
 	err = json.Unmarshal(byteContent, gs)
 	if err != nil {
 		return
@@ -253,11 +235,11 @@ func (d *IntArrayLedger) LoadConsensusGenesis() (err error) {
 		peers = append(peers, &consensus_interface.CommitteeMember{
 			PeerIndex: v.PeerIndex,
 			MemberId:  v.MemberId,
-			PublicKey: pubKey,
+			//PublicKey: pubKey,
 		})
 	}
 
-	g := &Genesis{
+	g := &og.Genesis{
 		//RootSequencerHash: hash,
 		FirstCommittee: &consensus_interface.Committee{
 			Peers:   peers,
@@ -270,20 +252,20 @@ func (d *IntArrayLedger) LoadConsensusGenesis() (err error) {
 
 func (d *IntArrayLedger) DumpConsensusGenesis() {
 
-	peers := []CommitteeMemberStore{}
+	peers := []og.CommitteeMemberStore{}
 	for _, v := range d.genesis.FirstCommittee.Peers {
-		pubKeyBytes, err := v.PublicKey.Raw()
-		utilfuncs.PanicIfError(err, "pubkey raw")
-		peers = append(peers, CommitteeMemberStore{
+		//pubKeyBytes, err := v.ConsensusAccount.PublicKey.Raw()
+		//utilfuncs.PanicIfError(err, "pubkey raw")
+		peers = append(peers, og.CommitteeMemberStore{
 			PeerIndex: v.PeerIndex,
 			MemberId:  v.MemberId,
-			PublicKey: hexutil.ToHex(pubKeyBytes),
+			//PublicKey: hexutil.ToHex(pubKeyBytes),
 		})
 	}
 
-	gs := &GenesisStore{
+	gs := &og.GenesisStore{
 		//RootSequencerHash: d.genesis.RootSequencerHash.HashString(),
-		FirstCommittee: CommitteeStore{
+		FirstCommittee: og.CommitteeStore{
 			Version: d.genesis.FirstCommittee.Version,
 			Peers:   peers,
 		},
@@ -379,4 +361,37 @@ func (d *IntArrayLedger) CurrentHeight() int64 {
 func (d *IntArrayLedger) CurrentCommittee() *consensus_interface.Committee {
 	// currently no general election. always return committee in genesis
 	return d.genesis.FirstCommittee
+}
+
+type IntArrayProposalGenerator struct {
+	Ledger *IntArrayLedger
+	rander *rand.Rand
+}
+
+func (i *IntArrayProposalGenerator) InitDefault() {
+	i.rander = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
+func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface.ProposalContext) *consensus_interface.ContentProposal {
+	previousBlock := i.Ledger.blockContents[context.CurrentRound-1].(*IntArrayBlockContent)
+	v := i.rander.Intn(100)
+	newBlock := &IntArrayBlockContent{
+		Step:        v,
+		PreviousSum: previousBlock.MySum,
+		MySum:       previousBlock.MySum + v,
+	}
+	proposal := &consensus_interface.ContentProposal{
+		Proposal: consensus_interface.Block{
+			Round:    context.CurrentRound,
+			Payload:  newBlock.String(),
+			ParentQC: context.HighQC,
+			Id:       newBlock.GetHash().HashString(),
+		},
+		TC: context.TC,
+	}
+	return proposal
+}
+
+func (i IntArrayProposalGenerator) GenerateProposalAsync(context *consensus_interface.ProposalContext) {
+	panic("implement me")
 }

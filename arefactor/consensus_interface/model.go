@@ -38,7 +38,7 @@ func (m HotStuffMessageType) String() string {
 
 //msgp Block
 type Block struct {
-	Round    int    // the round that generated this proposal
+	Round    int64  // the round that generated this proposal
 	Payload  string // proposed transactions
 	ParentQC *QC    // qc for parent block
 	Id       string // unique digest of round, payload and parent_qc.id
@@ -152,7 +152,7 @@ func (z *ContentProposal) SignatureTarget() []byte {
 
 //msgp ContentTimeout
 type ContentTimeout struct {
-	Round  int
+	Round  int64
 	HighQC *QC
 	TC     *TC
 }
@@ -228,7 +228,7 @@ func (q *QC) String() string {
 
 //msgp TC
 type TC struct {
-	Round          int // round of the block
+	Round          int64 // round of the block
 	JointSignature JointSignature
 }
 
@@ -242,11 +242,11 @@ func (t *TC) String() string {
 //msgp VoteInfo
 type VoteInfo struct {
 	Id               string // Id of the block
-	Round            int    // round of the block
+	Round            int64  // round of the block
 	ParentId         string // Id of the parent
-	ParentRound      int    // round of the parent
+	ParentRound      int64  // round of the parent
 	GrandParentId    string // Id of the grandParent
-	GrandParentRound int    // round of the grandParent
+	GrandParentRound int64  // round of the grandParent
 	ExecStateId      string // speculated execution state
 }
 

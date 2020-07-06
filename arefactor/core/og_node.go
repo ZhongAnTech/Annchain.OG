@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/annchain/OG/arefactor/consensus"
+	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/rpc"
@@ -16,7 +17,6 @@ import (
 type OgNode struct {
 	components               []Component
 	transportAccountProvider og.TransportAccountProvider
-	ogAddressConverter       og_interface.AddressConverter
 }
 
 // InitDefault only set necessary data structures.
@@ -29,6 +29,7 @@ func (n *OgNode) Setup() {
 	// load private info
 	privateGenerator := &og.CachedPrivateGenerator{}
 
+	// account management
 	// check if file exists
 	n.transportAccountProvider = &og.LocalTransportAccountProvider{
 		PrivateGenerator:   privateGenerator,
@@ -36,37 +37,41 @@ func (n *OgNode) Setup() {
 		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
 		CryptoType:         transport_interface.CryptoTypeSecp256k1,
 	}
-	// load transport key
-	ensureTransportAccountProvider(n.transportAccountProvider)
 
-	// account management
-	n.ogAddressConverter = &og.OgAddressConverter{}
+	ogAddressConverter := &og.OgAddressConverter{}
 
 	ledgerAccountProvider := &og.LocalLedgerAccountProvider{
 		PrivateGenerator: privateGenerator,
-		AddressConverter: n.ogAddressConverter,
+		AddressConverter: ogAddressConverter,
 		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "account.key")),
 		CryptoType:       og_interface.CryptoTypeSecp256k1,
 	}
 
-	blsAccountProvider := &og.LocalLedgerAccountProvider{
-		PrivateGenerator: privateGenerator,
-		AddressConverter: n.ogAddressConverter,
-		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "bls.key")),
-		CryptoType:       og_interface.CryptoTypeSecp256k1,
+	// bls account should be loaded along with the committee number.
+	consensusAccountProvider := &og.BlsConsensusAccountProvider{
+		BackFilePath: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "bls.key")),
 	}
+
+	// load transport key
+	ensureTransportAccountProvider(n.transportAccountProvider)
 
 	// load account key (for consensus)
 	ensureLedgerAccountProvider(ledgerAccountProvider)
 
+	// load consensus key
+	ensureConsensusAccountProvider(consensusAccountProvider)
+
 	// ledger implementation
-	ledger := &og.IntArrayLedger{}
+	ledger := &dummy.IntArrayLedger{}
 	ledger.InitDefault()
 	ledger.StaticSetup()
 	//ledger.DumpConsensusGenesis()
 
 	// load from ledger
-	blsCommitteeProvider := loadLedgerCommittee(ledger, blsAccountProvider)
+	committeeProvider := loadLedgerCommittee(ledger, consensusAccountProvider)
+
+	// consensus signer
+	consensusSigner := consensus.BlsSignatureCollector{}
 
 	// low level transport (libp2p)
 	cpTransport := getTransport(n.transportAccountProvider)
@@ -82,17 +87,17 @@ func (n *OgNode) Setup() {
 
 	// consensus. Current all peers are Partner
 	cpConsensusPartner := &consensus.Partner{
-		Logger:                  logrus.StandardLogger(),
-		Reporter:                nil,
-		ProposalContextProvider: nil,
-		ProposalGenerator:       nil,
-		ProposalVerifier:        nil,
-		ProposalExecutor:        nil,
-		CommitteeProvider:       blsCommitteeProvider,
-		Signer:                  nil,
-		AccountProvider:         ledgerAccountProvider,
-		Hasher:                  &consensus.SHA256Hasher{},
-		Ledger:                  ledger,
+		Logger:   logrus.StandardLogger(),
+		Reporter: nil,
+		ProposalGenerator: &dummy.IntArrayProposalGenerator{
+			Ledger: ledger,
+		},
+		ProposalVerifier:         &dummy.DummyProposalVerifier{},
+		CommitteeProvider:        committeeProvider,
+		ConsensusSigner:          &dummy.DummyConsensusSigner{}, // should be replaced by bls signer
+		ConsensusAccountProvider: consensusAccountProvider,
+		Hasher:                   &consensus.SHA256Hasher{},
+		Ledger:                   ledger,
 	}
 	cpConsensusPartner.InitDefault()
 

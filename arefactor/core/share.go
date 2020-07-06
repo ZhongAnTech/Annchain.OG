@@ -4,6 +4,7 @@ import (
 	"github.com/annchain/OG/arefactor/committee"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/performance"
@@ -76,6 +77,13 @@ func ensureTransportAccountProvider(accountProvider og.TransportAccountProvider)
 	}
 }
 
+func ensureConsensusAccountProvider(provider consensus_interface.ConsensusAccountProvider) {
+	_, err := provider.ProvideAccount()
+	if err != nil {
+		logrus.WithError(err).Fatal("failed to load consensus account. You must own bls key from discussion first")
+	}
+}
+
 func getTransport(accountProvider og.TransportAccountProvider) *transport.PhysicalCommunicator {
 	account, err := accountProvider.ProvideAccount()
 	if err != nil {
@@ -101,7 +109,7 @@ func getTransport(accountProvider og.TransportAccountProvider) *transport.Physic
 	return p2p
 }
 
-func loadLedgerCommittee(ledger *og.IntArrayLedger, provider *og.LocalLedgerAccountProvider) consensus_interface.CommitteeProvider {
+func loadLedgerCommittee(ledger *dummy.IntArrayLedger, provider *og.BlsConsensusAccountProvider) consensus_interface.CommitteeProvider {
 	ledgerCommittee := ledger.CurrentCommittee()
 	blsCommitteeProvider := &committee.BlsCommitteeProvider{}
 
@@ -114,7 +122,7 @@ func loadLedgerCommittee(ledger *og.IntArrayLedger, provider *og.LocalLedgerAcco
 		members = append(members, *v)
 	}
 
-	blsCommitteeProvider.InitCommittee(ledgerCommittee.Version, members, account.Address.AddressString())
+	blsCommitteeProvider.InitCommittee(ledgerCommittee.Version, members, account)
 
 	return blsCommitteeProvider
 }

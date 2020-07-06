@@ -109,7 +109,7 @@ func getTransport(accountProvider og.TransportAccountProvider) *transport.Physic
 	return p2p
 }
 
-func loadLedgerCommittee(ledger *dummy.IntArrayLedger, provider *og.BlsConsensusAccountProvider) consensus_interface.CommitteeProvider {
+func loadLedgerCommittee(ledger *dummy.IntArrayLedger, provider consensus_interface.ConsensusAccountProvider) consensus_interface.CommitteeProvider {
 	ledgerCommittee := ledger.CurrentCommittee()
 	blsCommitteeProvider := &committee.BlsCommitteeProvider{}
 

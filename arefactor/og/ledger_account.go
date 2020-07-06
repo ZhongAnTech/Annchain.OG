@@ -91,8 +91,8 @@ func (l *LocalLedgerAccountProvider) Save() (err error) {
 	return
 }
 
-func (g *LocalLedgerAccountProvider) Generate() (account *og_interface.OgLedgerAccount, err error) {
-	privKey, pubKey, err := g.PrivateGenerator.GeneratePair(int(g.CryptoType))
+func (l *LocalLedgerAccountProvider) Generate() (account *og_interface.OgLedgerAccount, err error) {
+	privKey, pubKey, err := l.PrivateGenerator.GeneratePair(int(l.CryptoType))
 	if err != nil {
 		return
 	}
@@ -100,12 +100,12 @@ func (g *LocalLedgerAccountProvider) Generate() (account *og_interface.OgLedgerA
 		PublicKey:  pubKey,
 		PrivateKey: privKey,
 	}
-	addr, err := g.AddressConverter.AddressFromAccount(account)
+	addr, err := l.AddressConverter.AddressFromAccount(account)
 	if err != nil {
 		return
 	}
 	account.Address = addr
-	g.account = account
+	l.account = account
 	return
 }
 

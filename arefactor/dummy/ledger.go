@@ -5,14 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/common/files"
-	"github.com/annchain/OG/arefactor/common/hexutil"
 	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/consensus_interface"
-	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/og_interface"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 	"github.com/minio/sha256-simd"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -57,7 +53,7 @@ func (i *IntArrayBlockContent) GetHash() og_interface.Hash {
 
 type IntArrayLedger struct {
 	height         int64
-	genesis        *og.Genesis
+	genesis        *og_interface.Genesis
 	blockContents  map[int64]og_interface.BlockContent // height-content
 	highQC         *consensus_interface.QC
 	consensusState *consensus_interface.ConsensusState
@@ -211,7 +207,7 @@ func (d *IntArrayLedger) LoadConsensusGenesis() (err error) {
 		return
 	}
 
-	gs := &og.GenesisStore{}
+	gs := &og_interface.GenesisStore{}
 	err = json.Unmarshal(byteContent, gs)
 	if err != nil {
 		return
@@ -223,23 +219,23 @@ func (d *IntArrayLedger) LoadConsensusGenesis() (err error) {
 	//utilfuncs.PanicIfError(err, "root seq hash")
 
 	peers := []*consensus_interface.CommitteeMember{}
-	unmarshaller := crypto.PubKeyUnmarshallers[pb.KeyType_Secp256k1]
+	//unmarshaller := crypto.PubKeyUnmarshallers[pb.KeyType_Secp256k1]
 
 	for _, v := range gs.FirstCommittee.Peers {
-		pubKeyBytes, err := hexutil.FromHex(v.PublicKey)
-		utilfuncs.PanicIfError(err, "pubkey")
-
-		pubKey, err := unmarshaller(pubKeyBytes)
-		utilfuncs.PanicIfError(err, "pubkey")
+		//pubKeyBytes, err := hexutil.FromHex(v.PublicKey)
+		//utilfuncs.PanicIfError(err, "pubkey")
+		//pubKey, err := unmarshaller(pubKeyBytes)
+		//utilfuncs.PanicIfError(err, "pubkey")
 
 		peers = append(peers, &consensus_interface.CommitteeMember{
-			PeerIndex: v.PeerIndex,
-			MemberId:  v.MemberId,
-			//PublicKey: pubKey,
+			PeerIndex:        v.PeerIndex,
+			MemberId:         v.MemberId,
+			TransportPeerId:  v.TransportPeerId,
+			ConsensusAccount: nil,
 		})
 	}
 
-	g := &og.Genesis{
+	g := &og_interface.Genesis{
 		//RootSequencerHash: hash,
 		FirstCommittee: &consensus_interface.Committee{
 			Peers:   peers,
@@ -252,20 +248,21 @@ func (d *IntArrayLedger) LoadConsensusGenesis() (err error) {
 
 func (d *IntArrayLedger) DumpConsensusGenesis() {
 
-	peers := []og.CommitteeMemberStore{}
+	peers := []og_interface.CommitteeMemberStore{}
 	for _, v := range d.genesis.FirstCommittee.Peers {
 		//pubKeyBytes, err := v.ConsensusAccount.PublicKey.Raw()
 		//utilfuncs.PanicIfError(err, "pubkey raw")
-		peers = append(peers, og.CommitteeMemberStore{
-			PeerIndex: v.PeerIndex,
-			MemberId:  v.MemberId,
+		peers = append(peers, og_interface.CommitteeMemberStore{
+			PeerIndex:       v.PeerIndex,
+			MemberId:        v.MemberId,
+			TransportPeerId: v.TransportPeerId,
 			//PublicKey: hexutil.ToHex(pubKeyBytes),
 		})
 	}
 
-	gs := &og.GenesisStore{
+	gs := &og_interface.GenesisStore{
 		//RootSequencerHash: d.genesis.RootSequencerHash.HashString(),
-		FirstCommittee: og.CommitteeStore{
+		FirstCommittee: og_interface.CommitteeStore{
 			Version: d.genesis.FirstCommittee.Version,
 			Peers:   peers,
 		},

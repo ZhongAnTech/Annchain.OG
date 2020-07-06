@@ -17,8 +17,8 @@ import (
 	"time"
 )
 
-const SyncCheckIntervalSeconds int = 1 // max check interval for syncing a height
-const MaxTolerantHeightDiff = 0        // syncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxPeerHeight
+const SyncCheckIntervalSeconds int = 10 // max check interval for syncing a height
+const MaxTolerantHeightDiff = 0         // syncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxPeerHeight
 
 type DefaultUnknownManager struct {
 	Unknowns list.List

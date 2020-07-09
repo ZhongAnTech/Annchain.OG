@@ -23,7 +23,6 @@ import (
 	"github.com/annchain/OG/arefactor_core/core/state"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/ogdb"
-	"github.com/annchain/OG/status"
 	evm "github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/annchain/OG/vm/ovm"
 	vmtypes "github.com/annchain/OG/vm/types"
@@ -731,24 +730,6 @@ func (dag *Dag) push(batch *PushBatch) error {
 	dag.latestSequencer = batch.Seq
 
 	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash())
-
-	//// TODO: confirm time is for tps calculation, delete later.
-	//cf := types.ConfirmTime{
-	//	SeqHeight:   batch.Seq.Height,
-	//	TxNum:       uint64(len(txhashes)),
-	//	ConfirmTime: time.Now().Format(time.RFC3339Nano),
-	//}
-	//dag.writeConfirmTime(&cf)
-
-	// send consensus related txs.
-	if len(consTxs) != 0 && dag.OnConsensusTXConfirmed != nil && !status.NodeStopped {
-		log.WithField("txs ", consTxs).Trace("sending consensus txs")
-		go func() {
-			dag.OnConsensusTXConfirmed <- consTxs
-			log.WithField("txs ", consTxs).Trace("sent consensus txs")
-		}()
-	}
-	log.Tracef("successfully update latest seq: %s", batch.Seq.GetTxHash())
 	log.WithField("height", batch.Seq.Height).WithField("txs number ", len(txhashes)).Info("new height")
 
 	return nil

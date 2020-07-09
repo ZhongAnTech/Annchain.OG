@@ -19,7 +19,7 @@ func AppendIMarshallerArray(b []byte, arr []IMarshaller) ([]byte, error) {
 	return append(b, data...), nil
 }
 
-func AppendBytesArray(b []byte, arr [][]byte) ([]byte, error) {
+func AppendBytesArray(b []byte, arr [][]byte) []byte {
 	data := make([]byte, HeaderSize)
 
 	for _, bts := range arr {
@@ -27,11 +27,23 @@ func AppendBytesArray(b []byte, arr [][]byte) ([]byte, error) {
 	}
 	data = FillHeaderDataNum(data, len(arr))
 
-	return append(b, data...), nil
+	return append(b, data...)
 }
 
 func ReadBytesArray(b []byte) ([][]byte, []byte, error) {
+	b, size, err := DecodeHeader(b)
+	if err != nil {
+		return nil, b, err
+	}
 
+	btss := make([][]byte, size)
+	for i := range btss {
+		btss[i], b, err = ReadBytes(b)
+		if err != nil {
+			return nil, b, err
+		}
+	}
+	return btss, b, nil
 }
 
 func MarshalStrArray() {

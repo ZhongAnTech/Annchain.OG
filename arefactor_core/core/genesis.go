@@ -27,7 +27,6 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/math"
 	"github.com/annchain/OG/types/tx_types"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"path/filepath"
 )

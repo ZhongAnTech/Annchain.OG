@@ -5,6 +5,7 @@ import (
 	ogtypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common/math"
+	"math/big"
 )
 
 const (
@@ -146,10 +147,62 @@ func (t *TokenObject) MarshalMsg() ([]byte, error) {
 	// bool ReIssuable
 	b = marshaller.AppendBool(b, t.ReIssuable)
 	// []math.BigInt issues
-	var imArr []marshaller.IMarshaller
+	var btsArr [][]byte
 	for _, bi := range t.Issues {
-		imArr = append(imArr, bi)
+		btsArr = append(btsArr, bi.GetBytes())
 	}
-	marshaller.AppendIMarshallerArray()
+	b = marshaller.AppendBytesArray(b, btsArr)
+	// bool Destroyed
+	b = marshaller.AppendBool(b, t.Destroyed)
 
+	return b, nil
+}
+
+func (t *TokenObject) UnmarshalMsg(b []byte) ([]byte, error) {
+	b, _, err := marshaller.DecodeHeader(b)
+	if err != nil {
+		return nil, err
+	}
+
+	// TokenID
+	t.TokenID, b, err = marshaller.ReadInt32(b)
+	if err != nil {
+		return nil, err
+	}
+	// Name
+	t.Name, b, err = marshaller.ReadString(b)
+	if err != nil {
+		return nil, err
+	}
+	// Symbol
+	t.Symbol, b, err = marshaller.ReadString(b)
+	if err != nil {
+		return nil, err
+	}
+	// Issuer
+	t.Issuer, b, err = ogtypes.UnmarshalAddress(b)
+	if err != nil {
+		return nil, err
+	}
+	// ReIssuable
+	t.ReIssuable, b, err = marshaller.ReadBool(b)
+	if err != nil {
+		return nil, err
+	}
+	// issues
+	btss, b, err := marshaller.ReadBytesArray(b)
+	if err != nil {
+		return nil, err
+	}
+	t.Issues = make([]*math.BigInt, len(btss))
+	for i, bts := range btss {
+		t.Issues[i] = math.NewBigIntFromBigInt(big.NewInt(0).SetBytes(bts))
+	}
+	// Destroyed
+	t.Destroyed, b, err = marshaller.ReadBool(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, err
 }

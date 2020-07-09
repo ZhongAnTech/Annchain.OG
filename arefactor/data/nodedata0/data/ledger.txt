@@ -1,0 +1,1 @@
+0 0547b4cea7218a9ae3d9ee61f7439f45cc84a3a79991a75c14c1a3b2c1db5fa6 {"Step":0,"PreviousSum":0,"MySum":0}

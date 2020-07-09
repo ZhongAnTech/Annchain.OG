@@ -24,24 +24,23 @@ func (z *MessageContentInt) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "Values":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
+		case "Step":
+			z.Step, err = dc.ReadInt()
 			if err != nil {
-				err = msgp.WrapError(err, "Values")
+				err = msgp.WrapError(err, "Step")
 				return
 			}
-			if cap(z.Values) >= int(zb0002) {
-				z.Values = (z.Values)[:zb0002]
-			} else {
-				z.Values = make([]int, zb0002)
+		case "PreviousSum":
+			z.PreviousSum, err = dc.ReadInt()
+			if err != nil {
+				err = msgp.WrapError(err, "PreviousSum")
+				return
 			}
-			for za0001 := range z.Values {
-				z.Values[za0001], err = dc.ReadInt()
-				if err != nil {
-					err = msgp.WrapError(err, "Values", za0001)
-					return
-				}
+		case "MySum":
+			z.MySum, err = dc.ReadInt()
+			if err != nil {
+				err = msgp.WrapError(err, "MySum")
+				return
 			}
 		default:
 			err = dc.Skip()
@@ -55,38 +54,54 @@ func (z *MessageContentInt) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *MessageContentInt) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
-	// write "Values"
-	err = en.Append(0x81, 0xa6, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73)
+func (z MessageContentInt) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 3
+	// write "Step"
+	err = en.Append(0x83, 0xa4, 0x53, 0x74, 0x65, 0x70)
 	if err != nil {
 		return
 	}
-	err = en.WriteArrayHeader(uint32(len(z.Values)))
+	err = en.WriteInt(z.Step)
 	if err != nil {
-		err = msgp.WrapError(err, "Values")
+		err = msgp.WrapError(err, "Step")
 		return
 	}
-	for za0001 := range z.Values {
-		err = en.WriteInt(z.Values[za0001])
-		if err != nil {
-			err = msgp.WrapError(err, "Values", za0001)
-			return
-		}
+	// write "PreviousSum"
+	err = en.Append(0xab, 0x50, 0x72, 0x65, 0x76, 0x69, 0x6f, 0x75, 0x73, 0x53, 0x75, 0x6d)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt(z.PreviousSum)
+	if err != nil {
+		err = msgp.WrapError(err, "PreviousSum")
+		return
+	}
+	// write "MySum"
+	err = en.Append(0xa5, 0x4d, 0x79, 0x53, 0x75, 0x6d)
+	if err != nil {
+		return
+	}
+	err = en.WriteInt(z.MySum)
+	if err != nil {
+		err = msgp.WrapError(err, "MySum")
+		return
 	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *MessageContentInt) MarshalMsg(b []byte) (o []byte, err error) {
+func (z MessageContentInt) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
-	// string "Values"
-	o = append(o, 0x81, 0xa6, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73)
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Values)))
-	for za0001 := range z.Values {
-		o = msgp.AppendInt(o, z.Values[za0001])
-	}
+	// map header, size 3
+	// string "Step"
+	o = append(o, 0x83, 0xa4, 0x53, 0x74, 0x65, 0x70)
+	o = msgp.AppendInt(o, z.Step)
+	// string "PreviousSum"
+	o = append(o, 0xab, 0x50, 0x72, 0x65, 0x76, 0x69, 0x6f, 0x75, 0x73, 0x53, 0x75, 0x6d)
+	o = msgp.AppendInt(o, z.PreviousSum)
+	// string "MySum"
+	o = append(o, 0xa5, 0x4d, 0x79, 0x53, 0x75, 0x6d)
+	o = msgp.AppendInt(o, z.MySum)
 	return
 }
 
@@ -108,24 +123,23 @@ func (z *MessageContentInt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "Values":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+		case "Step":
+			z.Step, bts, err = msgp.ReadIntBytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "Values")
+				err = msgp.WrapError(err, "Step")
 				return
 			}
-			if cap(z.Values) >= int(zb0002) {
-				z.Values = (z.Values)[:zb0002]
-			} else {
-				z.Values = make([]int, zb0002)
+		case "PreviousSum":
+			z.PreviousSum, bts, err = msgp.ReadIntBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "PreviousSum")
+				return
 			}
-			for za0001 := range z.Values {
-				z.Values[za0001], bts, err = msgp.ReadIntBytes(bts)
-				if err != nil {
-					err = msgp.WrapError(err, "Values", za0001)
-					return
-				}
+		case "MySum":
+			z.MySum, bts, err = msgp.ReadIntBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "MySum")
+				return
 			}
 		default:
 			bts, err = msgp.Skip(bts)
@@ -140,8 +154,8 @@ func (z *MessageContentInt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *MessageContentInt) Msgsize() (s int) {
-	s = 1 + 7 + msgp.ArrayHeaderSize + (len(z.Values) * (msgp.IntSize))
+func (z MessageContentInt) Msgsize() (s int) {
+	s = 1 + 5 + msgp.IntSize + 12 + msgp.IntSize + 6 + msgp.IntSize
 	return
 }
 

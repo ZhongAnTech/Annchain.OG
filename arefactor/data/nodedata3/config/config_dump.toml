@@ -1,0 +1,26 @@
+configurl = ""
+genkey = true
+id = 0
+log-file = false
+log-level = "debug"
+log-line-number = false
+log-stdout = true
+multifile_by_level = false
+multifile_by_module = false
+rootdir = "data/nodedata3"
+
+[p2p]
+  network_id = "1"
+  port = 4443
+
+[profiling]
+  port = 8003
+
+[report]
+  address = "127.0.0.1:8080"
+  address_log = "127.0.0.1:8082"
+  buffer_size = 30
+  enable = true
+
+[rpc]
+  port = 4443

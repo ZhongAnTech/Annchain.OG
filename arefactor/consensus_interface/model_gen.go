@@ -25,7 +25,7 @@ func (z *Block) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, err = dc.ReadInt()
+			z.Round, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -48,10 +48,43 @@ func (z *Block) DecodeMsg(dc *msgp.Reader) (err error) {
 				if z.ParentQC == nil {
 					z.ParentQC = new(QC)
 				}
-				err = z.ParentQC.DecodeMsg(dc)
+				var zb0002 uint32
+				zb0002, err = dc.ReadMapHeader()
 				if err != nil {
 					err = msgp.WrapError(err, "ParentQC")
 					return
+				}
+				for zb0002 > 0 {
+					zb0002--
+					field, err = dc.ReadMapKeyPtr()
+					if err != nil {
+						err = msgp.WrapError(err, "ParentQC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "VoteData":
+						err = z.ParentQC.VoteData.DecodeMsg(dc)
+						if err != nil {
+							err = msgp.WrapError(err, "ParentQC", "VoteData")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0003 []byte
+							zb0003, err = dc.ReadBytes([]byte(z.ParentQC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "ParentQC", "JointSignature")
+								return
+							}
+							z.ParentQC.JointSignature = JointSignature(zb0003)
+						}
+					default:
+						err = dc.Skip()
+						if err != nil {
+							err = msgp.WrapError(err, "ParentQC")
+							return
+						}
+					}
 				}
 			}
 		case "Id":
@@ -79,7 +112,7 @@ func (z *Block) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Round)
+	err = en.WriteInt64(z.Round)
 	if err != nil {
 		err = msgp.WrapError(err, "Round")
 		return
@@ -105,9 +138,25 @@ func (z *Block) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	} else {
-		err = z.ParentQC.EncodeMsg(en)
+		// map header, size 2
+		// write "VoteData"
+		err = en.Append(0x82, 0xa8, 0x56, 0x6f, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61)
 		if err != nil {
-			err = msgp.WrapError(err, "ParentQC")
+			return
+		}
+		err = z.ParentQC.VoteData.EncodeMsg(en)
+		if err != nil {
+			err = msgp.WrapError(err, "ParentQC", "VoteData")
+			return
+		}
+		// write "JointSignature"
+		err = en.Append(0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		if err != nil {
+			return
+		}
+		err = en.WriteBytes([]byte(z.ParentQC.JointSignature))
+		if err != nil {
+			err = msgp.WrapError(err, "ParentQC", "JointSignature")
 			return
 		}
 	}
@@ -130,7 +179,7 @@ func (z *Block) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 4
 	// string "Round"
 	o = append(o, 0x84, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.Round)
+	o = msgp.AppendInt64(o, z.Round)
 	// string "Payload"
 	o = append(o, 0xa7, 0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64)
 	o = msgp.AppendString(o, z.Payload)
@@ -139,11 +188,17 @@ func (z *Block) MarshalMsg(b []byte) (o []byte, err error) {
 	if z.ParentQC == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.ParentQC.MarshalMsg(o)
+		// map header, size 2
+		// string "VoteData"
+		o = append(o, 0x82, 0xa8, 0x56, 0x6f, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61)
+		o, err = z.ParentQC.VoteData.MarshalMsg(o)
 		if err != nil {
-			err = msgp.WrapError(err, "ParentQC")
+			err = msgp.WrapError(err, "ParentQC", "VoteData")
 			return
 		}
+		// string "JointSignature"
+		o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		o = msgp.AppendBytes(o, []byte(z.ParentQC.JointSignature))
 	}
 	// string "Id"
 	o = append(o, 0xa2, 0x49, 0x64)
@@ -170,7 +225,7 @@ func (z *Block) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, bts, err = msgp.ReadIntBytes(bts)
+			z.Round, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -192,10 +247,43 @@ func (z *Block) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				if z.ParentQC == nil {
 					z.ParentQC = new(QC)
 				}
-				bts, err = z.ParentQC.UnmarshalMsg(bts)
+				var zb0002 uint32
+				zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "ParentQC")
 					return
+				}
+				for zb0002 > 0 {
+					zb0002--
+					field, bts, err = msgp.ReadMapKeyZC(bts)
+					if err != nil {
+						err = msgp.WrapError(err, "ParentQC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "VoteData":
+						bts, err = z.ParentQC.VoteData.UnmarshalMsg(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "ParentQC", "VoteData")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0003 []byte
+							zb0003, bts, err = msgp.ReadBytesBytes(bts, []byte(z.ParentQC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "ParentQC", "JointSignature")
+								return
+							}
+							z.ParentQC.JointSignature = JointSignature(zb0003)
+						}
+					default:
+						bts, err = msgp.Skip(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "ParentQC")
+							return
+						}
+					}
 				}
 			}
 		case "Id":
@@ -218,11 +306,11 @@ func (z *Block) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Block) Msgsize() (s int) {
-	s = 1 + 6 + msgp.IntSize + 8 + msgp.StringPrefixSize + len(z.Payload) + 9
+	s = 1 + 6 + msgp.Int64Size + 8 + msgp.StringPrefixSize + len(z.Payload) + 9
 	if z.ParentQC == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.ParentQC.Msgsize()
+		s += 1 + 9 + z.ParentQC.VoteData.Msgsize() + 15 + msgp.BytesPrefixSize + len([]byte(z.ParentQC.JointSignature))
 	}
 	s += 3 + msgp.StringPrefixSize + len(z.Id)
 	return
@@ -246,10 +334,10 @@ func (z *ContentProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "HotStuffMessageTypeProposal":
+		case "Proposal":
 			err = z.Proposal.DecodeMsg(dc)
 			if err != nil {
-				err = msgp.WrapError(err, "HotStuffMessageTypeProposal")
+				err = msgp.WrapError(err, "Proposal")
 				return
 			}
 		case "TC":
@@ -279,33 +367,20 @@ func (z *ContentProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 					}
 					switch msgp.UnsafeString(field) {
 					case "Round":
-						z.TC.Round, err = dc.ReadInt()
+						z.TC.Round, err = dc.ReadInt64()
 						if err != nil {
 							err = msgp.WrapError(err, "TC", "Round")
 							return
 						}
-					case "signatures":
-						var zb0003 uint32
-						zb0003, err = dc.ReadArrayHeader()
-						if err != nil {
-							err = msgp.WrapError(err, "TC", "signatures")
-							return
-						}
-						if cap(z.TC.Signatures) >= int(zb0003) {
-							z.TC.Signatures = (z.TC.Signatures)[:zb0003]
-						} else {
-							z.TC.Signatures = make([]Signature, zb0003)
-						}
-						for za0001 := range z.TC.Signatures {
-							{
-								var zb0004 []byte
-								zb0004, err = dc.ReadBytes([]byte(z.TC.Signatures[za0001]))
-								if err != nil {
-									err = msgp.WrapError(err, "TC", "signatures", za0001)
-									return
-								}
-								z.TC.Signatures[za0001] = Signature(zb0004)
+					case "JointSignature":
+						{
+							var zb0003 []byte
+							zb0003, err = dc.ReadBytes([]byte(z.TC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "TC", "JointSignature")
+								return
 							}
+							z.TC.JointSignature = JointSignature(zb0003)
 						}
 					default:
 						err = dc.Skip()
@@ -330,14 +405,14 @@ func (z *ContentProposal) DecodeMsg(dc *msgp.Reader) (err error) {
 // EncodeMsg implements msgp.Encodable
 func (z *ContentProposal) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 2
-	// write "HotStuffMessageTypeProposal"
+	// write "Proposal"
 	err = en.Append(0x82, 0xa8, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c)
 	if err != nil {
 		return
 	}
 	err = z.Proposal.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "HotStuffMessageTypeProposal")
+		err = msgp.WrapError(err, "Proposal")
 		return
 	}
 	// write "TC"
@@ -357,27 +432,20 @@ func (z *ContentProposal) EncodeMsg(en *msgp.Writer) (err error) {
 		if err != nil {
 			return
 		}
-		err = en.WriteInt(z.TC.Round)
+		err = en.WriteInt64(z.TC.Round)
 		if err != nil {
 			err = msgp.WrapError(err, "TC", "Round")
 			return
 		}
-		// write "signatures"
-		err = en.Append(0xaa, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65, 0x73)
+		// write "JointSignature"
+		err = en.Append(0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 		if err != nil {
 			return
 		}
-		err = en.WriteArrayHeader(uint32(len(z.TC.Signatures)))
+		err = en.WriteBytes([]byte(z.TC.JointSignature))
 		if err != nil {
-			err = msgp.WrapError(err, "TC", "signatures")
+			err = msgp.WrapError(err, "TC", "JointSignature")
 			return
-		}
-		for za0001 := range z.TC.Signatures {
-			err = en.WriteBytes([]byte(z.TC.Signatures[za0001]))
-			if err != nil {
-				err = msgp.WrapError(err, "TC", "signatures", za0001)
-				return
-			}
 		}
 	}
 	return
@@ -387,11 +455,11 @@ func (z *ContentProposal) EncodeMsg(en *msgp.Writer) (err error) {
 func (z *ContentProposal) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 2
-	// string "HotStuffMessageTypeProposal"
+	// string "Proposal"
 	o = append(o, 0x82, 0xa8, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c)
 	o, err = z.Proposal.MarshalMsg(o)
 	if err != nil {
-		err = msgp.WrapError(err, "HotStuffMessageTypeProposal")
+		err = msgp.WrapError(err, "Proposal")
 		return
 	}
 	// string "TC"
@@ -402,13 +470,10 @@ func (z *ContentProposal) MarshalMsg(b []byte) (o []byte, err error) {
 		// map header, size 2
 		// string "Round"
 		o = append(o, 0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-		o = msgp.AppendInt(o, z.TC.Round)
-		// string "signatures"
-		o = append(o, 0xaa, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65, 0x73)
-		o = msgp.AppendArrayHeader(o, uint32(len(z.TC.Signatures)))
-		for za0001 := range z.TC.Signatures {
-			o = msgp.AppendBytes(o, []byte(z.TC.Signatures[za0001]))
-		}
+		o = msgp.AppendInt64(o, z.TC.Round)
+		// string "JointSignature"
+		o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		o = msgp.AppendBytes(o, []byte(z.TC.JointSignature))
 	}
 	return
 }
@@ -431,10 +496,10 @@ func (z *ContentProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "HotStuffMessageTypeProposal":
+		case "Proposal":
 			bts, err = z.Proposal.UnmarshalMsg(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "HotStuffMessageTypeProposal")
+				err = msgp.WrapError(err, "Proposal")
 				return
 			}
 		case "TC":
@@ -463,33 +528,20 @@ func (z *ContentProposal) UnmarshalMsg(bts []byte) (o []byte, err error) {
 					}
 					switch msgp.UnsafeString(field) {
 					case "Round":
-						z.TC.Round, bts, err = msgp.ReadIntBytes(bts)
+						z.TC.Round, bts, err = msgp.ReadInt64Bytes(bts)
 						if err != nil {
 							err = msgp.WrapError(err, "TC", "Round")
 							return
 						}
-					case "signatures":
-						var zb0003 uint32
-						zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
-						if err != nil {
-							err = msgp.WrapError(err, "TC", "signatures")
-							return
-						}
-						if cap(z.TC.Signatures) >= int(zb0003) {
-							z.TC.Signatures = (z.TC.Signatures)[:zb0003]
-						} else {
-							z.TC.Signatures = make([]Signature, zb0003)
-						}
-						for za0001 := range z.TC.Signatures {
-							{
-								var zb0004 []byte
-								zb0004, bts, err = msgp.ReadBytesBytes(bts, []byte(z.TC.Signatures[za0001]))
-								if err != nil {
-									err = msgp.WrapError(err, "TC", "signatures", za0001)
-									return
-								}
-								z.TC.Signatures[za0001] = Signature(zb0004)
+					case "JointSignature":
+						{
+							var zb0003 []byte
+							zb0003, bts, err = msgp.ReadBytesBytes(bts, []byte(z.TC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "TC", "JointSignature")
+								return
 							}
+							z.TC.JointSignature = JointSignature(zb0003)
 						}
 					default:
 						bts, err = msgp.Skip(bts)
@@ -518,10 +570,7 @@ func (z *ContentProposal) Msgsize() (s int) {
 	if z.TC == nil {
 		s += msgp.NilSize
 	} else {
-		s += 1 + 6 + msgp.IntSize + 11 + msgp.ArrayHeaderSize
-		for za0001 := range z.TC.Signatures {
-			s += msgp.BytesPrefixSize + len([]byte(z.TC.Signatures[za0001]))
-		}
+		s += 1 + 6 + msgp.Int64Size + 15 + msgp.BytesPrefixSize + len([]byte(z.TC.JointSignature))
 	}
 	return
 }
@@ -648,7 +697,7 @@ func (z *ContentTimeout) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, err = dc.ReadInt()
+			z.Round, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -665,10 +714,43 @@ func (z *ContentTimeout) DecodeMsg(dc *msgp.Reader) (err error) {
 				if z.HighQC == nil {
 					z.HighQC = new(QC)
 				}
-				err = z.HighQC.DecodeMsg(dc)
+				var zb0002 uint32
+				zb0002, err = dc.ReadMapHeader()
 				if err != nil {
 					err = msgp.WrapError(err, "HighQC")
 					return
+				}
+				for zb0002 > 0 {
+					zb0002--
+					field, err = dc.ReadMapKeyPtr()
+					if err != nil {
+						err = msgp.WrapError(err, "HighQC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "VoteData":
+						err = z.HighQC.VoteData.DecodeMsg(dc)
+						if err != nil {
+							err = msgp.WrapError(err, "HighQC", "VoteData")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0003 []byte
+							zb0003, err = dc.ReadBytes([]byte(z.HighQC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "HighQC", "JointSignature")
+								return
+							}
+							z.HighQC.JointSignature = JointSignature(zb0003)
+						}
+					default:
+						err = dc.Skip()
+						if err != nil {
+							err = msgp.WrapError(err, "HighQC")
+							return
+						}
+					}
 				}
 			}
 		case "TC":
@@ -683,10 +765,43 @@ func (z *ContentTimeout) DecodeMsg(dc *msgp.Reader) (err error) {
 				if z.TC == nil {
 					z.TC = new(TC)
 				}
-				err = z.TC.DecodeMsg(dc)
+				var zb0004 uint32
+				zb0004, err = dc.ReadMapHeader()
 				if err != nil {
 					err = msgp.WrapError(err, "TC")
 					return
+				}
+				for zb0004 > 0 {
+					zb0004--
+					field, err = dc.ReadMapKeyPtr()
+					if err != nil {
+						err = msgp.WrapError(err, "TC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "Round":
+						z.TC.Round, err = dc.ReadInt64()
+						if err != nil {
+							err = msgp.WrapError(err, "TC", "Round")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0005 []byte
+							zb0005, err = dc.ReadBytes([]byte(z.TC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "TC", "JointSignature")
+								return
+							}
+							z.TC.JointSignature = JointSignature(zb0005)
+						}
+					default:
+						err = dc.Skip()
+						if err != nil {
+							err = msgp.WrapError(err, "TC")
+							return
+						}
+					}
 				}
 			}
 		default:
@@ -708,7 +823,7 @@ func (z *ContentTimeout) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Round)
+	err = en.WriteInt64(z.Round)
 	if err != nil {
 		err = msgp.WrapError(err, "Round")
 		return
@@ -724,9 +839,25 @@ func (z *ContentTimeout) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	} else {
-		err = z.HighQC.EncodeMsg(en)
+		// map header, size 2
+		// write "VoteData"
+		err = en.Append(0x82, 0xa8, 0x56, 0x6f, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61)
 		if err != nil {
-			err = msgp.WrapError(err, "HighQC")
+			return
+		}
+		err = z.HighQC.VoteData.EncodeMsg(en)
+		if err != nil {
+			err = msgp.WrapError(err, "HighQC", "VoteData")
+			return
+		}
+		// write "JointSignature"
+		err = en.Append(0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		if err != nil {
+			return
+		}
+		err = en.WriteBytes([]byte(z.HighQC.JointSignature))
+		if err != nil {
+			err = msgp.WrapError(err, "HighQC", "JointSignature")
 			return
 		}
 	}
@@ -741,9 +872,25 @@ func (z *ContentTimeout) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	} else {
-		err = z.TC.EncodeMsg(en)
+		// map header, size 2
+		// write "Round"
+		err = en.Append(0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
 		if err != nil {
-			err = msgp.WrapError(err, "TC")
+			return
+		}
+		err = en.WriteInt64(z.TC.Round)
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "Round")
+			return
+		}
+		// write "JointSignature"
+		err = en.Append(0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		if err != nil {
+			return
+		}
+		err = en.WriteBytes([]byte(z.TC.JointSignature))
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "JointSignature")
 			return
 		}
 	}
@@ -756,28 +903,36 @@ func (z *ContentTimeout) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 3
 	// string "Round"
 	o = append(o, 0x83, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.Round)
+	o = msgp.AppendInt64(o, z.Round)
 	// string "HighQC"
 	o = append(o, 0xa6, 0x48, 0x69, 0x67, 0x68, 0x51, 0x43)
 	if z.HighQC == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.HighQC.MarshalMsg(o)
+		// map header, size 2
+		// string "VoteData"
+		o = append(o, 0x82, 0xa8, 0x56, 0x6f, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61)
+		o, err = z.HighQC.VoteData.MarshalMsg(o)
 		if err != nil {
-			err = msgp.WrapError(err, "HighQC")
+			err = msgp.WrapError(err, "HighQC", "VoteData")
 			return
 		}
+		// string "JointSignature"
+		o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		o = msgp.AppendBytes(o, []byte(z.HighQC.JointSignature))
 	}
 	// string "TC"
 	o = append(o, 0xa2, 0x54, 0x43)
 	if z.TC == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.TC.MarshalMsg(o)
-		if err != nil {
-			err = msgp.WrapError(err, "TC")
-			return
-		}
+		// map header, size 2
+		// string "Round"
+		o = append(o, 0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
+		o = msgp.AppendInt64(o, z.TC.Round)
+		// string "JointSignature"
+		o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		o = msgp.AppendBytes(o, []byte(z.TC.JointSignature))
 	}
 	return
 }
@@ -801,7 +956,7 @@ func (z *ContentTimeout) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, bts, err = msgp.ReadIntBytes(bts)
+			z.Round, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -817,10 +972,43 @@ func (z *ContentTimeout) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				if z.HighQC == nil {
 					z.HighQC = new(QC)
 				}
-				bts, err = z.HighQC.UnmarshalMsg(bts)
+				var zb0002 uint32
+				zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "HighQC")
 					return
+				}
+				for zb0002 > 0 {
+					zb0002--
+					field, bts, err = msgp.ReadMapKeyZC(bts)
+					if err != nil {
+						err = msgp.WrapError(err, "HighQC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "VoteData":
+						bts, err = z.HighQC.VoteData.UnmarshalMsg(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "HighQC", "VoteData")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0003 []byte
+							zb0003, bts, err = msgp.ReadBytesBytes(bts, []byte(z.HighQC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "HighQC", "JointSignature")
+								return
+							}
+							z.HighQC.JointSignature = JointSignature(zb0003)
+						}
+					default:
+						bts, err = msgp.Skip(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "HighQC")
+							return
+						}
+					}
 				}
 			}
 		case "TC":
@@ -834,10 +1022,43 @@ func (z *ContentTimeout) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				if z.TC == nil {
 					z.TC = new(TC)
 				}
-				bts, err = z.TC.UnmarshalMsg(bts)
+				var zb0004 uint32
+				zb0004, bts, err = msgp.ReadMapHeaderBytes(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "TC")
 					return
+				}
+				for zb0004 > 0 {
+					zb0004--
+					field, bts, err = msgp.ReadMapKeyZC(bts)
+					if err != nil {
+						err = msgp.WrapError(err, "TC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "Round":
+						z.TC.Round, bts, err = msgp.ReadInt64Bytes(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "TC", "Round")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0005 []byte
+							zb0005, bts, err = msgp.ReadBytesBytes(bts, []byte(z.TC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "TC", "JointSignature")
+								return
+							}
+							z.TC.JointSignature = JointSignature(zb0005)
+						}
+					default:
+						bts, err = msgp.Skip(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "TC")
+							return
+						}
+					}
 				}
 			}
 		default:
@@ -854,17 +1075,17 @@ func (z *ContentTimeout) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *ContentTimeout) Msgsize() (s int) {
-	s = 1 + 6 + msgp.IntSize + 7
+	s = 1 + 6 + msgp.Int64Size + 7
 	if z.HighQC == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.HighQC.Msgsize()
+		s += 1 + 9 + z.HighQC.VoteData.Msgsize() + 15 + msgp.BytesPrefixSize + len([]byte(z.HighQC.JointSignature))
 	}
 	s += 3
 	if z.TC == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.TC.Msgsize()
+		s += 1 + 6 + msgp.Int64Size + 15 + msgp.BytesPrefixSize + len([]byte(z.TC.JointSignature))
 	}
 	return
 }
@@ -940,10 +1161,43 @@ func (z *ContentVote) DecodeMsg(dc *msgp.Reader) (err error) {
 				if z.QC == nil {
 					z.QC = new(QC)
 				}
-				err = z.QC.DecodeMsg(dc)
+				var zb0003 uint32
+				zb0003, err = dc.ReadMapHeader()
 				if err != nil {
 					err = msgp.WrapError(err, "QC")
 					return
+				}
+				for zb0003 > 0 {
+					zb0003--
+					field, err = dc.ReadMapKeyPtr()
+					if err != nil {
+						err = msgp.WrapError(err, "QC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "VoteData":
+						err = z.QC.VoteData.DecodeMsg(dc)
+						if err != nil {
+							err = msgp.WrapError(err, "QC", "VoteData")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0004 []byte
+							zb0004, err = dc.ReadBytes([]byte(z.QC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "QC", "JointSignature")
+								return
+							}
+							z.QC.JointSignature = JointSignature(zb0004)
+						}
+					default:
+						err = dc.Skip()
+						if err != nil {
+							err = msgp.WrapError(err, "QC")
+							return
+						}
+					}
 				}
 			}
 		case "TC":
@@ -958,10 +1212,43 @@ func (z *ContentVote) DecodeMsg(dc *msgp.Reader) (err error) {
 				if z.TC == nil {
 					z.TC = new(TC)
 				}
-				err = z.TC.DecodeMsg(dc)
+				var zb0005 uint32
+				zb0005, err = dc.ReadMapHeader()
 				if err != nil {
 					err = msgp.WrapError(err, "TC")
 					return
+				}
+				for zb0005 > 0 {
+					zb0005--
+					field, err = dc.ReadMapKeyPtr()
+					if err != nil {
+						err = msgp.WrapError(err, "TC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "Round":
+						z.TC.Round, err = dc.ReadInt64()
+						if err != nil {
+							err = msgp.WrapError(err, "TC", "Round")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0006 []byte
+							zb0006, err = dc.ReadBytes([]byte(z.TC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "TC", "JointSignature")
+								return
+							}
+							z.TC.JointSignature = JointSignature(zb0006)
+						}
+					default:
+						err = dc.Skip()
+						if err != nil {
+							err = msgp.WrapError(err, "TC")
+							return
+						}
+					}
 				}
 			}
 		default:
@@ -1021,9 +1308,25 @@ func (z *ContentVote) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	} else {
-		err = z.QC.EncodeMsg(en)
+		// map header, size 2
+		// write "VoteData"
+		err = en.Append(0x82, 0xa8, 0x56, 0x6f, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61)
 		if err != nil {
-			err = msgp.WrapError(err, "QC")
+			return
+		}
+		err = z.QC.VoteData.EncodeMsg(en)
+		if err != nil {
+			err = msgp.WrapError(err, "QC", "VoteData")
+			return
+		}
+		// write "JointSignature"
+		err = en.Append(0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		if err != nil {
+			return
+		}
+		err = en.WriteBytes([]byte(z.QC.JointSignature))
+		if err != nil {
+			err = msgp.WrapError(err, "QC", "JointSignature")
 			return
 		}
 	}
@@ -1038,9 +1341,25 @@ func (z *ContentVote) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	} else {
-		err = z.TC.EncodeMsg(en)
+		// map header, size 2
+		// write "Round"
+		err = en.Append(0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
 		if err != nil {
-			err = msgp.WrapError(err, "TC")
+			return
+		}
+		err = en.WriteInt64(z.TC.Round)
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "Round")
+			return
+		}
+		// write "JointSignature"
+		err = en.Append(0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		if err != nil {
+			return
+		}
+		err = en.WriteBytes([]byte(z.TC.JointSignature))
+		if err != nil {
+			err = msgp.WrapError(err, "TC", "JointSignature")
 			return
 		}
 	}
@@ -1071,22 +1390,30 @@ func (z *ContentVote) MarshalMsg(b []byte) (o []byte, err error) {
 	if z.QC == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.QC.MarshalMsg(o)
+		// map header, size 2
+		// string "VoteData"
+		o = append(o, 0x82, 0xa8, 0x56, 0x6f, 0x74, 0x65, 0x44, 0x61, 0x74, 0x61)
+		o, err = z.QC.VoteData.MarshalMsg(o)
 		if err != nil {
-			err = msgp.WrapError(err, "QC")
+			err = msgp.WrapError(err, "QC", "VoteData")
 			return
 		}
+		// string "JointSignature"
+		o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		o = msgp.AppendBytes(o, []byte(z.QC.JointSignature))
 	}
 	// string "TC"
 	o = append(o, 0xa2, 0x54, 0x43)
 	if z.TC == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o, err = z.TC.MarshalMsg(o)
-		if err != nil {
-			err = msgp.WrapError(err, "TC")
-			return
-		}
+		// map header, size 2
+		// string "Round"
+		o = append(o, 0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
+		o = msgp.AppendInt64(o, z.TC.Round)
+		// string "JointSignature"
+		o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+		o = msgp.AppendBytes(o, []byte(z.TC.JointSignature))
 	}
 	return
 }
@@ -1161,10 +1488,43 @@ func (z *ContentVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				if z.QC == nil {
 					z.QC = new(QC)
 				}
-				bts, err = z.QC.UnmarshalMsg(bts)
+				var zb0003 uint32
+				zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "QC")
 					return
+				}
+				for zb0003 > 0 {
+					zb0003--
+					field, bts, err = msgp.ReadMapKeyZC(bts)
+					if err != nil {
+						err = msgp.WrapError(err, "QC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "VoteData":
+						bts, err = z.QC.VoteData.UnmarshalMsg(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "QC", "VoteData")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0004 []byte
+							zb0004, bts, err = msgp.ReadBytesBytes(bts, []byte(z.QC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "QC", "JointSignature")
+								return
+							}
+							z.QC.JointSignature = JointSignature(zb0004)
+						}
+					default:
+						bts, err = msgp.Skip(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "QC")
+							return
+						}
+					}
 				}
 			}
 		case "TC":
@@ -1178,10 +1538,43 @@ func (z *ContentVote) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				if z.TC == nil {
 					z.TC = new(TC)
 				}
-				bts, err = z.TC.UnmarshalMsg(bts)
+				var zb0005 uint32
+				zb0005, bts, err = msgp.ReadMapHeaderBytes(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "TC")
 					return
+				}
+				for zb0005 > 0 {
+					zb0005--
+					field, bts, err = msgp.ReadMapKeyZC(bts)
+					if err != nil {
+						err = msgp.WrapError(err, "TC")
+						return
+					}
+					switch msgp.UnsafeString(field) {
+					case "Round":
+						z.TC.Round, bts, err = msgp.ReadInt64Bytes(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "TC", "Round")
+							return
+						}
+					case "JointSignature":
+						{
+							var zb0006 []byte
+							zb0006, bts, err = msgp.ReadBytesBytes(bts, []byte(z.TC.JointSignature))
+							if err != nil {
+								err = msgp.WrapError(err, "TC", "JointSignature")
+								return
+							}
+							z.TC.JointSignature = JointSignature(zb0006)
+						}
+					default:
+						bts, err = msgp.Skip(bts)
+						if err != nil {
+							err = msgp.WrapError(err, "TC")
+							return
+						}
+					}
 				}
 			}
 		default:
@@ -1202,13 +1595,13 @@ func (z *ContentVote) Msgsize() (s int) {
 	if z.QC == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.QC.Msgsize()
+		s += 1 + 9 + z.QC.VoteData.Msgsize() + 15 + msgp.BytesPrefixSize + len([]byte(z.QC.JointSignature))
 	}
 	s += 3
 	if z.TC == nil {
 		s += msgp.NilSize
 	} else {
-		s += z.TC.Msgsize()
+		s += 1 + 6 + msgp.Int64Size + 15 + msgp.BytesPrefixSize + len([]byte(z.TC.JointSignature))
 	}
 	return
 }
@@ -1647,28 +2040,15 @@ func (z *QC) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "VoteData")
 				return
 			}
-		case "signatures":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
-			if err != nil {
-				err = msgp.WrapError(err, "signatures")
-				return
-			}
-			if cap(z.Signatures) >= int(zb0002) {
-				z.Signatures = (z.Signatures)[:zb0002]
-			} else {
-				z.Signatures = make([]Signature, zb0002)
-			}
-			for za0001 := range z.Signatures {
-				{
-					var zb0003 []byte
-					zb0003, err = dc.ReadBytes([]byte(z.Signatures[za0001]))
-					if err != nil {
-						err = msgp.WrapError(err, "signatures", za0001)
-						return
-					}
-					z.Signatures[za0001] = Signature(zb0003)
+		case "JointSignature":
+			{
+				var zb0002 []byte
+				zb0002, err = dc.ReadBytes([]byte(z.JointSignature))
+				if err != nil {
+					err = msgp.WrapError(err, "JointSignature")
+					return
 				}
+				z.JointSignature = JointSignature(zb0002)
 			}
 		default:
 			err = dc.Skip()
@@ -1694,22 +2074,15 @@ func (z *QC) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "VoteData")
 		return
 	}
-	// write "signatures"
-	err = en.Append(0xaa, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65, 0x73)
+	// write "JointSignature"
+	err = en.Append(0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteArrayHeader(uint32(len(z.Signatures)))
+	err = en.WriteBytes([]byte(z.JointSignature))
 	if err != nil {
-		err = msgp.WrapError(err, "signatures")
+		err = msgp.WrapError(err, "JointSignature")
 		return
-	}
-	for za0001 := range z.Signatures {
-		err = en.WriteBytes([]byte(z.Signatures[za0001]))
-		if err != nil {
-			err = msgp.WrapError(err, "signatures", za0001)
-			return
-		}
 	}
 	return
 }
@@ -1725,12 +2098,9 @@ func (z *QC) MarshalMsg(b []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "VoteData")
 		return
 	}
-	// string "signatures"
-	o = append(o, 0xaa, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65, 0x73)
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Signatures)))
-	for za0001 := range z.Signatures {
-		o = msgp.AppendBytes(o, []byte(z.Signatures[za0001]))
-	}
+	// string "JointSignature"
+	o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendBytes(o, []byte(z.JointSignature))
 	return
 }
 
@@ -1758,28 +2128,15 @@ func (z *QC) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "VoteData")
 				return
 			}
-		case "signatures":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "signatures")
-				return
-			}
-			if cap(z.Signatures) >= int(zb0002) {
-				z.Signatures = (z.Signatures)[:zb0002]
-			} else {
-				z.Signatures = make([]Signature, zb0002)
-			}
-			for za0001 := range z.Signatures {
-				{
-					var zb0003 []byte
-					zb0003, bts, err = msgp.ReadBytesBytes(bts, []byte(z.Signatures[za0001]))
-					if err != nil {
-						err = msgp.WrapError(err, "signatures", za0001)
-						return
-					}
-					z.Signatures[za0001] = Signature(zb0003)
+		case "JointSignature":
+			{
+				var zb0002 []byte
+				zb0002, bts, err = msgp.ReadBytesBytes(bts, []byte(z.JointSignature))
+				if err != nil {
+					err = msgp.WrapError(err, "JointSignature")
+					return
 				}
+				z.JointSignature = JointSignature(zb0002)
 			}
 		default:
 			bts, err = msgp.Skip(bts)
@@ -1795,10 +2152,7 @@ func (z *QC) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *QC) Msgsize() (s int) {
-	s = 1 + 9 + z.VoteData.Msgsize() + 11 + msgp.ArrayHeaderSize
-	for za0001 := range z.Signatures {
-		s += msgp.BytesPrefixSize + len([]byte(z.Signatures[za0001]))
-	}
+	s = 1 + 9 + z.VoteData.Msgsize() + 15 + msgp.BytesPrefixSize + len([]byte(z.JointSignature))
 	return
 }
 
@@ -1873,33 +2227,20 @@ func (z *TC) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, err = dc.ReadInt()
+			z.Round, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
 			}
-		case "signatures":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
-			if err != nil {
-				err = msgp.WrapError(err, "signatures")
-				return
-			}
-			if cap(z.Signatures) >= int(zb0002) {
-				z.Signatures = (z.Signatures)[:zb0002]
-			} else {
-				z.Signatures = make([]Signature, zb0002)
-			}
-			for za0001 := range z.Signatures {
-				{
-					var zb0003 []byte
-					zb0003, err = dc.ReadBytes([]byte(z.Signatures[za0001]))
-					if err != nil {
-						err = msgp.WrapError(err, "signatures", za0001)
-						return
-					}
-					z.Signatures[za0001] = Signature(zb0003)
+		case "JointSignature":
+			{
+				var zb0002 []byte
+				zb0002, err = dc.ReadBytes([]byte(z.JointSignature))
+				if err != nil {
+					err = msgp.WrapError(err, "JointSignature")
+					return
 				}
+				z.JointSignature = JointSignature(zb0002)
 			}
 		default:
 			err = dc.Skip()
@@ -1920,27 +2261,20 @@ func (z *TC) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Round)
+	err = en.WriteInt64(z.Round)
 	if err != nil {
 		err = msgp.WrapError(err, "Round")
 		return
 	}
-	// write "signatures"
-	err = en.Append(0xaa, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65, 0x73)
+	// write "JointSignature"
+	err = en.Append(0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteArrayHeader(uint32(len(z.Signatures)))
+	err = en.WriteBytes([]byte(z.JointSignature))
 	if err != nil {
-		err = msgp.WrapError(err, "signatures")
+		err = msgp.WrapError(err, "JointSignature")
 		return
-	}
-	for za0001 := range z.Signatures {
-		err = en.WriteBytes([]byte(z.Signatures[za0001]))
-		if err != nil {
-			err = msgp.WrapError(err, "signatures", za0001)
-			return
-		}
 	}
 	return
 }
@@ -1951,13 +2285,10 @@ func (z *TC) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 2
 	// string "Round"
 	o = append(o, 0x82, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.Round)
-	// string "signatures"
-	o = append(o, 0xaa, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65, 0x73)
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Signatures)))
-	for za0001 := range z.Signatures {
-		o = msgp.AppendBytes(o, []byte(z.Signatures[za0001]))
-	}
+	o = msgp.AppendInt64(o, z.Round)
+	// string "JointSignature"
+	o = append(o, 0xae, 0x4a, 0x6f, 0x69, 0x6e, 0x74, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendBytes(o, []byte(z.JointSignature))
 	return
 }
 
@@ -1980,33 +2311,20 @@ func (z *TC) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Round":
-			z.Round, bts, err = msgp.ReadIntBytes(bts)
+			z.Round, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
 			}
-		case "signatures":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "signatures")
-				return
-			}
-			if cap(z.Signatures) >= int(zb0002) {
-				z.Signatures = (z.Signatures)[:zb0002]
-			} else {
-				z.Signatures = make([]Signature, zb0002)
-			}
-			for za0001 := range z.Signatures {
-				{
-					var zb0003 []byte
-					zb0003, bts, err = msgp.ReadBytesBytes(bts, []byte(z.Signatures[za0001]))
-					if err != nil {
-						err = msgp.WrapError(err, "signatures", za0001)
-						return
-					}
-					z.Signatures[za0001] = Signature(zb0003)
+		case "JointSignature":
+			{
+				var zb0002 []byte
+				zb0002, bts, err = msgp.ReadBytesBytes(bts, []byte(z.JointSignature))
+				if err != nil {
+					err = msgp.WrapError(err, "JointSignature")
+					return
 				}
+				z.JointSignature = JointSignature(zb0002)
 			}
 		default:
 			bts, err = msgp.Skip(bts)
@@ -2022,10 +2340,7 @@ func (z *TC) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TC) Msgsize() (s int) {
-	s = 1 + 6 + msgp.IntSize + 11 + msgp.ArrayHeaderSize
-	for za0001 := range z.Signatures {
-		s += msgp.BytesPrefixSize + len([]byte(z.Signatures[za0001]))
-	}
+	s = 1 + 6 + msgp.Int64Size + 15 + msgp.BytesPrefixSize + len([]byte(z.JointSignature))
 	return
 }
 
@@ -2054,7 +2369,7 @@ func (z *VoteInfo) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "Round":
-			z.Round, err = dc.ReadInt()
+			z.Round, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -2066,7 +2381,7 @@ func (z *VoteInfo) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "ParentRound":
-			z.ParentRound, err = dc.ReadInt()
+			z.ParentRound, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "ParentRound")
 				return
@@ -2078,7 +2393,7 @@ func (z *VoteInfo) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "GrandParentRound":
-			z.GrandParentRound, err = dc.ReadInt()
+			z.GrandParentRound, err = dc.ReadInt64()
 			if err != nil {
 				err = msgp.WrapError(err, "GrandParentRound")
 				return
@@ -2118,7 +2433,7 @@ func (z *VoteInfo) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.Round)
+	err = en.WriteInt64(z.Round)
 	if err != nil {
 		err = msgp.WrapError(err, "Round")
 		return
@@ -2138,7 +2453,7 @@ func (z *VoteInfo) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.ParentRound)
+	err = en.WriteInt64(z.ParentRound)
 	if err != nil {
 		err = msgp.WrapError(err, "ParentRound")
 		return
@@ -2158,7 +2473,7 @@ func (z *VoteInfo) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.GrandParentRound)
+	err = en.WriteInt64(z.GrandParentRound)
 	if err != nil {
 		err = msgp.WrapError(err, "GrandParentRound")
 		return
@@ -2185,19 +2500,19 @@ func (z *VoteInfo) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendString(o, z.Id)
 	// string "Round"
 	o = append(o, 0xa5, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.Round)
+	o = msgp.AppendInt64(o, z.Round)
 	// string "ParentId"
 	o = append(o, 0xa8, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x49, 0x64)
 	o = msgp.AppendString(o, z.ParentId)
 	// string "ParentRound"
 	o = append(o, 0xab, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.ParentRound)
+	o = msgp.AppendInt64(o, z.ParentRound)
 	// string "GrandParentId"
 	o = append(o, 0xad, 0x47, 0x72, 0x61, 0x6e, 0x64, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x49, 0x64)
 	o = msgp.AppendString(o, z.GrandParentId)
 	// string "GrandParentRound"
 	o = append(o, 0xb0, 0x47, 0x72, 0x61, 0x6e, 0x64, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x52, 0x6f, 0x75, 0x6e, 0x64)
-	o = msgp.AppendInt(o, z.GrandParentRound)
+	o = msgp.AppendInt64(o, z.GrandParentRound)
 	// string "ExecStateId"
 	o = append(o, 0xab, 0x45, 0x78, 0x65, 0x63, 0x53, 0x74, 0x61, 0x74, 0x65, 0x49, 0x64)
 	o = msgp.AppendString(o, z.ExecStateId)
@@ -2229,7 +2544,7 @@ func (z *VoteInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "Round":
-			z.Round, bts, err = msgp.ReadIntBytes(bts)
+			z.Round, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Round")
 				return
@@ -2241,7 +2556,7 @@ func (z *VoteInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "ParentRound":
-			z.ParentRound, bts, err = msgp.ReadIntBytes(bts)
+			z.ParentRound, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "ParentRound")
 				return
@@ -2253,7 +2568,7 @@ func (z *VoteInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "GrandParentRound":
-			z.GrandParentRound, bts, err = msgp.ReadIntBytes(bts)
+			z.GrandParentRound, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "GrandParentRound")
 				return
@@ -2278,6 +2593,6 @@ func (z *VoteInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *VoteInfo) Msgsize() (s int) {
-	s = 1 + 3 + msgp.StringPrefixSize + len(z.Id) + 6 + msgp.IntSize + 9 + msgp.StringPrefixSize + len(z.ParentId) + 12 + msgp.IntSize + 14 + msgp.StringPrefixSize + len(z.GrandParentId) + 17 + msgp.IntSize + 12 + msgp.StringPrefixSize + len(z.ExecStateId)
+	s = 1 + 3 + msgp.StringPrefixSize + len(z.Id) + 6 + msgp.Int64Size + 9 + msgp.StringPrefixSize + len(z.ParentId) + 12 + msgp.Int64Size + 14 + msgp.StringPrefixSize + len(z.GrandParentId) + 17 + msgp.Int64Size + 12 + msgp.StringPrefixSize + len(z.ExecStateId)
 	return
 }

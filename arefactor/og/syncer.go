@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
@@ -16,8 +17,8 @@ import (
 	"time"
 )
 
-const SyncCheckIntervalSeconds int = 1 // max check interval for syncing a height
-const MaxTolerantHeightDiff = 0        // syncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxPeerHeight
+const SyncCheckIntervalSeconds int = 10 // max check interval for syncing a height
+const MaxTolerantHeightDiff = 0         // syncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxPeerHeight
 
 type DefaultUnknownManager struct {
 	Unknowns list.List
@@ -28,7 +29,7 @@ func (d *DefaultUnknownManager) Enqueue(task og_interface.Unknown) {
 }
 
 type BlockByBlockSyncer struct {
-	Ledger             Ledger
+	Ledger             og_interface.Ledger
 	peerHeights        map[string]int64
 	knownMaxPeerHeight int64
 	unknownManager     og_interface.UnknownManager
@@ -239,10 +240,12 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 			return
 		}
 
-		content := value.(*IntArrayBlockContent)
+		content := value.(*dummy.IntArrayBlockContent)
 
 		messageContent := &message.MessageContentInt{
-			Values: content.Values,
+			Step:        content.Step,
+			PreviousSum: content.PreviousSum,
+			MySum:       content.MySum,
 		}
 
 		// inner data
@@ -286,8 +289,10 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 			err := messageContent.FromBytes(resource.ResourceContent)
 			utilfuncs.PanicIfError(err, "parse content")
 
-			bc := &IntArrayBlockContent{
-				Values: messageContent.Values,
+			bc := &dummy.IntArrayBlockContent{
+				Step:        messageContent.Step,
+				PreviousSum: messageContent.PreviousSum,
+				MySum:       messageContent.MySum,
 			}
 			b.Ledger.AddBlock(m.Height, bc)
 			// TODO: announce event

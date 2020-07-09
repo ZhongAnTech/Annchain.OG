@@ -1,9 +1,8 @@
 package og_interface
 
 import (
-	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"io"
 )
 
 type PeerJoinedEvent struct {
@@ -34,23 +33,40 @@ type NewHeightDetectedEvent struct {
 type AccountHolder interface {
 	ProvidePrivateKey(createIfMissing bool) ([]byte, error)
 }
+type LedgerSigner interface {
+	Sign(msg []byte, account OgLedgerAccount) []byte
+}
 
 type NewHeightDetectedEventSubscriber interface {
 	Name() string
 	NewHeightDetectedEventChannel() chan *NewHeightDetectedEvent
 }
 
-type LedgerAccountHolder interface {
-	ProvideAccount() (*types.OgLedgerAccount, error)
-	Generate(src io.Reader) (account *types.OgLedgerAccount, err error)
-	Load() (account *types.OgLedgerAccount, err error)
+type LedgerAccountProvider interface {
+	ProvideAccount() (*OgLedgerAccount, error)
+	Generate() (account *OgLedgerAccount, err error)
+	Load() (account *OgLedgerAccount, err error)
 	Save() (err error)
 }
 
 type AddressConverter interface {
-	AddressFromAccount(account *types.OgLedgerAccount) (addr Address, err error)
+	AddressFromAccount(account *OgLedgerAccount) (addr Address, err error)
 }
 
 type PrivateGenerator interface {
-	GeneratePair(typ int, src io.Reader) (privKey crypto.PrivKey, pubKey crypto.PubKey, err error)
+	GeneratePair(typ int) (privKey crypto.PrivKey, pubKey crypto.PubKey, err error)
+}
+
+type BlockContent interface {
+	GetType() BlockContentType
+	String() string
+	FromString(string)
+	GetHash() Hash
+}
+
+type Ledger interface {
+	CurrentHeight() int64
+	CurrentCommittee() *consensus_interface.Committee
+	GetBlock(height int64) BlockContent
+	AddBlock(height int64, block BlockContent)
 }

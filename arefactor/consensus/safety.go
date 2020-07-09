@@ -46,7 +46,7 @@ func (s *Safety) UpdatePreferredRound(qc *consensus_interface.QC) {
 	}
 }
 
-func (s *Safety) MakeVote(blockId string, blockRound int, parentQC *consensus_interface.QC) *consensus_interface.ContentVote {
+func (s *Safety) MakeVote(blockId string, blockRound int64, parentQC *consensus_interface.QC) *consensus_interface.ContentVote {
 	// This function exercises both the voting and the commit rules
 	if blockRound < s.consensusState.LastVoteRound || parentQC.VoteData.Round < s.consensusState.PreferredRound {
 		return nil
@@ -80,14 +80,14 @@ func (s *Safety) MakeVote(blockId string, blockRound int, parentQC *consensus_in
 }
 
 // IncreaseLastVoteRound
-func (s *Safety) IncreaseLastVoteRound(targetRound int) {
+func (s *Safety) IncreaseLastVoteRound(targetRound int64) {
 	// commit not to vote in rounds lower than target
 	if s.consensusState.LastVoteRound < targetRound {
 		s.consensusState.LastVoteRound = targetRound
 	}
 }
 
-func (s *Safety) CommitRule(qc *consensus_interface.QC, voteRound int) string {
+func (s *Safety) CommitRule(qc *consensus_interface.QC, voteRound int64) string {
 	// find the committed id in case a qc is formed in the vote round
 	if qc.VoteData.ParentRound+1 == qc.VoteData.Round && qc.VoteData.Round+1 == voteRound {
 		return qc.VoteData.ParentId

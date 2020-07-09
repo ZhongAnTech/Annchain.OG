@@ -34,10 +34,9 @@ var runCmd = &cobra.Command{
 		// init logs and other facilities before the node starts
 		readConfig()
 		startPerformanceMonitor()
-		pid := os.Getpid()
 		writeConfig()
 
-		log.WithField("with id ", pid).Info("OgNode Starting")
+		log.WithField("pid", os.Getpid()).Info("OgNode Starting")
 		node := &core.OgNode{}
 		node.InitDefault()
 		node.Setup()

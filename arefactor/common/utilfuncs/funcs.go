@@ -7,7 +7,7 @@ import (
 
 func PanicIfError(err error, message string) {
 	if err != nil {
-		fmt.Println(message)
+		fmt.Println("panic: " + message)
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}

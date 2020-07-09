@@ -2,15 +2,20 @@ package consensus
 
 import "github.com/annchain/OG/arefactor/consensus_interface"
 
-type DefaultProposalContext struct {
+//func (d DefaultProposalContext) GetHighQC() *consensus_interface.QC {
+//	return d.PendingBlockTree.GetHighQC()
+//}
+
+type DefaultProposalContextProvider struct {
 	PaceMaker        *PaceMaker
 	PendingBlockTree *PendingBlockTree
+	Ledger           consensus_interface.Ledger
 }
 
-func (d DefaultProposalContext) GetCurrentRound() int {
-	return d.PaceMaker.CurrentRound
-}
-
-func (d DefaultProposalContext) GetHighQC() *consensus_interface.QC {
-	return d.PendingBlockTree.GetHighQC()
+func (d DefaultProposalContextProvider) GetProposalContext() *consensus_interface.ProposalContext {
+	return &consensus_interface.ProposalContext{
+		CurrentRound: d.PaceMaker.CurrentRound,
+		HighQC:       d.Ledger.GetHighQC(),
+		TC:           d.PaceMaker.lastTC,
+	}
 }

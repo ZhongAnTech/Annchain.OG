@@ -3,12 +3,10 @@ package og
 import (
 	"encoding/json"
 	"github.com/annchain/OG/arefactor/common/hexutil"
-	"github.com/annchain/OG/arefactor/og/types"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 	"golang.org/x/crypto/sha3"
-	"io"
 	"io/ioutil"
 )
 
@@ -19,30 +17,26 @@ type LedgerAccountLocalStorage struct {
 	Address    string
 }
 
-type LocalLedgerAccountHolder struct {
+type LocalLedgerAccountProvider struct {
 	PrivateGenerator og_interface.PrivateGenerator
 	AddressConverter og_interface.AddressConverter
 	BackFilePath     string
-	CryptoType       types.CryptoType
-	account          *types.OgLedgerAccount
+	CryptoType       og_interface.CryptoType
+	account          *og_interface.OgLedgerAccount
 }
 
-func (l *LocalLedgerAccountHolder) ProvideAccount() (*types.OgLedgerAccount, error) {
+func (l *LocalLedgerAccountProvider) ProvideAccount() (*og_interface.OgLedgerAccount, error) {
 	if l.account == nil {
 		return l.Load()
 	}
 	return l.account, nil
 }
 
-func (l *LocalLedgerAccountHolder) Account() *types.OgLedgerAccount {
-	return l.account
-}
-
-func (l *LocalLedgerAccountHolder) SetAccount(account *types.OgLedgerAccount) {
+func (l *LocalLedgerAccountProvider) SetAccount(account *og_interface.OgLedgerAccount) {
 	l.account = account
 }
 
-func (l *LocalLedgerAccountHolder) Load() (account *types.OgLedgerAccount, err error) {
+func (l *LocalLedgerAccountProvider) Load() (account *og_interface.OgLedgerAccount, err error) {
 	byteContent, err := ioutil.ReadFile(l.BackFilePath)
 	if err != nil {
 		return
@@ -63,7 +57,7 @@ func (l *LocalLedgerAccountHolder) Load() (account *types.OgLedgerAccount, err e
 		return
 	}
 
-	account = &types.OgLedgerAccount{
+	account = &og_interface.OgLedgerAccount{
 		PublicKey:  privKey.GetPublic(),
 		PrivateKey: privKey,
 	}
@@ -72,7 +66,7 @@ func (l *LocalLedgerAccountHolder) Load() (account *types.OgLedgerAccount, err e
 	return
 }
 
-func (l *LocalLedgerAccountHolder) Save() (err error) {
+func (l *LocalLedgerAccountProvider) Save() (err error) {
 	account := l.account
 	pubKeyBytes, err := account.PublicKey.Raw()
 	if err != nil {
@@ -97,28 +91,28 @@ func (l *LocalLedgerAccountHolder) Save() (err error) {
 	return
 }
 
-func (g *LocalLedgerAccountHolder) Generate(src io.Reader) (account *types.OgLedgerAccount, err error) {
-	privKey, pubKey, err := g.PrivateGenerator.GeneratePair(int(g.CryptoType), src)
+func (l *LocalLedgerAccountProvider) Generate() (account *og_interface.OgLedgerAccount, err error) {
+	privKey, pubKey, err := l.PrivateGenerator.GeneratePair(int(l.CryptoType))
 	if err != nil {
 		return
 	}
-	account = &types.OgLedgerAccount{
+	account = &og_interface.OgLedgerAccount{
 		PublicKey:  pubKey,
 		PrivateKey: privKey,
 	}
-	addr, err := g.AddressConverter.AddressFromAccount(account)
+	addr, err := l.AddressConverter.AddressFromAccount(account)
 	if err != nil {
 		return
 	}
 	account.Address = addr
-
+	l.account = account
 	return
 }
 
 type OgAddressConverter struct {
 }
 
-func (o *OgAddressConverter) AddressFromAccount(account *types.OgLedgerAccount) (addr og_interface.Address, err error) {
+func (o *OgAddressConverter) AddressFromAccount(account *og_interface.OgLedgerAccount) (addr og_interface.Address, err error) {
 	byteContent, err := account.PublicKey.Bytes()
 	if err != nil {
 		return

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -9,7 +10,7 @@ import (
 
 type RpcController struct {
 	CpDefaultCommunityManager *og.DefaultCommunityManager
-	Ledger                    *og.IntArrayLedger
+	Ledger                    *dummy.IntArrayLedger
 }
 
 func (rpc *RpcController) NewRouter() *gin.Engine {

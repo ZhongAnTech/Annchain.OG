@@ -1,15 +1,27 @@
 package consensus_interface
 
-import (
-	"github.com/libp2p/go-libp2p-core/crypto"
-)
+// OgLedgerAccount represents a full account of a user.
+type ConsensusAccount interface {
+	Id() string
+	//PubKey() crypto.PubKey
+}
+
+type CommitteeMember struct {
+	PeerIndex        int              // order of peer in the committee
+	MemberId         string           // peer identifier. current use address
+	TransportPeerId  string           // for transport only. In the future this should not be revealed.
+	ConsensusAccount ConsensusAccount // account public key to verify messages
+}
 
 type Committee struct {
+	Peers   []*CommitteeMember
+	Version int
 }
 
 type ProposalContext struct {
 	CurrentRound int64
 	HighQC       *QC
+	TC           *TC
 }
 
 type VerifyResult struct {
@@ -22,8 +34,15 @@ type ExecuteResult struct {
 }
 
 type ConsensusState struct {
-	LastVoteRound  int
-	PreferredRound int
+	LastVoteRound  int64
+	PreferredRound int64
+}
+
+type ConsensusAccountProvider interface {
+	ProvideAccount() (ConsensusAccount, error)
+	Generate() (account ConsensusAccount, err error)
+	Load() (account ConsensusAccount, err error)
+	Save() (err error)
 }
 
 type ProposalContextProvider interface {
@@ -47,17 +66,22 @@ type ProposalExecutor interface {
 }
 
 type CommitteeProvider interface {
-	GetSessionId() int
+	InitCommittee(version int, peers []CommitteeMember, myAccount ConsensusAccount)
+	GetVersion() int
+	GetAllMemberTransportIds() []string
 	GetAllMemberPeedIds() []string
+	GetAllMembers() []CommitteeMember
 	GetMyPeerId() string
 	GetMyPeerIndex() int
-	GetLeaderPeerId(round int) string
+	GetLeader(round int64) CommitteeMember
 	GetPeerIndex(id string) (index int, err error)
 	GetThreshold() int
-	AmILeader(round int) bool
+	AmILeader(round int64) bool
+	AmIIn() bool
+	IsIn(id string) bool
 }
-type Signer interface {
-	Sign(msg []byte, privateKey crypto.PrivKey) Signature
+type ConsensusSigner interface {
+	Sign(msg []byte, account ConsensusAccount) Signature
 }
 
 type SignatureCollector interface {
@@ -78,8 +102,11 @@ type Ledger interface {
 	// Commit commits the pending prefix of the given blockId and prune other branches
 	Commit(blockId string)
 	GetHighQC() *QC
+	SetHighQC(qc *QC)
 	SaveConsensusState(*ConsensusState)
-	LoadConsensusState() *ConsensusState
+	CurrentHeight() int64
+	CurrentCommittee() *Committee
+	//LoadConsensusState() *ConsensusState
 }
 
 type Hasher interface {

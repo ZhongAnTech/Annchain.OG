@@ -13,12 +13,8 @@ type PendingBlockTree struct {
 	Logger         *logrus.Logger
 	cache          map[string]*consensus_interface.Block
 	childRelations map[string][]string
-	highQC         *consensus_interface.QC    // highest known QC
-	Ledger         consensus_interface.Ledger // Ledger should be operated by
-}
-
-func (t *PendingBlockTree) InitFromLedger() {
-	t.EnsureHighQC(t.Ledger.GetHighQC())
+	//highQC         *consensus_interface.QC    // highest known QC
+	Ledger consensus_interface.Ledger // Ledger should be operated by
 }
 
 func (t *PendingBlockTree) ExecuteProposal(block *consensus_interface.Block) {
@@ -67,12 +63,8 @@ func (t *PendingBlockTree) GetBlock(id string) (block *consensus_interface.Block
 	return
 }
 
-func (t *PendingBlockTree) GetHighQC() *consensus_interface.QC {
-	return t.highQC
-}
-
 func (t *PendingBlockTree) EnsureHighQC(qc *consensus_interface.QC) {
-	if qc.VoteData.Round > t.highQC.VoteData.Round {
-		t.highQC = qc
+	if qc.VoteData.Round > t.Ledger.GetHighQC().VoteData.Round {
+		t.Ledger.SetHighQC(qc)
 	}
 }

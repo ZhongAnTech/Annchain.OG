@@ -1,8 +1,12 @@
 package core
 
 import (
+	"github.com/annchain/OG/arefactor/committee"
 	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/sirupsen/logrus"
@@ -33,23 +37,57 @@ func getPerformanceMonitor() *performance.PerformanceMonitor {
 	return pm
 }
 
-func getTransport(accountHolder og.TransportAccountHolder) *transport.PhysicalCommunicator {
-	account, err := accountHolder.ProvideAccount()
+func ensureLedgerAccountProvider(accountProvider og_interface.LedgerAccountProvider) {
+	_, err := accountProvider.ProvideAccount()
+	if err != nil {
+		// ledger account not exists
+		// generate or
+		if !viper.GetBool("genkey") {
+			logrus.WithError(err).Fatal("failed to read ledger key file. You may generate one by specifying --genkey flag")
+		}
+		// generate
+		_, err = accountProvider.Generate()
+		if err != nil {
+			logrus.WithError(err).Fatal("failed to generate ledger account")
+		}
+		err = accountProvider.Save()
+		if err != nil {
+			logrus.WithError(err).Fatal("failed to store ledger account. account may lost after reboot so we quit.")
+		}
+	}
+}
+
+func ensureTransportAccountProvider(accountProvider og.TransportAccountProvider) {
+	_, err := accountProvider.ProvideAccount()
 	if err != nil {
 		// account not exists
 		// generate or
 		if !viper.GetBool("genkey") {
-			logrus.WithError(err).Fatal("failed to read key file. You may generate one by specifying --genkey flag")
+			logrus.WithError(err).Fatal("failed to read transport key file. You may generate one by specifying --genkey flag")
 		}
 		// generate
-		account, err = accountHolder.Generate(nil)
+		_, err = accountProvider.Generate()
 		if err != nil {
 			logrus.WithError(err).Fatal("failed to generate transport account")
 		}
-		err = accountHolder.Save()
+		err = accountProvider.Save()
 		if err != nil {
 			logrus.WithError(err).Fatal("failed to store account. account may lost after reboot so we quit.")
 		}
+	}
+}
+
+func ensureConsensusAccountProvider(provider consensus_interface.ConsensusAccountProvider) {
+	_, err := provider.ProvideAccount()
+	if err != nil {
+		logrus.WithError(err).Fatal("failed to load consensus account. You must own bls key from discussion first")
+	}
+}
+
+func getTransport(accountProvider og.TransportAccountProvider) *transport.PhysicalCommunicator {
+	account, err := accountProvider.ProvideAccount()
+	if err != nil {
+		logrus.WithError(err).Fatal("failed to provide transport account")
 	}
 
 	hostname := utilfuncs.GetHostName()
@@ -69,4 +107,22 @@ func getTransport(accountHolder og.TransportAccountHolder) *transport.PhysicalCo
 	p2p.InitDefault()
 	// load known peers
 	return p2p
+}
+
+func loadLedgerCommittee(ledger *dummy.IntArrayLedger, provider consensus_interface.ConsensusAccountProvider) consensus_interface.CommitteeProvider {
+	ledgerCommittee := ledger.CurrentCommittee()
+	blsCommitteeProvider := &committee.BlsCommitteeProvider{}
+
+	account, err := provider.ProvideAccount()
+	if err != nil {
+		logrus.WithError(err).Fatal("failed to provide ledger account")
+	}
+	var members []consensus_interface.CommitteeMember
+	for _, v := range ledgerCommittee.Peers {
+		members = append(members, *v)
+	}
+
+	blsCommitteeProvider.InitCommittee(ledgerCommittee.Version, members, account)
+
+	return blsCommitteeProvider
 }

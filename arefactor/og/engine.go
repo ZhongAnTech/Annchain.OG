@@ -12,7 +12,7 @@ import (
 const EngineCheckIntervalSeconds = 1
 
 type OgEngine struct {
-	Ledger           Ledger
+	Ledger           og_interface.Ledger
 	CommunityManager CommunityManager
 	NetworkId        string
 	quit             chan bool

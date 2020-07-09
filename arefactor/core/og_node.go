@@ -2,8 +2,9 @@ package core
 
 import (
 	"github.com/annchain/OG/arefactor/consensus"
+	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
-	"github.com/annchain/OG/arefactor/og/types"
+	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/OG/common/io"
@@ -14,8 +15,8 @@ import (
 
 // OgNode is the basic entry point for all modules to start.
 type OgNode struct {
-	components             []Component
-	transportAccountHolder og.TransportAccountHolder
+	components               []Component
+	transportAccountProvider og.TransportAccountProvider
 }
 
 // InitDefault only set necessary data structures.
@@ -26,16 +27,56 @@ func (n *OgNode) InitDefault() {
 
 func (n *OgNode) Setup() {
 	// load private info
+	privateGenerator := &og.CachedPrivateGenerator{}
+
+	// account management
 	// check if file exists
-	n.transportAccountHolder = &og.LocalTransportAccountHolder{
-		PrivateGenerator:   &og.DefaultPrivateGenerator{},
+	n.transportAccountProvider = &og.LocalTransportAccountProvider{
+		PrivateGenerator:   privateGenerator,
 		NetworkIdConverter: &og.OgNetworkIdConverter{},
 		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
 		CryptoType:         transport_interface.CryptoTypeSecp256k1,
 	}
 
+	ogAddressConverter := &og.OgAddressConverter{}
+
+	ledgerAccountProvider := &og.LocalLedgerAccountProvider{
+		PrivateGenerator: privateGenerator,
+		AddressConverter: ogAddressConverter,
+		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "account.key")),
+		CryptoType:       og_interface.CryptoTypeSecp256k1,
+	}
+
+	// bls account should be loaded along with the committee number.
+	consensusAccountProvider := &dummy.DummyConsensusAccountProvider{
+		BackFilePath: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "dummy_consensus.key")),
+	}
+
+	// load transport key
+	ensureTransportAccountProvider(n.transportAccountProvider)
+
+	// load account key (for consensus)
+	ensureLedgerAccountProvider(ledgerAccountProvider)
+
+	// load consensus key
+	ensureConsensusAccountProvider(consensusAccountProvider)
+
+	consensusAccountProvider.Save()
+
+	// ledger implementation
+	ledger := &dummy.IntArrayLedger{}
+	ledger.InitDefault()
+	ledger.StaticSetup()
+	//ledger.DumpConsensusGenesis()
+
+	// load from ledger
+	committeeProvider := loadLedgerCommittee(ledger, consensusAccountProvider)
+
+	// consensus signer
+	//consensusSigner := consensus.BlsSignatureCollector{}
+
 	// low level transport (libp2p)
-	cpTransport := getTransport(n.transportAccountHolder)
+	cpTransport := getTransport(n.transportAccountProvider)
 	cpPerformanceMonitor := getPerformanceMonitor()
 
 	// peer relationship management
@@ -46,34 +87,19 @@ func (n *OgNode) Setup() {
 	cpCommunityManager.InitDefault()
 	cpCommunityManager.StaticSetup()
 
-	// ledger implementation
-	ledger := &og.IntArrayLedger{}
-	ledger.InitDefault()
-	ledger.StaticSetup()
-
-	privateGenerator := &og.DefaultPrivateGenerator{}
-
-	// account management
-	ledgerAccountProvider := &og.LocalLedgerAccountHolder{
-		PrivateGenerator: privateGenerator,
-		AddressConverter: &og.OgAddressConverter{},
-		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "account.key")),
-		CryptoType:       types.CryptoTypeSecp256k1,
-	}
-
 	// consensus. Current all peers are Partner
 	cpConsensusPartner := &consensus.Partner{
-		Logger:                  logrus.StandardLogger(),
-		Reporter:                nil,
-		ProposalContextProvider: nil,
-		ProposalGenerator:       nil,
-		ProposalVerifier:        nil,
-		ProposalExecutor:        nil,
-		CommitteeProvider:       nil,
-		Signer:                  nil,
-		AccountProvider:         ledgerAccountProvider,
-		Hasher:                  &consensus.SHA256Hasher{},
-		Ledger:                  ledger,
+		Logger:   logrus.StandardLogger(),
+		Reporter: nil,
+		ProposalGenerator: &dummy.IntArrayProposalGenerator{
+			Ledger: ledger,
+		},
+		ProposalVerifier:         &dummy.DummyProposalVerifier{},
+		CommitteeProvider:        committeeProvider,
+		ConsensusSigner:          &dummy.DummyConsensusSigner{}, // should be replaced by bls signer
+		ConsensusAccountProvider: consensusAccountProvider,
+		Hasher:                   &consensus.SHA256Hasher{},
+		Ledger:                   ledger,
 	}
 	cpConsensusPartner.InitDefault()
 
@@ -115,15 +141,17 @@ func (n *OgNode) Setup() {
 
 	// event registration
 
-	// message sender
+	// message senders
 	cpOgEngine.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpCommunityManager.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpSyncer.AddSubscriberNewOutgoingMessageEvent(cpTransport)
+	cpConsensusPartner.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 
 	// message receivers
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpOgEngine)
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpCommunityManager)
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpSyncer)
+	cpTransport.AddSubscriberNewIncomingMessageEvent(cpConsensusPartner)
 
 	// peer connected
 	cpTransport.AddSubscriberPeerConnectedEvent(cpCommunityManager)

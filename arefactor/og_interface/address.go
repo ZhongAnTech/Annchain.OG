@@ -2,6 +2,7 @@ package og_interface
 
 import (
 	"fmt"
+	"github.com/annchain/OG/arefactor/common/hexutil"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
 )
 
@@ -9,6 +10,23 @@ const (
 	FlagAddressNone byte = iota
 	FlagAddress20
 )
+
+func AddressFromHex(s string) (Address, error) {
+	bts, err := hexutil.FromHex(s)
+	if err != nil {
+		return nil, err
+	}
+
+	switch len(bts) {
+	case Address20Length:
+		var addr Address20
+		addr.FromBytes(bts)
+
+		return &addr, nil
+	default:
+		return nil, fmt.Errorf("unknown address hex length: %d", len(bts))
+	}
+}
 
 func MarshalAddress(addr Address) ([]byte, error) {
 	return addr.MarshalMsg()

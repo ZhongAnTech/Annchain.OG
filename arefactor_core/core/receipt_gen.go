@@ -75,71 +75,71 @@ func (z *Receipt) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
-func (z *Receipt) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// array header, size 4
-	o = append(o, 0x94)
-	o, err = z.TxHash.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "TxHash")
-		return
-	}
-	o = msgp.AppendUint8(o, uint8(z.Status))
-	o = msgp.AppendString(o, z.ProcessResult)
-	o, err = z.ContractAddress.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "ContractAddress")
-		return
-	}
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *Receipt) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	if zb0001 != 4 {
-		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
-		return
-	}
-	bts, err = z.TxHash.UnmarshalMsg(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "TxHash")
-		return
-	}
-	{
-		var zb0002 uint8
-		zb0002, bts, err = msgp.ReadUint8Bytes(bts)
-		if err != nil {
-			err = msgp.WrapError(err, "Status")
-			return
-		}
-		z.Status = ReceiptStatus(zb0002)
-	}
-	z.ProcessResult, bts, err = msgp.ReadStringBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "ProcessResult")
-		return
-	}
-	bts, err = z.ContractAddress.UnmarshalMsg(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "ContractAddress")
-		return
-	}
-	o = bts
-	return
-}
-
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *Receipt) Msgsize() (s int) {
-	s = 1 + z.TxHash.Msgsize() + msgp.Uint8Size + msgp.StringPrefixSize + len(z.ProcessResult) + z.ContractAddress.Msgsize()
-	return
-}
+//// MarshalMsg implements msgp.Marshaler
+//func (z *Receipt) MarshalMsg(b []byte) (o []byte, err error) {
+//	o = msgp.Require(b, z.Msgsize())
+//	// array header, size 4
+//	o = append(o, 0x94)
+//	o, err = z.TxHash.MarshalMsg(o)
+//	if err != nil {
+//		err = msgp.WrapError(err, "TxHash")
+//		return
+//	}
+//	o = msgp.AppendUint8(o, uint8(z.Status))
+//	o = msgp.AppendString(o, z.ProcessResult)
+//	o, err = z.ContractAddress.MarshalMsg(o)
+//	if err != nil {
+//		err = msgp.WrapError(err, "ContractAddress")
+//		return
+//	}
+//	return
+//}
+//
+//// UnmarshalMsg implements msgp.Unmarshaler
+//func (z *Receipt) UnmarshalMsg(bts []byte) (o []byte, err error) {
+//	var zb0001 uint32
+//	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+//	if err != nil {
+//		err = msgp.WrapError(err)
+//		return
+//	}
+//	if zb0001 != 4 {
+//		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
+//		return
+//	}
+//	bts, err = z.TxHash.UnmarshalMsg(bts)
+//	if err != nil {
+//		err = msgp.WrapError(err, "TxHash")
+//		return
+//	}
+//	{
+//		var zb0002 uint8
+//		zb0002, bts, err = msgp.ReadUint8Bytes(bts)
+//		if err != nil {
+//			err = msgp.WrapError(err, "Status")
+//			return
+//		}
+//		z.Status = ReceiptStatus(zb0002)
+//	}
+//	z.ProcessResult, bts, err = msgp.ReadStringBytes(bts)
+//	if err != nil {
+//		err = msgp.WrapError(err, "ProcessResult")
+//		return
+//	}
+//	bts, err = z.ContractAddress.UnmarshalMsg(bts)
+//	if err != nil {
+//		err = msgp.WrapError(err, "ContractAddress")
+//		return
+//	}
+//	o = bts
+//	return
+//}
+//
+//// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+//func (z *Receipt) Msgsize() (s int) {
+//	s = 1 + z.TxHash.Msgsize() + msgp.Uint8Size + msgp.StringPrefixSize + len(z.ProcessResult) + z.ContractAddress.Msgsize()
+//	return
+//}
 
 // DecodeMsg implements msgp.Decodable
 func (z *ReceiptSet) DecodeMsg(dc *msgp.Reader) (err error) {

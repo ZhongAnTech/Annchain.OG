@@ -147,14 +147,14 @@ func (t *TokenObject) MarshalMsg() ([]byte, error) {
 	// bool ReIssuable
 	b = marshaller.AppendBool(b, t.ReIssuable)
 	// []math.BigInt issues
-	var btsArr [][]byte
+	b = marshaller.AppendHeader(b, len(t.Issues))
 	for _, bi := range t.Issues {
-		btsArr = append(btsArr, bi.GetBytes())
+		b = marshaller.AppendBigInt(b, bi.Value)
 	}
-	b = marshaller.AppendBytesArray(b, btsArr)
 	// bool Destroyed
 	b = marshaller.AppendBool(b, t.Destroyed)
 
+	b = marshaller.FillHeaderData(b)
 	return b, nil
 }
 
@@ -190,14 +190,20 @@ func (t *TokenObject) UnmarshalMsg(b []byte) ([]byte, error) {
 		return nil, err
 	}
 	// issues
-	btss, b, err := marshaller.ReadBytesArray(b)
+	b, sz, err := marshaller.DecodeHeader(b)
 	if err != nil {
 		return nil, err
 	}
-	t.Issues = make([]*math.BigInt, len(btss))
-	for i, bts := range btss {
-		t.Issues[i] = math.NewBigIntFromBigInt(big.NewInt(0).SetBytes(bts))
+	t.Issues = make([]*math.BigInt, sz)
+	for i := range t.Issues {
+		var bi *big.Int
+		bi, b, err = marshaller.ReadBigInt(b)
+		if err != nil {
+			return nil, err
+		}
+		t.Issues[i] = math.NewBigIntFromBigInt(bi)
 	}
+
 	// Destroyed
 	t.Destroyed, b, err = marshaller.ReadBool(b)
 	if err != nil {
@@ -205,4 +211,26 @@ func (t *TokenObject) UnmarshalMsg(b []byte) ([]byte, error) {
 	}
 
 	return b, err
+}
+
+func (t *TokenObject) MsgSize() int {
+	size := 0
+
+	size += marshaller.Int32Size + 								// TokenID
+		marshaller.CalStringSize(t.Name) +						// Name
+		marshaller.CalStringSize(t.Symbol) + 					// Symbol
+		marshaller.CalIMarshallerSize(t.Issuer.MsgSize()) +		// Issuer
+		1														// ReIssuable
+
+	// issues
+	var sz int
+	for _, issue := range t.Issues {
+		sz += marshaller.CalIMarshallerSize(len(issue.Value.Bytes()))
+	}
+	size += marshaller.CalIMarshallerSize(sz)
+
+	// Destroyed
+	size += 1
+
+	return size
 }

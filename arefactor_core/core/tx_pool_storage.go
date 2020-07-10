@@ -1,11 +1,11 @@
 package core
 
 import (
-	"github.com/annchain/OG/common"
+	ogTypes "github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/types"
+	"github.com/annchain/OG/arefactor_core/core/state"
 	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/core/state"
-	"github.com/annchain/OG/types"
-	"github.com/annchain/OG/types/tx_types"
+
 	log "github.com/sirupsen/logrus"
 	"sync"
 )
@@ -60,15 +60,13 @@ func newTxPoolStorage(ledger Ledger) *txPoolStorage {
 	storage.ledger = ledger
 
 	storage.tips = NewTxMap()
-	//storage.badtxs = NewTxMap()
-	//storage.pendings = NewTxMap()
 	storage.flows = NewAccountFlowSet(ledger)
 	storage.txLookup = newTxLookUp()
 
 	return storage
 }
 
-func (s *txPoolStorage) init(genesis *tx_types.Sequencer) {
+func (s *txPoolStorage) init(genesis *types.Sequencer) {
 	genesisEnvelope := newTxEnvelope(TxTypeGenesis, TxStatusTip, genesis, 1)
 	s.txLookup.Add(genesisEnvelope)
 	s.tips.Add(genesis)
@@ -82,27 +80,27 @@ func (s *txPoolStorage) getTxNum() int {
 	return s.txLookup.count()
 }
 
-func (s *txPoolStorage) getTxByHash(hash common.Hash) types.Txi {
+func (s *txPoolStorage) getTxByHash(hash ogTypes.Hash) types.Txi {
 	return s.txLookup.get(hash)
 }
 
-func (s *txPoolStorage) getTxByNonce(addr common.Address, nonce uint64) types.Txi {
+func (s *txPoolStorage) getTxByNonce(addr ogTypes.Address, nonce uint64) types.Txi {
 	return s.flows.GetTxByNonce(addr, nonce)
 }
 
-func (s *txPoolStorage) getTxHashesInOrder() common.Hashes {
+func (s *txPoolStorage) getTxHashesInOrder() []ogTypes.Hash {
 	return s.txLookup.getOrder()
 }
 
-func (s *txPoolStorage) getTxEnvelope(hash common.Hash) *txEnvelope {
+func (s *txPoolStorage) getTxEnvelope(hash ogTypes.Hash) *txEnvelope {
 	return s.txLookup.GetEnvelope(hash)
 }
 
-func (s *txPoolStorage) getLatestNonce(addr common.Address) (uint64, error) {
+func (s *txPoolStorage) getLatestNonce(addr ogTypes.Address) (uint64, error) {
 	return s.flows.GetLatestNonce(addr)
 }
 
-func (s *txPoolStorage) getTxStatusInPool(hash common.Hash) TxStatus {
+func (s *txPoolStorage) getTxStatusInPool(hash ogTypes.Hash) TxStatus {
 	return s.txLookup.status(hash)
 }
 
@@ -110,7 +108,7 @@ func (s *txPoolStorage) getTipsInList() (v []types.Txi) {
 	return s.tips.GetAllValues()
 }
 
-func (s *txPoolStorage) getTipsInMap() map[common.Hash]types.Txi {
+func (s *txPoolStorage) getTipsInMap() map[ogTypes.HashKey]types.Txi {
 	return s.tips.txs
 }
 
@@ -121,7 +119,7 @@ func (s *txPoolStorage) remove(tx types.Txi, removeType hashOrderRemoveType) {
 	s.txLookup.Remove(hash, removeType)
 }
 
-func (s *txPoolStorage) removeMember(hash common.Hash, status TxStatus) {
+func (s *txPoolStorage) removeMember(hash ogTypes.Hash, status TxStatus) {
 	switch status {
 	case TxStatusBadTx:
 		//s.badtxs.Remove(hash)
@@ -160,7 +158,7 @@ func (s *txPoolStorage) addMember(tx types.Txi, status TxStatus) {
 	}
 }
 
-func (s *txPoolStorage) switchTxStatus(hash common.Hash, newStatus TxStatus) {
+func (s *txPoolStorage) switchTxStatus(hash ogTypes.Hash, newStatus TxStatus) {
 	oldStatus := s.getTxStatusInPool(hash)
 	if oldStatus == newStatus || oldStatus == TxStatusNotExist {
 		return
@@ -171,11 +169,11 @@ func (s *txPoolStorage) switchTxStatus(hash common.Hash, newStatus TxStatus) {
 	s.txLookup.switchstatus(hash, newStatus)
 }
 
-func (s *txPoolStorage) flowExists(addr common.Address) bool {
+func (s *txPoolStorage) flowExists(addr ogTypes.Address) bool {
 	return s.flows.Get(addr) == nil
 }
 
-func (s *txPoolStorage) flowReset(addr common.Address) {
+func (s *txPoolStorage) flowReset(addr ogTypes.Address) {
 	s.flows.ResetFlow(addr, state.NewBalanceSet())
 }
 
@@ -190,7 +188,7 @@ func (s *txPoolStorage) tryProcessTx(tx types.Txi) TxQuality {
 	}
 
 	// check if the tx itself has no conflicts with local ledger
-	txNormal := tx.(*tx_types.Tx)
+	txNormal := tx.(*types.Tx)
 	stateFrom := s.flows.GetBalanceState(txNormal.Sender(), txNormal.TokenId)
 	if stateFrom == nil {
 		originBalance := s.ledger.GetBalance(txNormal.Sender(), txNormal.TokenId)
@@ -256,7 +254,8 @@ func (s *txPoolStorage) switchToConfirmBatch(batch *confirmBatch) (txToRejudge [
 	for i := len(batches) - 1; i >= 0; i-- {
 		curBatch = batches[i]
 
-		for addr, detail := range curBatch.details {
+		for addrKey, detail := range curBatch.details {
+			addr, _ := ogTypes.AddressFromAddressKey(addrKey)
 			balanceStates := make(map[int32]*BalanceState)
 
 			for tokenID, blc := range detail.resultBalance {
@@ -284,13 +283,13 @@ func (s *txPoolStorage) switchToConfirmBatch(batch *confirmBatch) (txToRejudge [
 // ----------------------------------------------------
 // TxMap
 type TxMap struct {
-	txs map[common.Hash]types.Txi
+	txs map[ogTypes.HashKey]types.Txi
 	mu  sync.RWMutex
 }
 
 func NewTxMap() *TxMap {
 	tm := &TxMap{
-		txs: make(map[common.Hash]types.Txi),
+		txs: make(map[ogTypes.HashKey]types.Txi),
 	}
 	return tm
 }
@@ -302,18 +301,18 @@ func (tm *TxMap) Count() int {
 	return len(tm.txs)
 }
 
-func (tm *TxMap) Get(hash common.Hash) types.Txi {
+func (tm *TxMap) Get(hash ogTypes.Hash) types.Txi {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	return tm.txs[hash]
+	return tm.txs[hash.HashKey()]
 }
 
-func (tm *TxMap) GetAllKeys() common.Hashes {
+func (tm *TxMap) GetAllKeys() []ogTypes.HashKey {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	var keys common.Hashes
+	var keys []ogTypes.HashKey
 	// slice of keys
 	for k := range tm.txs {
 		keys = append(keys, k)
@@ -337,61 +336,61 @@ func (tm *TxMap) Exists(tx types.Txi) bool {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
-	if _, ok := tm.txs[tx.GetTxHash()]; !ok {
+	if _, ok := tm.txs[tx.GetTxHash().HashKey()]; !ok {
 		return false
 	}
 	return true
 }
-func (tm *TxMap) Remove(hash common.Hash) {
+func (tm *TxMap) Remove(hash ogTypes.Hash) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	delete(tm.txs, hash)
+	delete(tm.txs, hash.HashKey())
 }
 func (tm *TxMap) Add(tx types.Txi) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
-	if _, ok := tm.txs[tx.GetTxHash()]; !ok {
-		tm.txs[tx.GetTxHash()] = tx
+	if _, ok := tm.txs[tx.GetTxHash().HashKey()]; !ok {
+		tm.txs[tx.GetTxHash().HashKey()] = tx
 	}
 }
 
 // ----------------------------------------------------
 // txLookUp
 type txLookUp struct {
-	order common.Hashes
-	txs   map[common.Hash]*txEnvelope
+	order []ogTypes.Hash
+	txs   map[ogTypes.HashKey]*txEnvelope
 	mu    sync.RWMutex
 }
 
 func newTxLookUp() *txLookUp {
 	return &txLookUp{
-		order: common.Hashes{},
-		txs:   make(map[common.Hash]*txEnvelope),
+		order: make([]ogTypes.Hash, 0),
+		txs:   make(map[ogTypes.HashKey]*txEnvelope),
 	}
 }
 
 // Get tx from txLookUp by hash
-func (t *txLookUp) Get(h common.Hash) types.Txi {
+func (t *txLookUp) Get(h ogTypes.Hash) types.Txi {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.get(h)
 }
-func (t *txLookUp) get(h common.Hash) types.Txi {
-	if txEnv := t.txs[h]; txEnv != nil {
+func (t *txLookUp) get(h ogTypes.Hash) types.Txi {
+	if txEnv := t.txs[h.HashKey()]; txEnv != nil {
 		return txEnv.tx
 	}
 	return nil
 }
 
 // GetEnvelope return the entire tx envelope from txLookUp
-func (t *txLookUp) GetEnvelope(h common.Hash) *txEnvelope {
+func (t *txLookUp) GetEnvelope(h ogTypes.Hash) *txEnvelope {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	if txEnv := t.txs[h]; txEnv != nil {
+	if txEnv := t.txs[h.HashKey()]; txEnv != nil {
 		return txEnv
 	}
 	return nil
@@ -405,12 +404,12 @@ func (t *txLookUp) Add(txEnv *txEnvelope) {
 	t.add(txEnv)
 }
 func (t *txLookUp) add(txEnv *txEnvelope) {
-	if _, ok := t.txs[txEnv.tx.GetTxHash()]; ok {
+	if _, ok := t.txs[txEnv.tx.GetTxHash().HashKey()]; ok {
 		return
 	}
 
 	t.order = append(t.order, txEnv.tx.GetTxHash())
-	t.txs[txEnv.tx.GetTxHash()] = txEnv
+	t.txs[txEnv.tx.GetTxHash().HashKey()] = txEnv
 }
 
 type hashOrderRemoveType byte
@@ -422,14 +421,14 @@ const (
 )
 
 // Remove tx from txLookUp
-func (t *txLookUp) Remove(h common.Hash, removeType hashOrderRemoveType) {
+func (t *txLookUp) Remove(h ogTypes.Hash, removeType hashOrderRemoveType) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	t.remove(h, removeType)
 }
 
-func (t *txLookUp) remove(h common.Hash, removeType hashOrderRemoveType) {
+func (t *txLookUp) remove(h ogTypes.Hash, removeType hashOrderRemoveType) {
 	switch removeType {
 	case noRemove:
 		return
@@ -452,18 +451,18 @@ func (t *txLookUp) remove(h common.Hash, removeType hashOrderRemoveType) {
 	default:
 		panic("unknown remove type")
 	}
-	delete(t.txs, h)
+	delete(t.txs, h.HashKey())
 }
 
 // RemoveTx removes tx from txLookUp.txs only, ignore the order.
-func (t *txLookUp) RemoveTxFromMapOnly(h common.Hash) {
+func (t *txLookUp) RemoveTxFromMapOnly(h ogTypes.Hash) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	t.removeTxFromMapOnly(h)
 }
-func (t *txLookUp) removeTxFromMapOnly(h common.Hash) {
-	delete(t.txs, h)
+func (t *txLookUp) removeTxFromMapOnly(h ogTypes.Hash) {
+	delete(t.txs, h.HashKey())
 }
 
 // RemoveByIndex removes a tx by its order index
@@ -480,19 +479,19 @@ func (t *txLookUp) removeByIndex(i int) {
 	}
 	hash := t.order[i]
 	t.order = append(t.order[:i], t.order[i+1:]...)
-	delete(t.txs, hash)
+	delete(t.txs, hash.HashKey())
 }
 
 // Order returns hash list of txs in pool, ordered by the time
 // it added into pool.
-func (t *txLookUp) GetOrder() common.Hashes {
+func (t *txLookUp) GetOrder() []ogTypes.Hash {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.getOrder()
 }
 
-func (t *txLookUp) getOrder() common.Hashes {
+func (t *txLookUp) getOrder() []ogTypes.Hash {
 	return t.order
 }
 
@@ -543,30 +542,30 @@ func (t *txLookUp) stats() (int, int, int) {
 }
 
 // Status returns the status of a tx
-func (t *txLookUp) Status(h common.Hash) TxStatus {
+func (t *txLookUp) Status(h ogTypes.Hash) TxStatus {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
 	return t.status(h)
 }
 
-func (t *txLookUp) status(h common.Hash) TxStatus {
-	if txEnv := t.txs[h]; txEnv != nil {
+func (t *txLookUp) status(h ogTypes.Hash) TxStatus {
+	if txEnv := t.txs[h.HashKey()]; txEnv != nil {
 		return txEnv.status
 	}
 	return TxStatusNotExist
 }
 
 // SwitchStatus switches the tx status
-func (t *txLookUp) SwitchStatus(h common.Hash, status TxStatus) {
+func (t *txLookUp) SwitchStatus(h ogTypes.Hash, status TxStatus) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	t.switchstatus(h, status)
 }
 
-func (t *txLookUp) switchstatus(h common.Hash, status TxStatus) {
-	if txEnv := t.txs[h]; txEnv != nil {
+func (t *txLookUp) switchstatus(h ogTypes.Hash, status TxStatus) {
+	if txEnv := t.txs[h.HashKey()]; txEnv != nil {
 		txEnv.status = status
 	}
 }

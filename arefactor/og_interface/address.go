@@ -28,6 +28,10 @@ func AddressFromHex(s string) (Address, error) {
 	}
 }
 
+func AddressFromAddressKey(key AddressKey) (Address, error) {
+	return AddressFromHex(string(key))
+}
+
 func MarshalAddress(addr Address) ([]byte, error) {
 	return addr.MarshalMsg()
 }

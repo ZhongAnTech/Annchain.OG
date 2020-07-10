@@ -15,32 +15,39 @@ package core
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/account"
-	"github.com/annchain/OG/arefactor/common/hexutil"
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/types"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/common/crypto"
-	"github.com/annchain/OG/common/math"
-	"github.com/annchain/OG/types/tx_types"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/annchain/OG/arefactor/common/hexutil"
+	"github.com/annchain/OG/arefactor/og"
+	ogTypes "github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/types"
+	"github.com/annchain/OG/common/math"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 )
 
 const MaxAccountCount = 255
 
-func DefaultGenesis(genesisPath string) (*types.Sequencer, map[ogTypes.AddressKey]*math.BigInt) {
+var keyType = pb.KeyType_Secp256k1
 
+func DefaultGenesis(genesisPath string) (*types.Sequencer, map[ogTypes.AddressKey]*math.BigInt) {
 	//crypto.SignerSecp256k1{},
 	seq := newUnsignedSequencer(0, 0)
 	seq.GetBase().Signature, _ = hexutil.FromHex("3044022012302bd7c951fcbfef2646d996fa42709a3cc35dfcaf480fa4f0f8782645585d0220424d7102da89f447b28c53aae388acf0ba57008c8048f5e34dc11765b1cab7f6")
 	seq.GetBase().PublicKey, _ = hexutil.FromHex("b3e1b8306e1bab15ed51a4c24b086550677ba99cd62835965316a36419e8f59ce6a232892182da7401a329066e8fe2af607287139e637d314bf0d61cb9d1c7ee")
-	issuer := crypto.Signer.Address(crypto.Signer.PublicKeyFromBytes(seq.GetBase().PublicKey))
-	seq.Issuer = &issuer
+
+	pubUnmarshaller := crypto.PubKeyUnmarshallers[keyType]
+	pub, _ := pubUnmarshaller(seq.GetBase().PublicKey)
+	ledgerAccount := &ogTypes.OgLedgerAccount{
+		PublicKey: pub,
+	}
+
+	issuer, _ := og.OgAddressConverter{}.AddressFromAccount(ledgerAccount)
+	seq.Issuer = issuer
 	hash := seq.CalcTxHash()
 	seq.SetHash(hash)
 
@@ -55,11 +62,11 @@ func DefaultGenesis(genesisPath string) (*types.Sequencer, map[ogTypes.AddressKe
 		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Address)
 		binary.Write(&buf, binary.BigEndian, accounts.Accounts[i].Balance)
 	}
-	h := sha256.New()
-	h.Write(buf.Bytes())
-	sum := h.Sum(nil)
-	hash.MustSetBytes(sum, common.PaddingNone)
-	seq.SetHash(hash)
+	//h := sha256.New()
+	//h.Write(buf.Bytes())
+	//sum := h.Sum(nil)
+	//hash.MustSetBytes(sum, common.PaddingNone)
+	//seq.SetHash(hash)
 
 	return seq, balance
 }
@@ -89,7 +96,7 @@ func GetGenesisAccounts(genesisPath string) *GenesisAccounts {
 		panic(err)
 	}
 	for i := 0; i < len(accounts.Accounts); i++ {
-		addr, err := common.StringToAddress(accounts.Accounts[i].Address)
+		addr, err := ogTypes.AddressFromHex(accounts.Accounts[i].Address)
 		if err != nil {
 			panic(err)
 		}

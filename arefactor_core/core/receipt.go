@@ -16,6 +16,7 @@ package core
 import (
 	"fmt"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/utils/marshaller"
 )
 
 type ReceiptStatus uint8
@@ -55,6 +56,54 @@ func (r *Receipt) ToJsonMap() map[string]interface{} {
 
 	return jm
 }
+
+/**
+marshalling part
+ */
+
+func (r *Receipt) MarshalMsg() ([]byte, error) {
+	var err error
+	b := make([]byte, marshaller.HeaderSize)
+
+	// Hash TxHash
+	b, err = marshaller.AppendIMarshaller(b, r.TxHash)
+	if err != nil {
+		return nil, err
+	}
+	// uint8 Status
+	b = append(b, byte(r.Status))
+	// string ProcessResult
+	b = marshaller.AppendString(b, r.ProcessResult)
+	// Address ContractAddress
+	b, err = marshaller.AppendIMarshaller(b, r.ContractAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	b = marshaller.FillHeaderData(b)
+	return b, nil
+}
+
+func (r *Receipt) UnmarshalMsg(b []byte) ([]byte, error) {
+	b, _, err := marshaller.DecodeHeader(b)
+	if err != nil {
+		return nil, err
+	}
+
+	r.TxHash, b, err = ogTypes.UnmarshalHash(b)
+	if err != nil {
+		return nil, err
+	}
+
+	r.Status = uint8(b[0])
+
+
+}
+
+func (r *Receipt) MsgSize() int {
+
+}
+
 
 //msgp:tuple ReceiptSet
 type ReceiptSet map[string]*Receipt

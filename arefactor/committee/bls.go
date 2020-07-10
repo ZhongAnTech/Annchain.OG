@@ -81,8 +81,10 @@ func (b BlsCommitteeProvider) GetLeader(round int64) consensus_interface.Committ
 func (b BlsCommitteeProvider) GetPeerIndex(id string) (index int, err error) {
 	if v, ok := b.memberIdMap[id]; ok {
 		index = v.PeerIndex
+	} else {
+		err = errors.New("peer not found in committee")
 	}
-	err = errors.New("peer not found in committee")
+
 	return
 }
 

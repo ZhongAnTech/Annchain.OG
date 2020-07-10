@@ -3,6 +3,7 @@ package committee
 import (
 	"errors"
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/sirupsen/logrus"
 )
 
 type PlainBftCommitteeProvider struct {
@@ -24,15 +25,19 @@ func (b *PlainBftCommitteeProvider) InitCommittee(version int, peers []consensus
 	b.memberTransportIds = []string{}
 	b.members = []consensus_interface.CommitteeMember{}
 	b.memberIdMap = make(map[string]consensus_interface.CommitteeMember)
-	b.myIndex = 0
+	b.myIndex = -1
 	for i, peer := range peers {
-		if b.myIndex == 0 && peer.MemberId == myAccount.Id() {
+		if b.myIndex == -1 && peer.MemberId == myAccount.Id() {
 			b.myIndex = i
 		}
 		b.memberIdMap[peer.MemberId] = peer
 		b.members = append(b.members, peer)
 		b.memberIds = append(b.memberIds, peer.MemberId)
 		b.memberTransportIds = append(b.memberTransportIds, peer.TransportPeerId)
+	}
+	if b.myIndex == -1 {
+		// panic during testing.
+		logrus.Fatal("where is my position?")
 	}
 }
 
@@ -77,11 +82,12 @@ func (b PlainBftCommitteeProvider) GetLeader(round int64) consensus_interface.Co
 	return b.members[round%int64(len(b.memberIds))]
 }
 
-func (b PlainBftCommitteeProvider) GetPeerIndex(id string) (index int, err error) {
-	if v, ok := b.memberIdMap[id]; ok {
+func (b PlainBftCommitteeProvider) GetPeerIndex(memberId string) (index int, err error) {
+	if v, ok := b.memberIdMap[memberId]; ok {
 		index = v.PeerIndex
+	} else {
+		err = errors.New("peer not found in committee")
 	}
-	err = errors.New("peer not found in committee")
 	return
 }
 

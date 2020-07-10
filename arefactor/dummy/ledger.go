@@ -52,23 +52,51 @@ func (i *IntArrayBlockContent) GetHash() og_interface.Hash {
 }
 
 type IntArrayLedger struct {
-	height         int64
-	genesis        *og_interface.Genesis
-	blockContents  map[int64]og_interface.BlockContent // height-content
-	highQC         *consensus_interface.QC
-	consensusState *consensus_interface.ConsensusState
+	height                        int64
+	genesis                       *og_interface.Genesis
+	confirmedBlockIdHeightMapping map[string]int64
+	confirmedBlockContents        map[int64]og_interface.BlockContent  // height-content
+	allBlockContents              map[string]og_interface.BlockContent // height-content
+	highQC                        *consensus_interface.QC
+	consensusState                *consensus_interface.ConsensusState
 }
 
 func (d *IntArrayLedger) Speculate(prevBlockId string, blockId string, cmds string) (executeStateId string) {
-	panic("implement me")
+	fmt.Println(prevBlockId)
+	fmt.Println(blockId)
+	fmt.Println(cmds)
+	_, ok := d.allBlockContents[prevBlockId]
+
+	if !ok {
+		logrus.WithField("prevBlockId", prevBlockId).Fatal("prev block not found")
+	}
+
+	newBlock := &IntArrayBlockContent{}
+	newBlock.FromString(cmds)
+	// my hash should be the same as given
+	if blockId != newBlock.GetHash().HashString() {
+		logrus.WithField("myhash", newBlock.GetHash().HashString()).
+			WithField("given", blockId).
+			Fatal("myhash is not aligned with given hash")
+	}
+	d.allBlockContents[blockId] = newBlock
+
+	return fmt.Sprintf("%d", newBlock.MySum)
 }
 
 func (d *IntArrayLedger) GetState(blockId string) (stateId string) {
-	panic("implement me")
+	block, ok := d.allBlockContents[blockId]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%d", block.(*IntArrayBlockContent).MySum)
 }
 
 func (d *IntArrayLedger) Commit(blockId string) {
+	block, ok := d.allBlockContents[blockId]
+	if !ok {
 
+	}
 }
 
 func (d *IntArrayLedger) GetHighQC() *consensus_interface.QC {
@@ -110,12 +138,12 @@ func (d *IntArrayLedger) loadConsensusState() (err error) {
 }
 
 func (d *IntArrayLedger) AddBlock(height int64, block og_interface.BlockContent) {
-	d.blockContents[height] = block
+	d.confirmedBlockContents[height] = block
 	d.height = math.BiggerInt64(height, d.height)
 }
 
 func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {
-	return d.blockContents[height]
+	return d.confirmedBlockContents[height]
 }
 
 func (d *IntArrayLedger) AddRandomBlock(height int64) {
@@ -129,7 +157,7 @@ func (d *IntArrayLedger) AddRandomBlock(height int64) {
 }
 
 func (d *IntArrayLedger) InitDefault() {
-	d.blockContents = make(map[int64]og_interface.BlockContent)
+	d.confirmedBlockContents = make(map[int64]og_interface.BlockContent)
 }
 
 // StaticSetup supposely will load ledger from disk.
@@ -185,7 +213,7 @@ func (d *IntArrayLedger) InitGenesisLedger() {
 		JointSignature: nil,
 	}
 	d.height = 0
-	d.blockContents[0] = &IntArrayBlockContent{
+	d.confirmedBlockContents[0] = &IntArrayBlockContent{
 		Step:        0,
 		PreviousSum: 0,
 		MySum:       0,
@@ -305,7 +333,7 @@ func (d *IntArrayLedger) dumpLedger() {
 	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
 	lines := []string{}
 	for i := int64(0); i <= d.height; i++ {
-		if v, ok := d.blockContents[i]; ok {
+		if v, ok := d.confirmedBlockContents[i]; ok {
 			lines = append(lines, fmt.Sprintf("%d %s %s", i, v.GetHash().HashString(), v.String()))
 		} else {
 			lines = append(lines, fmt.Sprintf("%d EMPTY", i))
@@ -340,7 +368,7 @@ func (d *IntArrayLedger) loadLedger() (err error) {
 		if block.GetHash().HashString() != hash {
 			return errors.New("hash not aligned")
 		}
-		d.blockContents[int64(height)] = block
+		d.confirmedBlockContents[int64(height)] = block
 		d.height = math.BiggerInt64(d.height, int64(height))
 		logrus.WithFields(
 			logrus.Fields{
@@ -370,7 +398,7 @@ func (i *IntArrayProposalGenerator) InitDefault() {
 }
 
 func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface.ProposalContext) *consensus_interface.ContentProposal {
-	previousBlock := i.Ledger.blockContents[context.CurrentRound-1].(*IntArrayBlockContent)
+	previousBlock := i.Ledger.confirmedBlockContents[context.CurrentRound-1].(*IntArrayBlockContent)
 	v := i.rander.Intn(100)
 	newBlock := &IntArrayBlockContent{
 		Step:        v,

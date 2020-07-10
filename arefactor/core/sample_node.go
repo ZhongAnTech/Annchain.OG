@@ -37,9 +37,9 @@ func (n *SampleNode) Setup() {
 	}
 
 	// low level transport (libp2p)
-	cpTransport := getTransport(n.transportAccountHolder)
+	cpTransport := getTransport(n.transportAccountHolder, nil)
 
-	cpPerformanceMonitor := getPerformanceMonitor()
+	cpPerformanceMonitor := getPerformanceMonitor(nil)
 
 	// bouncer
 

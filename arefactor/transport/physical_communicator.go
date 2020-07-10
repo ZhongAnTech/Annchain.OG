@@ -36,7 +36,7 @@ type PhysicalCommunicator struct {
 	Port            int // listening port
 	PrivateKey      core.PrivKey
 	ProtocolId      string
-	NetworkReporter *performance.SoccerdashReporter
+	NetworkReporter performance.PerformanceReporter
 
 	node            host.Host                                // p2p host to receive new streams
 	activePeers     map[peer.ID]*Neighbour                   // active peers that will be reconnect if error
@@ -142,7 +142,7 @@ func (c *PhysicalCommunicator) mainLoopReceive() {
 			// TODO: close all peers
 			return
 		case incomingLetter := <-c.incomingChannel:
-			c.NetworkReporter.Report("receive", incomingLetter)
+			c.NetworkReporter.Report("receive:"+incomingLetter.From, time.Now().String())
 			c.notifyNewIncomingMessage(incomingLetter)
 		}
 	}
@@ -394,7 +394,7 @@ func (c *PhysicalCommunicator) handleOutgoing(req *transport_interface.OutgoingL
 			continue
 		}
 		logrus.WithField("peerId", peerId).Trace("go send")
-		c.NetworkReporter.Report("send", req)
+		c.NetworkReporter.Report("send:"+peerId.String(), time.Now().String())
 		neighbour.EnqueueSend(req)
 	}
 }

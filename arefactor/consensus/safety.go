@@ -18,7 +18,7 @@ type Safety struct {
 	//	Typev:    HotStuffMessageTypeVote,
 	//	ParentQC: msg.ParentQC,
 	//	Round:    msg.Round,
-	//	SenderId: nil,
+	//	SenderMemberId: nil,
 	//	Id:       msg.Id,
 	//}
 }
@@ -64,12 +64,15 @@ func (s *Safety) MakeVote(blockId string, blockRound int64, parentQC *consensus_
 		GrandParentRound: parentQC.VoteData.ParentRound,
 		ExecStateId:      s.Ledger.GetState(blockId),
 	}
+	// TODO: check if execStateId is ""
+
 	potentialCommitId := s.CommitRule(parentQC, blockRound) // TODO: might be empty string
 
 	ledgerCommitInfo := consensus_interface.LedgerCommitInfo{
 		CommitStateId: s.Ledger.GetState(potentialCommitId),
 		VoteInfoHash:  s.Hasher.Hash(voteInfo.GetHashContent()),
 	}
+	// check if CommitStateId is ""
 
 	return &consensus_interface.ContentVote{
 		VoteInfo:         voteInfo,

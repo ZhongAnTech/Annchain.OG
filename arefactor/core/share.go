@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/transport"
+	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -20,18 +21,24 @@ var (
 	PrivateDir = "private"
 )
 
-func getPerformanceMonitor() *performance.PerformanceMonitor {
+func getReporter() *soccerdash.Reporter {
 	hostname := utilfuncs.GetHostName()
-	reporter := &performance.SoccerdashReporter{
-		Id:         hostname + viper.GetString("id"),
-		IpPort:     viper.GetString("report.address"),
-		BufferSize: viper.GetInt("report.buffer_size"),
+	reporter := &soccerdash.Reporter{
+		Id:            hostname + viper.GetString("id"),
+		TargetAddress: viper.GetString("report.address"),
+		BufferSize:    viper.GetInt("report.buffer_size"),
+		Logger:        logrus.StandardLogger(),
 	}
-	reporter.InitDefault()
+	return reporter
+}
 
+func getPerformanceMonitor(reporter *soccerdash.Reporter) *performance.PerformanceMonitor {
+	performanceReporter := &performance.SoccerdashReporter{
+		Reporter: reporter,
+	}
 	pm := &performance.PerformanceMonitor{
 		Reporters: []performance.PerformanceReporter{
-			reporter,
+			performanceReporter,
 		},
 	}
 	return pm
@@ -84,19 +91,11 @@ func ensureConsensusAccountProvider(provider consensus_interface.ConsensusAccoun
 	}
 }
 
-func getTransport(accountProvider og.TransportAccountProvider) *transport.PhysicalCommunicator {
+func getTransport(accountProvider og.TransportAccountProvider, reporter performance.PerformanceReporter) *transport.PhysicalCommunicator {
 	account, err := accountProvider.ProvideAccount()
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to provide transport account")
 	}
-
-	hostname := utilfuncs.GetHostName()
-	reporter := &performance.SoccerdashReporter{
-		Id:         hostname + viper.GetString("id"),
-		IpPort:     viper.GetString("report.address_log"),
-		BufferSize: viper.GetInt("report.buffer_size"),
-	}
-	reporter.InitDefault()
 
 	p2p := &transport.PhysicalCommunicator{
 		Port:            viper.GetInt("p2p.port"),
@@ -111,7 +110,8 @@ func getTransport(accountProvider og.TransportAccountProvider) *transport.Physic
 
 func loadLedgerCommittee(ledger *dummy.IntArrayLedger, provider consensus_interface.ConsensusAccountProvider) consensus_interface.CommitteeProvider {
 	ledgerCommittee := ledger.CurrentCommittee()
-	blsCommitteeProvider := &committee.BlsCommitteeProvider{}
+	//blsCommitteeProvider := &committee.BlsCommitteeProvider{}
+	committeeProvider := &committee.PlainBftCommitteeProvider{}
 
 	account, err := provider.ProvideAccount()
 	if err != nil {
@@ -121,8 +121,7 @@ func loadLedgerCommittee(ledger *dummy.IntArrayLedger, provider consensus_interf
 	for _, v := range ledgerCommittee.Peers {
 		members = append(members, *v)
 	}
+	committeeProvider.InitCommittee(ledgerCommittee.Version, members, account)
 
-	blsCommitteeProvider.InitCommittee(ledgerCommittee.Version, members, account)
-
-	return blsCommitteeProvider
+	return committeeProvider
 }

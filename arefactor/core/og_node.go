@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/OG/common/io"
@@ -75,9 +76,15 @@ func (n *OgNode) Setup() {
 	// consensus signer
 	//consensusSigner := consensus.BlsSignatureCollector{}
 
+	// reporter
+	lowLevelReporter := getReporter()
+	performanceReporter := &performance.SoccerdashReporter{
+		Reporter: lowLevelReporter,
+	}
+
 	// low level transport (libp2p)
-	cpTransport := getTransport(n.transportAccountProvider)
-	cpPerformanceMonitor := getPerformanceMonitor()
+	cpPerformanceMonitor := getPerformanceMonitor(lowLevelReporter)
+	cpTransport := getTransport(n.transportAccountProvider, performanceReporter)
 
 	// peer relationship management
 	cpCommunityManager := &og.DefaultCommunityManager{
@@ -87,13 +94,16 @@ func (n *OgNode) Setup() {
 	cpCommunityManager.InitDefault()
 	cpCommunityManager.StaticSetup()
 
+	proposalGenerator := &dummy.IntArrayProposalGenerator{
+		Ledger: ledger,
+	}
+	proposalGenerator.InitDefault()
+
 	// consensus. Current all peers are Partner
 	cpConsensusPartner := &consensus.Partner{
-		Logger:   logrus.StandardLogger(),
-		Reporter: nil,
-		ProposalGenerator: &dummy.IntArrayProposalGenerator{
-			Ledger: ledger,
-		},
+		Logger:                   logrus.StandardLogger(),
+		Reporter:                 lowLevelReporter,
+		ProposalGenerator:        proposalGenerator,
 		ProposalVerifier:         &dummy.DummyProposalVerifier{},
 		CommitteeProvider:        committeeProvider,
 		ConsensusSigner:          &dummy.DummyConsensusSigner{}, // should be replaced by bls signer
@@ -108,7 +118,7 @@ func (n *OgNode) Setup() {
 		CpDefaultCommunityManager: cpCommunityManager,
 	}
 
-	// rpc
+	// rpcs
 	cpRpc := &rpc.RpcServer{
 		Controller: cpController,
 		Port:       viper.GetInt("rpc.port"),

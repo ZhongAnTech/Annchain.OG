@@ -53,7 +53,7 @@ func (b Block) String() string {
 type HotStuffSignedMessage struct {
 	HotStuffMessageType int    // what ContentByte is (one of HotStuffMessageType).
 	ContentBytes        []byte // this Byte will be recovered to implementation of Content interface
-	SenderId            string // member id of the sender
+	SenderMemberId      string // member id of the sender
 	Signature           []byte
 }
 
@@ -78,9 +78,9 @@ func (z *HotStuffSignedMessage) GetTypeValue() int {
 }
 
 func (z *HotStuffSignedMessage) String() string {
-	return fmt.Sprintf("WM: Type=%s SenderId=%s ContentBytes=%s",
+	return fmt.Sprintf("WM: Type=%s SenderMemberId=%s ContentBytes=%s",
 		HotStuffMessageType(z.HotStuffMessageType).String(),
-		z.SenderId,
+		z.SenderMemberId,
 		hexutil.ToBriefHex(z.ContentBytes, 100))
 }
 

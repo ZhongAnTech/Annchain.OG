@@ -59,14 +59,14 @@ func (m *PaceMaker) ProcessRemoteTimeoutMessage(msg *consensus_interface.HotStuf
 		return
 	}
 
-	m.ProcessRemoteTimeout(p, msg.Signature, msg.SenderId)
+	m.ProcessRemoteTimeout(p, msg.Signature, msg.SenderMemberId)
 }
 
-func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, signature consensus_interface.Signature, fromId string) {
-	id, err := m.CommitteeProvider.GetPeerIndex(fromId)
+func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, signature consensus_interface.Signature, fromMemberId string) {
+	id, err := m.CommitteeProvider.GetPeerIndex(fromMemberId)
 	if err != nil {
-		logrus.WithError(err).WithField("peerId", fromId).
-			Debug("error in finding peer in committee")
+		logrus.WithError(err).WithField("peerId", fromMemberId).
+			Fatal("error in finding peer in committee")
 		return
 	}
 
@@ -76,9 +76,9 @@ func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, 
 	collector.Collect(signature, id)
 
 	m.Logger.WithFields(logrus.Fields{
-		"from":  fromId,
-		"round": p.Round,
-		"tcs":   collector.GetCurrentCount(),
+		"fromMemberId": fromMemberId,
+		"round":        p.Round,
+		"tcs":          collector.GetCurrentCount(),
 	}).Debug("T got")
 
 	if collector.Collected() {
@@ -107,7 +107,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	outMsg := &consensus_interface.HotStuffSignedMessage{
 		HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeTimeout),
 		ContentBytes:        bytes,
-		SenderId:            m.CommitteeProvider.GetMyPeerId(),
+		SenderMemberId:      m.CommitteeProvider.GetMyPeerId(),
 		Signature:           signature,
 	}
 	letter := &transport_interface.OutgoingLetter{
@@ -161,7 +161,7 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 		outMsg := &consensus_interface.HotStuffSignedMessage{
 			HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeVote),
 			ContentBytes:        bytes,
-			SenderId:            m.CommitteeProvider.GetMyPeerId(),
+			SenderMemberId:      m.CommitteeProvider.GetMyPeerId(),
 			Signature:           signature,
 		}
 		letter := &transport_interface.OutgoingLetter{

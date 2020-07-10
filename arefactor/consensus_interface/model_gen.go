@@ -1688,10 +1688,10 @@ func (z *HotStuffSignedMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "ContentBytes")
 				return
 			}
-		case "SenderId":
-			z.SenderId, err = dc.ReadString()
+		case "SenderMemberId":
+			z.SenderMemberId, err = dc.ReadString()
 			if err != nil {
-				err = msgp.WrapError(err, "SenderId")
+				err = msgp.WrapError(err, "SenderMemberId")
 				return
 			}
 		case "Signature":
@@ -1734,14 +1734,14 @@ func (z *HotStuffSignedMessage) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "ContentBytes")
 		return
 	}
-	// write "SenderId"
-	err = en.Append(0xa8, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x49, 0x64)
+	// write "SenderMemberId"
+	err = en.Append(0xae, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x49, 0x64)
 	if err != nil {
 		return
 	}
-	err = en.WriteString(z.SenderId)
+	err = en.WriteString(z.SenderMemberId)
 	if err != nil {
-		err = msgp.WrapError(err, "SenderId")
+		err = msgp.WrapError(err, "SenderMemberId")
 		return
 	}
 	// write "Signature"
@@ -1767,9 +1767,9 @@ func (z *HotStuffSignedMessage) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "ContentBytes"
 	o = append(o, 0xac, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x42, 0x79, 0x74, 0x65, 0x73)
 	o = msgp.AppendBytes(o, z.ContentBytes)
-	// string "SenderId"
-	o = append(o, 0xa8, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x49, 0x64)
-	o = msgp.AppendString(o, z.SenderId)
+	// string "SenderMemberId"
+	o = append(o, 0xae, 0x53, 0x65, 0x6e, 0x64, 0x65, 0x72, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x49, 0x64)
+	o = msgp.AppendString(o, z.SenderMemberId)
 	// string "Signature"
 	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	o = msgp.AppendBytes(o, z.Signature)
@@ -1806,10 +1806,10 @@ func (z *HotStuffSignedMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "ContentBytes")
 				return
 			}
-		case "SenderId":
-			z.SenderId, bts, err = msgp.ReadStringBytes(bts)
+		case "SenderMemberId":
+			z.SenderMemberId, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "SenderId")
+				err = msgp.WrapError(err, "SenderMemberId")
 				return
 			}
 		case "Signature":
@@ -1832,7 +1832,7 @@ func (z *HotStuffSignedMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *HotStuffSignedMessage) Msgsize() (s int) {
-	s = 1 + 20 + msgp.IntSize + 13 + msgp.BytesPrefixSize + len(z.ContentBytes) + 9 + msgp.StringPrefixSize + len(z.SenderId) + 10 + msgp.BytesPrefixSize + len(z.Signature)
+	s = 1 + 20 + msgp.IntSize + 13 + msgp.BytesPrefixSize + len(z.ContentBytes) + 15 + msgp.StringPrefixSize + len(z.SenderMemberId) + 10 + msgp.BytesPrefixSize + len(z.Signature)
 	return
 }
 

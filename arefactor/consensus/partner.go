@@ -61,14 +61,15 @@ func (n *Partner) InitDefault() {
 	}
 	n.safety.InitDefault()
 	n.paceMaker = &PaceMaker{
+		Logger:            n.Logger,
 		CurrentRound:      0,
 		Safety:            n.safety,
+		Partner:           n,
 		ConsensusSigner:   n.ConsensusSigner,
 		AccountProvider:   n.ConsensusAccountProvider,
 		Ledger:            n.Ledger,
 		CommitteeProvider: n.CommitteeProvider,
-		Partner:           n,
-		Logger:            n.Logger,
+		Reporter:          n.Reporter,
 	}
 	n.paceMaker.InitDefault()
 
@@ -99,9 +100,13 @@ func (n *Partner) Start() {
 			//}
 
 		case <-n.paceMaker.timer.C:
-			logrus.WithField("round", n.paceMaker.CurrentRound).Warn("packer timeout")
+			logrus.WithField("round", n.paceMaker.CurrentRound).Warn("packMaker timeout")
 			n.paceMaker.LocalTimeoutRound()
 		}
+		n.Reporter.Report("lastTC", n.paceMaker.lastTC, false)
+		n.Reporter.Report("CurrentRound", n.paceMaker.CurrentRound, false)
+		n.Reporter.Report("HighQC", n.Ledger.GetHighQC().VoteData, false)
+
 		logrus.Trace("partner loop round end")
 	}
 }
@@ -132,8 +137,8 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 		return
 	}
 
-	if msg.SenderId != n.CommitteeProvider.GetLeader(currentRound).MemberId {
-		n.Logger.WithField("msg.SenderId", msg.SenderId).
+	if msg.SenderMemberId != n.CommitteeProvider.GetLeader(currentRound).MemberId {
+		n.Logger.WithField("msg.SenderMemberId", msg.SenderMemberId).
 			WithField("current leader", n.CommitteeProvider.GetLeader(currentRound).MemberId).
 			Warn("current leader not match.")
 		return
@@ -167,7 +172,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 		outMsg := &consensus_interface.HotStuffSignedMessage{
 			HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeVote),
 			ContentBytes:        bytes,
-			SenderId:            n.CommitteeProvider.GetMyPeerId(),
+			SenderMemberId:      n.CommitteeProvider.GetMyPeerId(),
 			Signature:           signature,
 		}
 		letter := &transport_interface.OutgoingLetter{
@@ -189,14 +194,14 @@ func (n *Partner) ProcessVoteMessage(msg *consensus_interface.HotStuffSignedMess
 		return
 	}
 	n.ProcessCertificates(p.QC, p.TC, "Vote")
-	n.ProcessVote(p, msg.Signature, msg.SenderId)
+	n.ProcessVote(p, msg.Signature, msg.SenderMemberId)
 }
 
 func (t *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature consensus_interface.Signature, fromId string) {
 	id, err := t.CommitteeProvider.GetPeerIndex(fromId)
 	if err != nil {
 		logrus.WithError(err).WithField("peerId", fromId).
-			Debug("error in finding peer in committee")
+			Fatal("error in finding peer in committee")
 	}
 
 	voteIndex := t.Hasher.Hash(vote.LedgerCommitInfo.GetHashContent())
@@ -256,7 +261,7 @@ func (n *Partner) ProcessNewRoundEvent() {
 	outMsg := &consensus_interface.HotStuffSignedMessage{
 		HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeProposal),
 		ContentBytes:        bytes,
-		SenderId:            n.CommitteeProvider.GetMyPeerId(),
+		SenderMemberId:      n.CommitteeProvider.GetMyPeerId(),
 		Signature:           signature,
 	}
 	letter := &transport_interface.OutgoingLetter{
@@ -279,6 +284,7 @@ func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter)
 		logrus.WithError(err).Debug("failed to parse HotStuffSignedMessage message")
 		return
 	}
+
 	// TODO: verify if the sender is in the committee.
 	// TODO: verify signature
 

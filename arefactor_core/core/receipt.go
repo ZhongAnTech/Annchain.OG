@@ -95,15 +95,31 @@ func (r *Receipt) UnmarshalMsg(b []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	r.Status = uint8(b[0])
+	r.Status = ReceiptStatus(b[0])
+	b = b[1:]
 
+	r.ProcessResult, b, err = marshaller.ReadString(b)
+	if err != nil {
+		return nil, err
+	}
 
+	r.ContractAddress, b, err = ogTypes.UnmarshalAddress(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }
 
 func (r *Receipt) MsgSize() int {
+	size := 0
 
+	size += marshaller.CalIMarshallerSize(r.TxHash.MsgSize()) + 1 +		// TxHash + Status
+		marshaller.CalStringSize(r.ProcessResult) +						// ProcessResult
+		marshaller.CalIMarshallerSize(r.ContractAddress.MsgSize())		// ContractAddress
+
+	return size
 }
-
 
 //msgp:tuple ReceiptSet
 type ReceiptSet map[string]*Receipt

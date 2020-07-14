@@ -289,13 +289,13 @@ func (og *Og) PushNodeData() {
 	// 	r.Report("NodeDelay", "30", false)
 	// })
 
-	s.Every(5).Seconds().Do(func() {
+	s.Every(1).Minutes().Do(func() {
 		nodeName := ""
-		nodeInfo := og.Manager.Hub.NodeInfo()
-		if nodeInfo == nil {
+		nodeInfoFunc := og.Manager.Hub.NodeInfo
+		if nodeInfoFunc == nil {
 			nodeName = "og-unknown-hub"
 		} else {
-			nodeName = nodeInfo.Name
+			nodeName = nodeInfoFunc().Name
 		}
 		r.Report("Version", ReleaseVersion, false)
 		r.Report("NodeName", nodeName, false)

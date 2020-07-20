@@ -1,5 +1,7 @@
 package consensus_interface
 
+import "fmt"
+
 // OgLedgerAccount represents a full account of a user.
 type ConsensusAccount interface {
 	Id() string
@@ -28,14 +30,20 @@ type VerifyResult struct {
 	Ok bool
 }
 
-type ExecuteResult struct {
-	Ok        bool
-	ExecuteId string
+type ExecutionResult struct {
+	BlockId        string
+	ExecuteStateId string
+	Err            error
+}
+
+func (e *ExecutionResult) String() string {
+	return fmt.Sprintf("BlockId:%s ExecuteStateId:%s Err:%s", e.BlockId, e.ExecuteStateId, e.Err)
 }
 
 type ConsensusState struct {
 	LastVoteRound  int64
 	PreferredRound int64
+	HighQC         *QC
 }
 
 type ConsensusAccountProvider interface {
@@ -61,7 +69,7 @@ type ProposalVerifier interface {
 }
 
 type ProposalExecutor interface {
-	ExecuteProposal(block *Block)
+	ExecuteProposal(block *Block) (executionResult ExecutionResult)
 	ExecuteProposalAsync(block *Block)
 }
 
@@ -96,17 +104,15 @@ type SignatureCollector interface {
 
 type Ledger interface {
 	// Speculate applies cmds speculatively
-	Speculate(prevBlockId string, blockId string, cmds string) (executeStateId string)
-	// GetState finds the pending state for the given blockId or nil if not present
+	Speculate(prevBlockId string, block *Block) (executionResult ExecutionResult)
+	// GetState finds the pending state for the given BlockId or nil if not present
 	GetState(blockId string) (stateId string)
-	// Commit commits the pending prefix of the given blockId and prune other branches
+	// Commit commits the pending prefix of the given BlockId and prune other branches
 	Commit(blockId string)
-	GetHighQC() *QC
-	SetHighQC(qc *QC)
 	SaveConsensusState(*ConsensusState)
 	CurrentHeight() int64
 	CurrentCommittee() *Committee
-	//LoadConsensusState() *ConsensusState
+	GetConsensusState() *ConsensusState
 }
 
 type Hasher interface {
@@ -115,5 +121,5 @@ type Hasher interface {
 
 //type PendingTreeOrganizer interface {
 //	//
-//	Commit(blockId string)
+//	Commit(BlockId string)
 //}

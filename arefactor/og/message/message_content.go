@@ -95,6 +95,7 @@ func (z *MessageContentSequencer) FromBytes(bts []byte) error {
 
 //msgp MessageContentInt
 type MessageContentInt struct {
+	Height      int64
 	Step        int
 	PreviousSum int
 	MySum       int

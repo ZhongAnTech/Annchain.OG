@@ -62,11 +62,12 @@ type BlockContent interface {
 	String() string
 	FromString(string)
 	GetHash() Hash
+	GetHeight() int64
 }
 
 type Ledger interface {
 	CurrentHeight() int64
 	CurrentCommittee() *consensus_interface.Committee
 	GetBlock(height int64) BlockContent
-	AddBlock(height int64, block BlockContent)
+	AddBlock(block BlockContent)
 }

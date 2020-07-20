@@ -15,12 +15,15 @@ type PendingBlockTree struct {
 	childRelations map[string][]string
 	//highQC         *consensus_interface.QC    // highest known QC
 	Ledger consensus_interface.Ledger // Ledger should be operated by
+	Safety *Safety
 }
 
-func (t *PendingBlockTree) ExecuteProposal(block *consensus_interface.Block) {
+func (t *PendingBlockTree) ExecuteProposal(block *consensus_interface.Block) (executionResult consensus_interface.ExecutionResult) {
 	t.AddBranch(block)
-	executeStateId := t.Ledger.Speculate(block.ParentQC.VoteData.Id, block.Id, block.Payload)
-	logrus.WithField("executeStateId", executeStateId).Debug("executed block")
+	executionResult = t.Ledger.Speculate(block.ParentQC.VoteData.Id, block)
+	logrus.WithField("result", executionResult).Debug("executed block")
+	return executionResult
+
 }
 
 func (t *PendingBlockTree) ExecuteProposalAsync(block *consensus_interface.Block) {
@@ -50,7 +53,6 @@ func (t *PendingBlockTree) AddBranch(p *consensus_interface.Block) {
 func (t *PendingBlockTree) Commit(id string) {
 	//fmt.Printf("[%d] Block %s\n", t.MyId, id)
 	t.Ledger.Commit(id)
-
 	t.Logger.WithField("id", id).Debug("block commit")
 }
 
@@ -64,7 +66,7 @@ func (t *PendingBlockTree) GetBlock(id string) (block *consensus_interface.Block
 }
 
 func (t *PendingBlockTree) EnsureHighQC(qc *consensus_interface.QC) {
-	if qc.VoteData.Round > t.Ledger.GetHighQC().VoteData.Round {
-		t.Ledger.SetHighQC(qc)
+	if qc.VoteData.Round > t.Safety.ConsensusState().HighQC.VoteData.Round {
+		t.Safety.SetHighQC(qc)
 	}
 }

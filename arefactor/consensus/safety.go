@@ -32,10 +32,7 @@ func (s *Safety) SetConsensusState(consensusState *consensus_interface.Consensus
 }
 
 func (s *Safety) InitDefault() {
-	s.consensusState = &consensus_interface.ConsensusState{
-		LastVoteRound:  0,
-		PreferredRound: 0,
-	}
+	s.consensusState = s.Ledger.GetConsensusState()
 }
 
 func (s *Safety) UpdatePreferredRound(qc *consensus_interface.QC) {
@@ -97,4 +94,9 @@ func (s *Safety) CommitRule(qc *consensus_interface.QC, voteRound int64) string 
 	} else {
 		return ""
 	}
+}
+
+func (s *Safety) SetHighQC(qc *consensus_interface.QC) {
+	s.consensusState.HighQC = qc
+	s.Ledger.SaveConsensusState(s.consensusState)
 }

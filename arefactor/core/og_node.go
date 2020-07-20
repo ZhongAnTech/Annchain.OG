@@ -62,13 +62,13 @@ func (n *OgNode) Setup() {
 	// load consensus key
 	ensureConsensusAccountProvider(consensusAccountProvider)
 
-	consensusAccountProvider.Save()
+	//consensusAccountProvider.Save()
 
 	// ledger implementation
 	ledger := &dummy.IntArrayLedger{}
 	ledger.InitDefault()
 	ledger.StaticSetup()
-	//ledger.DumpConsensusGenesis()
+	//ledger.SaveConsensusCommittee()
 
 	// load from ledger
 	committeeProvider := loadLedgerCommittee(ledger, consensusAccountProvider)

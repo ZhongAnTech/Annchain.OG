@@ -79,7 +79,9 @@ func (b PlainBftCommitteeProvider) GetMyPeerIndex() int {
 }
 
 func (b PlainBftCommitteeProvider) GetLeader(round int64) consensus_interface.CommitteeMember {
-	return b.members[round%int64(len(b.memberIds))]
+	// TODO: change back: Hack: change to 2 for better debugging
+	return b.members[round%2]
+	//return b.members[round%int64(len(b.memberIds))]
 }
 
 func (b PlainBftCommitteeProvider) GetPeerIndex(memberId string) (index int, err error) {
@@ -92,7 +94,9 @@ func (b PlainBftCommitteeProvider) GetPeerIndex(memberId string) (index int, err
 }
 
 func (b PlainBftCommitteeProvider) GetThreshold() int {
-	return len(b.memberIds) * 2 / 3
+	// TODO: change back: Hack: change to 2 for better debugging
+	return 2
+	//return len(b.memberIds) * 2 / 3
 }
 
 func (b PlainBftCommitteeProvider) AmILeader(round int64) bool {

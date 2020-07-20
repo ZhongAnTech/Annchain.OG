@@ -77,7 +77,7 @@ func (n *Partner) InitDefault() {
 	n.proposalContextProvider = &DefaultProposalContextProvider{
 		PaceMaker:        n.paceMaker,
 		PendingBlockTree: n.pendingBlockTree,
-		Ledger:           n.Ledger,
+		Safety:           n.safety,
 	}
 	n.pendingQCs = make(map[string]consensus_interface.SignatureCollector)
 	n.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
@@ -105,7 +105,7 @@ func (n *Partner) Start() {
 		}
 		n.Reporter.Report("lastTC", n.paceMaker.lastTC, false)
 		n.Reporter.Report("CurrentRound", n.paceMaker.CurrentRound, false)
-		n.Reporter.Report("HighQC", n.Ledger.GetHighQC().VoteData, false)
+		n.Reporter.Report("HighQC", n.safety.ConsensusState().HighQC.VoteData, false)
 
 		logrus.Trace("partner loop round end")
 	}
@@ -155,7 +155,12 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	// TODO: execute the block async
 	//n.BlockTree.ExecuteAndInsert(&p.HotStuffMessageTypeProposal)
 	// TODO: who is proposalExecutor?
-	n.proposalExecutor.ExecuteProposal(&p.Proposal)
+	executionResult := n.proposalExecutor.ExecuteProposal(&p.Proposal)
+	if executionResult.Err != nil {
+		// TODO: send clearly reject message instead of not sending messages
+		return
+	}
+	//if executionResult.ExecuteStateId != p.Proposal.Payload
 
 	// vote after execution
 

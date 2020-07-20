@@ -243,6 +243,7 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 		content := value.(*dummy.IntArrayBlockContent)
 
 		messageContent := &message.MessageContentInt{
+			Height:      content.Height,
 			Step:        content.Step,
 			PreviousSum: content.PreviousSum,
 			MySum:       content.MySum,
@@ -290,11 +291,12 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 			utilfuncs.PanicIfError(err, "parse content")
 
 			bc := &dummy.IntArrayBlockContent{
+				Height:      m.Height,
 				Step:        messageContent.Step,
 				PreviousSum: messageContent.PreviousSum,
 				MySum:       messageContent.MySum,
 			}
-			b.Ledger.AddBlock(m.Height, bc)
+			b.Ledger.AddBlock(bc)
 			// TODO: announce event
 		}
 		logrus.WithField("height", m.Height).Info("height updated")

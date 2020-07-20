@@ -179,7 +179,7 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 func (m *PaceMaker) MakeTimeoutMessage() *consensus_interface.ContentTimeout {
 	return &consensus_interface.ContentTimeout{
 		Round:  m.CurrentRound,
-		HighQC: m.Ledger.GetHighQC(),
+		HighQC: m.Safety.ConsensusState().HighQC,
 		TC:     m.lastTC,
 	}
 }

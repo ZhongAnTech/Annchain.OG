@@ -44,13 +44,21 @@ type DagConfig struct {
 	GenesisPath string
 }
 
+//type Ledger interface {
+//	GetTx(hash ogTypes.Hash) types.Txi
+//	GetBalance(addr ogTypes.Address, tokenID int32) *math.BigInt
+//	GetLatestNonce(addr ogTypes.Address) (uint64, error)
+//}
+
 type Dag struct {
 	conf DagConfig
 
-	db        ogdb.Database
-	accessor  *Accessor
-	preloadDB *state.PreloadDB
-	statedb   *state.StateDB
+	db       ogdb.Database
+	accessor *Accessor
+
+	statedb       *state.StateDB
+	txProcessor   TxProcessor
+	cachedBatches *cachedConfirms
 
 	genesis         *types.Sequencer
 	latestSequencer *types.Sequencer
@@ -768,53 +776,53 @@ func (dag *Dag) DeleteTransaction(hash ogTypes.Hash) error {
 // Besides balance and nonce, if a tx is trying to create or call a
 // contract, vm part will be initiated to handle this.
 func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt, error) {
-	// update nonce
-	if tx.GetType() == types.TxBaseTypeArchive {
-		//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
-		return nil, nil, nil
-	}
-
-	var db state.StateDBInterface
-	if preload {
-		db = dag.preloadDB
-	} else {
-		db = dag.statedb
-	}
-
-	curNonce := db.GetNonce(tx.Sender())
-	if !db.Exist(tx.Sender()) || tx.GetNonce() > curNonce {
-		db.SetNonce(tx.Sender(), tx.GetNonce())
-	}
-
-	if tx.GetType() == types.TxBaseTypeSequencer {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
-		return nil, receipt, nil
-	}
-	if tx.GetType() == types.TxBaseAction {
-		actionTx := tx.(*types.ActionTx)
-		receipt, err := ActionTxProcessor(dag.statedb, actionTx)
-		if err != nil {
-			return nil, receipt, fmt.Errorf("process action tx error: %v", err)
-		}
-		return nil, receipt, nil
-	}
-
-	if tx.GetType() != types.TxBaseTypeNormal {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
-		return nil, receipt, nil
-	}
-
-	// transfer balance
-	txnormal := tx.(*types.Tx)
-	if txnormal.Value.Value.Sign() != 0 && !(txnormal.To.Cmp(emptyAddress) == 0) {
-		db.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
-		db.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
-	}
-	// return when its not contract related tx.
-	if len(txnormal.Data) == 0 {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
-		return nil, receipt, nil
-	}
+	//// update nonce
+	//if tx.GetType() == types.TxBaseTypeArchive {
+	//	//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
+	//	return nil, nil, nil
+	//}
+	//
+	//var db state.StateDBInterface
+	//if preload {
+	//	db = dag.preloadDB
+	//} else {
+	//	db = dag.statedb
+	//}
+	//
+	//curNonce := db.GetNonce(tx.Sender())
+	//if !db.Exist(tx.Sender()) || tx.GetNonce() > curNonce {
+	//	db.SetNonce(tx.Sender(), tx.GetNonce())
+	//}
+	//
+	//if tx.GetType() == types.TxBaseTypeSequencer {
+	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
+	//	return nil, receipt, nil
+	//}
+	//if tx.GetType() == types.TxBaseAction {
+	//	actionTx := tx.(*types.ActionTx)
+	//	receipt, err := ActionTxProcessor(dag.statedb, actionTx)
+	//	if err != nil {
+	//		return nil, receipt, fmt.Errorf("process action tx error: %v", err)
+	//	}
+	//	return nil, receipt, nil
+	//}
+	//
+	//if tx.GetType() != types.TxBaseTypeNormal {
+	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
+	//	return nil, receipt, nil
+	//}
+	//
+	//// transfer balance
+	//txnormal := tx.(*types.Tx)
+	//if txnormal.Value.Value.Sign() != 0 && !(txnormal.To.Cmp(emptyAddress) == 0) {
+	//	db.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
+	//	db.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
+	//}
+	//// return when its not contract related tx.
+	//if len(txnormal.Data) == 0 {
+	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
+	//	return nil, receipt, nil
+	//}
 
 	// return when the address type is not Address20
 	from20, okFrom := txnormal.From.(*ogTypes.Address20)

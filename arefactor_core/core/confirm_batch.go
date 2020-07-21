@@ -10,15 +10,15 @@ import (
 )
 
 type cachedConfirms struct {
-	ledger Ledger
+	//ledger LedgerEngine
 
 	fronts  []*confirmBatch
 	batches map[ogTypes.HashKey]*confirmBatch
 }
 
-func newCachedConfirm(ledger Ledger) *cachedConfirms {
+func newCachedConfirms(ledger LedgerEngine) *cachedConfirms {
 	return &cachedConfirms{
-		ledger:  ledger,
+		//ledger:  ledger,
 		fronts:  make([]*confirmBatch, 0),
 		batches: make(map[ogTypes.HashKey]*confirmBatch),
 	}
@@ -92,7 +92,7 @@ func (c *cachedConfirms) traverseFromLeaf(leaf *confirmBatch, f func(b *confirmB
 
 type confirmBatch struct {
 	//tempLedger Ledger
-	ledger Ledger
+	//ledger Ledger
 
 	parent   *confirmBatch
 	children []*confirmBatch
@@ -107,13 +107,13 @@ type confirmBatch struct {
 
 //var emptyConfirmedBatch = &confirmBatch{}
 
-func newConfirmBatch(ledger Ledger, seq *types.Sequencer, db ogdb.Database) (*confirmBatch, error) {
+func newConfirmBatch(ledger LedgerEngine, seq *types.Sequencer, db ogdb.Database) (*confirmBatch, error) {
 	stateDB, err := state.NewStateDB(state.DefaultStateDBConfig(), state.NewDatabase(db), seq.StateRoot)
 	if err != nil {
 		return nil, err
 	}
 	c := &confirmBatch{
-		ledger:         ledger,
+		//ledger:         ledger,
 		parent:         nil,
 		children:       make([]*confirmBatch, 0),
 		seq:            seq,

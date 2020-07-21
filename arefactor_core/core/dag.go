@@ -58,12 +58,13 @@ type Dag struct {
 
 	statedb       *state.StateDB
 	txProcessor   TxProcessor
+	vmProcessor   VmProcessor
 	cachedBatches *cachedConfirms
 
 	genesis         *types.Sequencer
 	latestSequencer *types.Sequencer
 
-	txcached *txcached
+	//txcached *txcached
 
 	OnConsensusTXConfirmed chan []types.Txi
 	close                  chan struct{}
@@ -71,38 +72,33 @@ type Dag struct {
 	mu sync.RWMutex
 }
 
-func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database) (*Dag, error) {
-	dag := &Dag{}
-
-	dag.conf = conf
-	dag.db = db
-	dag.accessor = NewAccessor(db)
-	// TODO
-	// default maxsize of txcached is 10000,
-	// move this size to config later.
-	dag.txcached = newTxcached(10000)
-	dag.close = make(chan struct{})
+func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database, txProcessor TxProcessor, vmProcessor VmProcessor) (*Dag, error) {
+	dag := &Dag{
+		conf:     conf,
+		db:       db,
+		accessor: NewAccessor(db),
+		//txcached:    newTxcached(10000), // TODO delete txcached later
+		txProcessor: txProcessor,
+		vmProcessor: vmProcessor,
+		close:       make(chan struct{}),
+	}
 
 	restart, root := dag.LoadLastState()
-
 	log.Infof("the root loaded from last state is: %x", root.Bytes())
 	statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db), root)
 	if err != nil {
 		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
 	dag.statedb = statedb
-
-	preloadDB := state.NewPreloadDB(statedb.Database(), statedb)
-	dag.preloadDB = preloadDB
+	dag.cachedBatches = newCachedConfirms(dag)
 
 	if restart && dag.GetHeight() > 0 && root.Length() == 0 {
 		panic("should not be empty hash. Database may be corrupted. Please clean datadir")
 	}
 
 	if !restart {
-		// TODO use config to load the genesis
-		seq, balance := DefaultGenesis(conf.GenesisPath)
-		if err := dag.Init(seq, balance); err != nil {
+		genesis, balance := DefaultGenesis(conf.GenesisPath)
+		if err := dag.Init(genesis, balance); err != nil {
 			return nil, err
 		}
 	}
@@ -116,7 +112,6 @@ func DefaultDagConfig() DagConfig {
 func (dag *Dag) Start() {
 	log.Infof("Dag Start")
 
-	//goroutine.New(dag.loop)
 }
 
 func (dag *Dag) Stop() {
@@ -614,14 +609,14 @@ func (dag *Dag) prePush(batch *PushBatch) (ogTypes.Hash, error) {
 
 	sort.Sort(batch.Txs)
 
-	dag.preloadDB.Reset()
-	for _, txi := range batch.Txs {
-		_, _, err := dag.ProcessTransaction(txi, true)
-		if err != nil {
-			return &ogTypes.Hash32{}, fmt.Errorf("process tx error: %v", err)
-		}
-	}
-	return dag.preloadDB.Commit()
+	//dag.preloadDB.Reset()
+	//for _, txi := range batch.Txs {
+	//	_, _, err := dag.ProcessTransaction(txi, true)
+	//	if err != nil {
+	//		return &ogTypes.Hash32{}, fmt.Errorf("process tx error: %v", err)
+	//	}
+	//}
+	//return dag.preloadDB.Commit()
 }
 
 func (dag *Dag) push(batch *PushBatch) error {
@@ -632,21 +627,24 @@ func (dag *Dag) push(batch *PushBatch) error {
 	}
 
 	var err error
-
-	// TODO batch is not used properly.
+	sId := dag.statedb.Snapshot()
 	dbBatch := dag.accessor.NewBatch()
-	receipts := make(ReceiptSet)
-	//var  dbBatch ogdb.Putter
+	sort.Sort(batch.Txs)
+
+	// TODO handle sequencer height 1, for its parents is genesis.
+	dag.cachedBatches.getConfirmBatch(batch.Seq.GetParentSeqHash())
+	state.NewStateDB(state.DefaultStateDBConfig(), state.NewDatabase(dag.db), root)
+	newStateDB := state.NewStateDB()
+	newConfirmBatch(dag)
 
 	// store the tx and update the state
-	sort.Sort(batch.Txs)
+	receipts := make(ReceiptSet)
 	var txhashes []ogTypes.Hash
-	sId := dag.statedb.Snapshot()
-
+	var writedTxs types.Txis
 	for _, txi := range batch.Txs {
 		txi.GetBase().Height = batch.Seq.Height
 
-		_, receipt, err := dag.ProcessTransaction(txi, false)
+		receipt, err := dag.ProcessTransaction(batch.Seq, txi)
 		if err != nil {
 			dag.Revert(sId, nil)
 			log.WithField("sid ", sId).WithField("hash ", txi.GetTxHash()).WithError(err).Warn(
@@ -655,12 +653,9 @@ func (dag *Dag) push(batch *PushBatch) error {
 		}
 		receipts[txi.GetTxHash().Hex()] = receipt
 		txhashes = append(txhashes, txi.GetTxHash())
-	}
-	var writedTxs types.Txis
-	for _, txi := range batch.Txs {
+
 		err = dag.WriteTransaction(dbBatch, txi)
 		if err != nil {
-			log.WithError(err).Error("write tx error, normally never happen")
 			dag.Revert(sId, writedTxs)
 			return fmt.Errorf("write tx into db error: %v", err)
 		}
@@ -675,7 +670,7 @@ func (dag *Dag) push(batch *PushBatch) error {
 	if err != nil {
 		return err
 	}
-	_, receipt, err := dag.ProcessTransaction(batch.Seq, false)
+	receipt, err := dag.ProcessTransaction(batch.Seq, batch.Seq)
 	if err != nil {
 		return err
 	}
@@ -688,22 +683,15 @@ func (dag *Dag) push(batch *PushBatch) error {
 	}
 
 	// commit statedb's changes to trie and triedb
-	root, errdb := dag.statedb.Commit()
-	if errdb != nil {
-		log.Errorf("can't Commit statedb, err: %v", errdb)
-		return fmt.Errorf("can't Commit statedb, err: %v", errdb)
+	root, err := dag.statedb.Commit()
+	if err != nil {
+		return fmt.Errorf("can't Commit statedb, err: %v", err)
 	}
 	dag.statedb.ClearJournalAndRefund()
-
-	// TODO
-	// compare the state root between seq.StateRoot and root after committing statedb.
-	batch.Seq.StateRoot = root
-	//if root.Cmp(batch.Seq.StateRoot) != 0 {
-	//	log.Errorf("the state root after processing all txs is not the same as the root in seq. "+
-	//		"root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
-	//	dag.statedb.RevertToSnapshot(sId)
-	//	return fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
-	//}
+	if root.Cmp(batch.Seq.StateRoot) != 0 {
+		dag.statedb.RevertToSnapshot(sId)
+		return fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
+	}
 
 	// flush triedb into diskdb.
 	triedb := dag.statedb.Database().TrieDB()
@@ -718,18 +706,15 @@ func (dag *Dag) push(batch *PushBatch) error {
 	if len(txhashes) > 0 {
 		dag.accessor.WriteIndexedTxHashs(dbBatch, batch.Seq.Height, txhashes)
 	}
-
 	err = dag.accessor.WriteSequencerByHeight(dbBatch, batch.Seq)
 	if err != nil {
 		return err
 	}
-
 	// set latest sequencer
 	err = dag.accessor.WriteLatestSequencer(dbBatch, batch.Seq)
 	if err != nil {
 		return err
 	}
-
 	err = dbBatch.Write()
 	if err != nil {
 		log.WithError(err).Warn("dbbatch write error")
@@ -739,7 +724,6 @@ func (dag *Dag) push(batch *PushBatch) error {
 
 	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash())
 	log.WithField("height", batch.Seq.Height).WithField("txs number ", len(txhashes)).Info("new height")
-
 	return nil
 }
 
@@ -763,7 +747,7 @@ func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
 		return err
 	}
 
-	dag.txcached.add(tx)
+	//dag.txcached.add(tx)
 	return nil
 }
 
@@ -772,116 +756,16 @@ func (dag *Dag) DeleteTransaction(hash ogTypes.Hash) error {
 }
 
 // ProcessTransaction execute the tx and update the data in statedb.
-//
-// Besides balance and nonce, if a tx is trying to create or call a
-// contract, vm part will be initiated to handle this.
-func (dag *Dag) ProcessTransaction(tx types.Txi, preload bool) ([]byte, *Receipt, error) {
-	//// update nonce
-	//if tx.GetType() == types.TxBaseTypeArchive {
-	//	//receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusArchiveSuccess, "", emptyAddress)
-	//	return nil, nil, nil
-	//}
-	//
-	//var db state.StateDBInterface
-	//if preload {
-	//	db = dag.preloadDB
-	//} else {
-	//	db = dag.statedb
-	//}
-	//
-	//curNonce := db.GetNonce(tx.Sender())
-	//if !db.Exist(tx.Sender()) || tx.GetNonce() > curNonce {
-	//	db.SetNonce(tx.Sender(), tx.GetNonce())
-	//}
-	//
-	//if tx.GetType() == types.TxBaseTypeSequencer {
-	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
-	//	return nil, receipt, nil
-	//}
-	//if tx.GetType() == types.TxBaseAction {
-	//	actionTx := tx.(*types.ActionTx)
-	//	receipt, err := ActionTxProcessor(dag.statedb, actionTx)
-	//	if err != nil {
-	//		return nil, receipt, fmt.Errorf("process action tx error: %v", err)
-	//	}
-	//	return nil, receipt, nil
-	//}
-	//
-	//if tx.GetType() != types.TxBaseTypeNormal {
-	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusUnknownTxType, "", emptyAddress)
-	//	return nil, receipt, nil
-	//}
-	//
-	//// transfer balance
-	//txnormal := tx.(*types.Tx)
-	//if txnormal.Value.Value.Sign() != 0 && !(txnormal.To.Cmp(emptyAddress) == 0) {
-	//	db.SubTokenBalance(txnormal.Sender(), txnormal.TokenId, txnormal.Value)
-	//	db.AddTokenBalance(txnormal.To, txnormal.TokenId, txnormal.Value)
-	//}
-	//// return when its not contract related tx.
-	//if len(txnormal.Data) == 0 {
-	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
-	//	return nil, receipt, nil
-	//}
-
-	// return when the address type is not Address20
-	from20, okFrom := txnormal.From.(*ogTypes.Address20)
-	to20, okTo := txnormal.To.(*ogTypes.Address20)
-	if !okFrom || !okTo {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
-		return nil, receipt, nil
-	}
-
-	// create ovm object.
-	//
-	// TODO gaslimit not implemented yet.
-	var vmContext *vmtypes.Context
-	if preload {
-		vmContext = ovm.NewOVMContext(&ovm.DefaultChainContext{}, DefaultCoinbase, dag.preloadDB)
-	} else {
-		vmContext = ovm.NewOVMContext(&ovm.DefaultChainContext{}, DefaultCoinbase, dag.statedb)
-	}
-
-	txContext := &ovm.TxContext{
-		From:       from20,
-		Value:      txnormal.Value,
-		Data:       txnormal.Data,
-		GasPrice:   math.NewBigInt(0),
-		GasLimit:   DefaultGasLimit,
-		Coinbase:   DefaultCoinbase,
-		SequenceID: dag.latestSequencer.Height,
-	}
-
-	evmInterpreter := evm.NewEVMInterpreter(vmContext, txContext,
-		&evm.InterpreterConfig{
-			Debug: false,
-		})
-	ovmconf := &ovm.OVMConfig{
-		NoRecursion: false,
-	}
-	ogvm := ovm.NewOVM(vmContext, []ovm.Interpreter{evmInterpreter}, ovmconf)
-
-	var ret []byte
-	//var leftOverGas uint64
-	var contractAddress ogTypes.Address20
-	var err error
-	var receipt *Receipt
-	if txnormal.To.Cmp(emptyAddress) == 0 {
-		ret, contractAddress, _, err = ogvm.Create(vmtypes.AccountRef(*txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
-	} else {
-		ret, _, err = ogvm.Call(vmtypes.AccountRef(*txContext.From), *to20, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
-	}
+func (dag *Dag) ProcessTransaction(seq *types.Sequencer, tx types.Txi) (*Receipt, error) {
+	txReceipt, err := dag.txProcessor.Process(dag.statedb, tx)
 	if err != nil {
-		receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusOVMFailed, err.Error(), emptyAddress)
-		log.WithError(err).Warn("vm processing error")
-		return nil, receipt, fmt.Errorf("vm processing error: %v", err)
+		return txReceipt, err
 	}
-	if txnormal.To.Cmp(emptyAddress) == 0 {
-		receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, contractAddress.Hex(), &contractAddress)
-	} else {
-		receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, fmt.Sprintf("%x", ret), emptyAddress)
+
+	if !dag.vmProcessor.CanProcess(tx) {
+		return txReceipt, nil
 	}
-	return ret, receipt, nil
+	return dag.vmProcessor.Process(dag.statedb, tx, seq.Height)
 }
 
 // CallContract calls contract but disallow any modifications on

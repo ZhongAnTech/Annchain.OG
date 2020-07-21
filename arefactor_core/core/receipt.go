@@ -23,7 +23,7 @@ type ReceiptStatus uint8
 
 const (
 	ReceiptStatusSuccess ReceiptStatus = iota
-	ReceiptStatusOVMFailed
+	ReceiptStatusVMFailed
 	ReceiptStatusUnknownTxType
 	ReceiptStatusFailed
 )
@@ -59,7 +59,7 @@ func (r *Receipt) ToJsonMap() map[string]interface{} {
 
 /**
 marshalling part
- */
+*/
 
 func (r *Receipt) MarshalMsg() ([]byte, error) {
 	var err error
@@ -114,9 +114,9 @@ func (r *Receipt) UnmarshalMsg(b []byte) ([]byte, error) {
 func (r *Receipt) MsgSize() int {
 	size := 0
 
-	size += marshaller.CalIMarshallerSize(r.TxHash.MsgSize()) + 1 +		// TxHash + Status
-		marshaller.CalStringSize(r.ProcessResult) +						// ProcessResult
-		marshaller.CalIMarshallerSize(r.ContractAddress.MsgSize())		// ContractAddress
+	size += marshaller.CalIMarshallerSize(r.TxHash.MsgSize()) + 1 + // TxHash + Status
+		marshaller.CalStringSize(r.ProcessResult) + // ProcessResult
+		marshaller.CalIMarshallerSize(r.ContractAddress.MsgSize()) // ContractAddress
 
 	return size
 }

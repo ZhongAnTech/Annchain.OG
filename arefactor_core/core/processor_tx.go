@@ -12,7 +12,7 @@ func NewOgTxProcessor() *OgTxProcessor {
 	return &OgTxProcessor{}
 }
 
-func (tp *OgTxProcessor) ProcessTransaction(engine LedgerEngine, tx types.Txi) (*Receipt, error) {
+func (tp *OgTxProcessor) Process(engine LedgerEngine, tx types.Txi) (*Receipt, error) {
 	curNonce := engine.GetNonce(tx.Sender())
 	if tx.GetNonce() > curNonce {
 		engine.SetNonce(tx.Sender(), tx.GetNonce())
@@ -45,71 +45,6 @@ func (tp *OgTxProcessor) ProcessTransaction(engine LedgerEngine, tx types.Txi) (
 
 	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
 	return receipt, nil
-
-	//// return when its not contract related tx.
-	//if len(txnormal.Data) == 0 {
-	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
-	//	return receipt, nil
-	//}
-	//
-	//// return when the address type is not Address20
-	//from20, okFrom := txnormal.From.(*ogTypes.Address20)
-	//to20, okTo := txnormal.To.(*ogTypes.Address20)
-	//if !okFrom || !okTo {
-	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, "", emptyAddress)
-	//	return receipt, nil
-	//}
-	//
-	//// create ovm object.
-	////
-	//// TODO gaslimit not implemented yet.
-	//var vmContext *vmtypes.Context
-	//if preload {
-	//	vmContext = ovm.NewOVMContext(&ovm.DefaultChainContext{}, DefaultCoinbase, dag.preloadDB)
-	//} else {
-	//	vmContext = ovm.NewOVMContext(&ovm.DefaultChainContext{}, DefaultCoinbase, dag.statedb)
-	//}
-	//
-	//txContext := &ovm.TxContext{
-	//	From:       from20,
-	//	Value:      txnormal.Value,
-	//	Data:       txnormal.Data,
-	//	GasPrice:   math.NewBigInt(0),
-	//	GasLimit:   DefaultGasLimit,
-	//	Coinbase:   DefaultCoinbase,
-	//	SequenceID: dag.latestSequencer.Height,
-	//}
-	//
-	//evmInterpreter := evm.NewEVMInterpreter(vmContext, txContext,
-	//	&evm.InterpreterConfig{
-	//		Debug: false,
-	//	})
-	//ovmconf := &ovm.OVMConfig{
-	//	NoRecursion: false,
-	//}
-	//ogvm := ovm.NewOVM(vmContext, []ovm.Interpreter{evmInterpreter}, ovmconf)
-	//
-	//var ret []byte
-	////var leftOverGas uint64
-	//var contractAddress ogTypes.Address20
-	//var err error
-	//var receipt *Receipt
-	//if txnormal.To.Cmp(emptyAddress) == 0 {
-	//	ret, contractAddress, _, err = ogvm.Create(vmtypes.AccountRef(*txContext.From), txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
-	//} else {
-	//	ret, _, err = ogvm.Call(vmtypes.AccountRef(*txContext.From), *to20, txContext.Data, txContext.GasLimit, txContext.Value.Value, true)
-	//}
-	//if err != nil {
-	//	receipt := NewReceipt(tx.GetTxHash(), ReceiptStatusOVMFailed, err.Error(), emptyAddress)
-	//	log.WithError(err).Warn("vm processing error")
-	//	return nil, receipt, fmt.Errorf("vm processing error: %v", err)
-	//}
-	//if txnormal.To.Cmp(emptyAddress) == 0 {
-	//	receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, contractAddress.Hex(), &contractAddress)
-	//} else {
-	//	receipt = NewReceipt(tx.GetTxHash(), ReceiptStatusSuccess, fmt.Sprintf("%x", ret), emptyAddress)
-	//}
-
 }
 
 func ActionTxProcessor(engine LedgerEngine, actionTx *types.ActionTx) (*Receipt, error) {

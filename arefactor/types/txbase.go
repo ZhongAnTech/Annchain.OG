@@ -40,7 +40,7 @@ func (t TxBaseType) String() string {
 	case TxBaseAction:
 		return "ATX"
 	default:
-		return "NA"
+		return fmt.Sprintf("NA: %d", t)
 	}
 
 }

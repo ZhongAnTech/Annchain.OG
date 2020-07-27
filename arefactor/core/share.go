@@ -2,13 +2,13 @@ package core
 
 import (
 	"github.com/annchain/OG/arefactor/committee"
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/transport"
+	"github.com/annchain/commongo/utilfuncs"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -49,7 +49,7 @@ func ensureLedgerAccountProvider(accountProvider og_interface.LedgerAccountProvi
 	if err != nil {
 		// ledger account not exists
 		// generate or
-		if !viper.GetBool("genkey") {
+		if !viper.GetBool("gen.key") {
 			logrus.WithError(err).Fatal("failed to read ledger key file. You may generate one by specifying --genkey flag")
 		}
 		// generate
@@ -69,7 +69,7 @@ func ensureTransportAccountProvider(accountProvider og.TransportAccountProvider)
 	if err != nil {
 		// account not exists
 		// generate or
-		if !viper.GetBool("genkey") {
+		if !viper.GetBool("gen.key") {
 			logrus.WithError(err).Fatal("failed to read transport key file. You may generate one by specifying --genkey flag")
 		}
 		// generate

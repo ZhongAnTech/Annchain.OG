@@ -2,7 +2,7 @@ package message
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/hexutil"
+	"github.com/annchain/commongo/hexutil"
 )
 
 type ResourceType uint8

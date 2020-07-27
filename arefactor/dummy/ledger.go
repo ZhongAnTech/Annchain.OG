@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/files"
-	"github.com/annchain/OG/arefactor/common/math"
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/commongo/files"
+	"github.com/annchain/commongo/math"
+	"github.com/annchain/commongo/utilfuncs"
 	"github.com/minio/sha256-simd"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"math/rand"
 	"path"
@@ -63,6 +62,9 @@ func (i *IntArrayBlockContent) GetHeight() int64 {
 }
 
 type IntArrayLedger struct {
+	DataPath   string
+	ConfigPath string
+
 	height                        int64
 	genesis                       *og_interface.Genesis
 	confirmedBlockIdHeightMapping map[string]int64
@@ -213,7 +215,6 @@ func (d *IntArrayLedger) InitLedgerGenesis() {
 }
 
 func (d *IntArrayLedger) SaveLedger() {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
 	lines := []string{}
 	for i := int64(0); i <= d.height; i++ {
 		if v, ok := d.confirmedBlockContents[i]; ok {
@@ -222,18 +223,16 @@ func (d *IntArrayLedger) SaveLedger() {
 			lines = append(lines, fmt.Sprintf("%d EMPTY", i))
 		}
 	}
-	err := files.WriteLines(lines, path.Join(datadir, LedgerFile))
+	err := files.WriteLines(lines, path.Join(d.DataPath, LedgerFile))
 	utilfuncs.PanicIfError(err, "dump ledger")
 }
 
 func (d *IntArrayLedger) LoadLedger() (err error) {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-
-	if !files.FileExists(path.Join(datadir, LedgerFile)) {
-		err = errors.New("ledger file not exists: " + path.Join(datadir, LedgerFile))
+	if !files.FileExists(path.Join(d.DataPath, LedgerFile)) {
+		err = errors.New("ledger file not exists: " + path.Join(d.DataPath, LedgerFile))
 		return
 	}
-	lines, err := files.ReadLines(path.Join(datadir, LedgerFile))
+	lines, err := files.ReadLines(path.Join(d.DataPath, LedgerFile))
 	if err != nil {
 		return
 	}
@@ -264,8 +263,7 @@ func (d *IntArrayLedger) LoadLedger() (err error) {
 // Consensus Committee init
 func (d *IntArrayLedger) InitConsensusCommitteeGenesis() {
 	// init from config file.
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "config")
-	byteContent, err := ioutil.ReadFile(path.Join(datadir, "consensus_genesis.json"))
+	byteContent, err := ioutil.ReadFile(path.Join(d.ConfigPath, "consensus_genesis.json"))
 	if err != nil {
 		return
 	}
@@ -300,18 +298,15 @@ func (d *IntArrayLedger) SaveConsensusCommittee() {
 		},
 	}
 
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-
 	bytes, err := json.MarshalIndent(gs, "", "    ")
 	if err != nil {
 		return
 	}
-	err = ioutil.WriteFile(path.Join(datadir, ConsensusCommitteeFile), bytes, 0600)
+	err = ioutil.WriteFile(path.Join(d.DataPath, ConsensusCommitteeFile), bytes, 0600)
 }
 
 func (d *IntArrayLedger) LoadConsensusCommittee() (err error) {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-	byteContent, err := ioutil.ReadFile(path.Join(datadir, ConsensusCommitteeFile))
+	byteContent, err := ioutil.ReadFile(path.Join(d.DataPath, ConsensusCommitteeFile))
 	if err != nil {
 		return
 	}
@@ -353,16 +348,14 @@ func (d *IntArrayLedger) SaveConsensusState(consensusState *consensus_interface.
 		logrus.WithError(err).Fatal("dump consensus state")
 	}
 
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-	err = ioutil.WriteFile(path.Join(datadir, ConsensusStateFile), bytes, 0644)
+	err = ioutil.WriteFile(path.Join(d.DataPath, ConsensusStateFile), bytes, 0644)
 	if err != nil {
 		logrus.WithError(err).Fatal("save consensus state")
 	}
 }
 
 func (d *IntArrayLedger) LoadConsensusState() (err error) {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-	byteContent, err := ioutil.ReadFile(path.Join(datadir, ConsensusStateFile))
+	byteContent, err := ioutil.ReadFile(path.Join(d.DataPath, ConsensusStateFile))
 
 	if err != nil {
 		logrus.WithError(err).Debug("error on loading consensus state")

@@ -1,11 +1,11 @@
 package og
 
 import (
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/annchain/commongo/utilfuncs"
 	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"math/rand"

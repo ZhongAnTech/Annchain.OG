@@ -8,7 +8,6 @@ import (
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport_interface"
-	"github.com/annchain/OG/common/io"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"path"
@@ -16,6 +15,7 @@ import (
 
 // OgNode is the basic entry point for all modules to start.
 type OgNode struct {
+	FolderConfig             FolderConfig
 	components               []Component
 	transportAccountProvider og.TransportAccountProvider
 }
@@ -35,7 +35,7 @@ func (n *OgNode) Setup() {
 	n.transportAccountProvider = &og.LocalTransportAccountProvider{
 		PrivateGenerator:   privateGenerator,
 		NetworkIdConverter: &og.OgNetworkIdConverter{},
-		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
+		BackFilePath:       path.Join(n.FolderConfig.Private, "transport.key"),
 		CryptoType:         transport_interface.CryptoTypeSecp256k1,
 	}
 
@@ -44,13 +44,13 @@ func (n *OgNode) Setup() {
 	ledgerAccountProvider := &og.LocalLedgerAccountProvider{
 		PrivateGenerator: privateGenerator,
 		AddressConverter: ogAddressConverter,
-		BackFilePath:     io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "account.key")),
+		BackFilePath:     path.Join(n.FolderConfig.Private, "account.key"),
 		CryptoType:       og_interface.CryptoTypeSecp256k1,
 	}
 
 	// bls account should be loaded along with the committee number.
 	consensusAccountProvider := &dummy.DummyConsensusAccountProvider{
-		BackFilePath: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "dummy_consensus.key")),
+		BackFilePath: path.Join(n.FolderConfig.Private, "dummy_consensus.key"),
 	}
 
 	// load transport key
@@ -65,7 +65,10 @@ func (n *OgNode) Setup() {
 	//consensusAccountProvider.Save()
 
 	// ledger implementation
-	ledger := &dummy.IntArrayLedger{}
+	ledger := &dummy.IntArrayLedger{
+		DataPath:   n.FolderConfig.Data,
+		ConfigPath: n.FolderConfig.Config,
+	}
 	ledger.InitDefault()
 	ledger.StaticSetup()
 	//ledger.SaveConsensusCommittee()
@@ -89,7 +92,7 @@ func (n *OgNode) Setup() {
 	// peer relationship management
 	cpCommunityManager := &og.DefaultCommunityManager{
 		PhysicalCommunicator:  cpTransport,
-		KnownPeerListFilePath: io.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "peers.lst")),
+		KnownPeerListFilePath: path.Join(n.FolderConfig.Config, "peers.lst"),
 	}
 	cpCommunityManager.InitDefault()
 	cpCommunityManager.StaticSetup()

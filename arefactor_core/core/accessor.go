@@ -416,7 +416,7 @@ func (da *Accessor) ReadReceipt(seqID uint64, hash og_types.Hash) *Receipt {
 	return receipt
 }
 
-// WriteTransaction write the tx or sequencer into ogdb.
+// writeTransaction write the tx or sequencer into ogdb.
 func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 	var prefix, data []byte
 	var err error
@@ -454,7 +454,7 @@ func (da *Accessor) WriteTransaction(putter *Putter, tx types.Txi) error {
 	return nil
 }
 
-// DeleteTransaction delete the tx or sequencer.
+// deleteTransaction delete the tx or sequencer.
 func (da *Accessor) DeleteTransaction(hash og_types.Hash) error {
 	return da.db.Delete(transactionKey(hash))
 }

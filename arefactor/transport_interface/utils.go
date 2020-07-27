@@ -1,7 +1,7 @@
 package transport_interface
 
 import (
-	"github.com/annchain/OG/arefactor/common/files"
+	"github.com/annchain/commongo/files"
 	"strings"
 )
 

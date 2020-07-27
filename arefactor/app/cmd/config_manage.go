@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/files"
-	"github.com/annchain/OG/arefactor/common/format"
-	"github.com/annchain/OG/arefactor/common/httplib"
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	"github.com/annchain/commongo/files"
+	"github.com/annchain/commongo/format"
+	"github.com/annchain/commongo/httplib"
+	"github.com/annchain/commongo/utilfuncs"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"net/url"
@@ -23,22 +23,21 @@ import (
 // 1, ENV
 // 2, injected.toml
 // 3, config.toml or online toml if config.toml is not found
-func readConfig() {
-
-	configPath := files.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "config.toml"))
+func readConfig(configFolder string) {
+	configPath := path.Join(configFolder, "config.toml")
 
 	if files.FileExists(configPath) {
 		mergeLocalConfig(configPath)
 	} else {
-		if viper.GetString("configurl") == "" {
+		if viper.GetString("url.config") == "" {
 			panic("either local config or configurl should be provided")
 		}
 
-		mergeOnlineConfig(viper.GetString("configurl"))
+		mergeOnlineConfig(viper.GetString("url.config"))
 	}
 
 	// load injected config from ogbootstrap if any
-	injectedPath := files.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "injected.toml"))
+	injectedPath := path.Join(configFolder, "injected.toml")
 	if files.FileExists(injectedPath) {
 		log.Info("merging local config file")
 		mergeLocalConfig(injectedPath)
@@ -53,15 +52,15 @@ func readConfig() {
 
 func mergeEnvConfig() {
 	// env override
-	viper.SetEnvPrefix("bouncer")
+	viper.SetEnvPrefix("og")
 	viper.AutomaticEnv()
 }
 
-func writeConfig() {
-	configPath := files.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "config_dump.toml"))
-	err := viper.WriteConfigAs(configPath)
-	utilfuncs.PanicIfError(err, "dump config")
-}
+//func writeConfig() {
+//	configPath := files.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "config_dump.toml"))
+//	err := viper.WriteConfigAs(configPath)
+//	utilfuncs.PanicIfError(err, "dump config")
+//}
 
 func mergeOnlineConfig(configPath string) {
 	_, err := url.Parse(configPath)

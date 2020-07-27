@@ -2,7 +2,7 @@ package consensus
 
 import (
 	"crypto/sha256"
-	"github.com/annchain/OG/arefactor/common/hexutil"
+	"github.com/annchain/commongo/hexutil"
 )
 
 type SHA256Hasher struct {

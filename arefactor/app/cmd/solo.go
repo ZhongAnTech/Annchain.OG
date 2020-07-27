@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"github.com/annchain/OG/arefactor/core"
-	log "github.com/sirupsen/logrus"
+	"github.com/annchain/commongo/mylog"
+	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
@@ -19,15 +21,18 @@ var soloCmd = &cobra.Command{
 	Short: "Start a solo node",
 	Long:  `Start a solo node. No consensus will be involved.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ensureFolder()
-		initLogger()
-		// init logs and other facilities before the node starts
-		readConfig()
-		startPerformanceMonitor()
-		pid := os.Getpid()
-		writeConfig()
 
-		log.WithField("pid", pid).Info("OgNode Starting")
+		logrus.WithField("pid", os.Getpid()).Info("OG Solo Starting")
+		folderConfigs := ensureFolders()
+		readConfig(folderConfigs.Config)
+		mylog.InitLogger(logrus.StandardLogger(), mylog.LogConfig{
+			MaxSize:    10,
+			MaxBackups: 100,
+			MaxAgeDays: 90,
+			Compress:   true,
+			LogDir:     folderConfigs.Log,
+			OutputFile: "ogsolo",
+		})
 
 		node := &core.SoloNode{}
 		node.InitDefault()

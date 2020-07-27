@@ -2,7 +2,7 @@ package consensus_interface
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/hexutil"
+	"github.com/annchain/commongo/hexutil"
 	"strconv"
 )
 

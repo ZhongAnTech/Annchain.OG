@@ -1,8 +1,8 @@
 package og_interface
 
 import (
-	"github.com/annchain/OG/arefactor/common/hexutil"
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
+	"github.com/annchain/commongo/hexutil"
+	"github.com/annchain/commongo/utilfuncs"
 )
 
 const (

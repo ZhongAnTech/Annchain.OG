@@ -123,11 +123,11 @@ func (t *Sequencer) SignatureTargets() []byte {
 
 	w.Write(t.BlsJointPubKey, t.AccountNonce)
 	if !CanRecoverPubFromSig {
-		w.Write(t.Issuer.Bytes)
+		w.Write(t.Issuer.Bytes())
 	}
-	w.Write(t.Height, t.Weight, t.StateRoot.Bytes)
+	w.Write(t.Height, t.Weight, t.StateRoot.Bytes())
 	for _, parent := range t.Parents() {
-		w.Write(parent.Bytes)
+		w.Write(parent.Bytes())
 	}
 	return w.Bytes()
 }
@@ -253,7 +253,7 @@ func (s *Sequencer) GetConfirmSeqHash() og_types.Hash {
 
 /**
 Marshaller part
- */
+*/
 func (s *Sequencer) MarshalMsg() ([]byte, error) {
 
 }
@@ -263,10 +263,8 @@ func (s *Sequencer) UnmarshalMsg(b []byte) ([]byte, error) {
 }
 
 func (s *Sequencer) MsgSize() int {
-	
+
 }
-
-
 
 type SequencerMsg struct {
 	Type           int      `json:"type"`

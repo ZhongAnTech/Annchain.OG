@@ -56,13 +56,14 @@ type Dag struct {
 	db       ogdb.Database
 	accessor *Accessor
 
-	statedb       *state.StateDB
-	txProcessor   TxProcessor
-	vmProcessor   VmProcessor
-	cachedBatches *cachedConfirms
+	txProcessor TxProcessor
+	vmProcessor VmProcessor
 
 	genesis         *types.Sequencer
 	latestSequencer *types.Sequencer
+	chosenStateDB   *state.StateDB
+	chosenBatch     *ConfirmBatch
+	cachedBatches   *CachedConfirms
 
 	//txcached *txcached
 
@@ -83,24 +84,26 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		close:       make(chan struct{}),
 	}
 
-	restart, root := dag.LoadLastState()
+	root := dag.LoadLastState()
+	if root == nil {
+		genesis, balance := DefaultGenesis(conf.GenesisPath)
+		if err := dag.Init(genesis, balance); err != nil {
+			return nil, err
+		}
+		return dag, nil
+	}
+
 	log.Infof("the root loaded from last state is: %x", root.Bytes())
 	statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db), root)
 	if err != nil {
 		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
-	dag.statedb = statedb
-	dag.cachedBatches = newCachedConfirms(dag)
+	dag.chosenStateDB = statedb
+	dag.chosenBatch = nil
+	dag.cachedBatches = newCachedConfirms()
 
-	if restart && dag.GetHeight() > 0 && root.Length() == 0 {
+	if dag.GetHeight() > 0 && root.Length() == 0 {
 		panic("should not be empty hash. Database may be corrupted. Please clean datadir")
-	}
-
-	if !restart {
-		genesis, balance := DefaultGenesis(conf.GenesisPath)
-		if err := dag.Init(genesis, balance); err != nil {
-			return nil, err
-		}
 	}
 	return dag, nil
 }
@@ -117,22 +120,25 @@ func (dag *Dag) Start() {
 func (dag *Dag) Stop() {
 	close(dag.close)
 
-	dag.statedb.Stop()
+	dag.chosenStateDB.Stop()
+	for _, batch := range dag.cachedBatches.batches {
+		batch.stop()
+	}
 	log.Infof("Dag Stopped")
 }
 
-// TODO
-// This is a temp function to solve the not working problem when
-// restart the node. The perfect solution is to load the root from
-// latest sequencer every time restart the node.
-func (dag *Dag) LoadStateRoot() ogTypes.Hash {
-	return dag.accessor.ReadLastStateRoot()
-}
+//// TODO
+//// This is a temp function to solve the not working problem when
+//// restart the node. The perfect solution is to load the root from
+//// latest sequencer every time restart the node.
+//func (dag *Dag) LoadStateRoot() ogTypes.Hash {
+//	return dag.accessor.ReadLastStateRoot()
+//}
 
-// StateDatabase is for testing only
-func (dag *Dag) StateDatabase() *state.StateDB {
-	return dag.statedb
-}
+//// StateDatabase is for testing only
+//func (dag *Dag) StateDatabase() *state.StateDB {
+//	return dag.statedb
+//}
 
 // Init inits genesis sequencer and genesis state of the network.
 func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.AddressKey]*math.BigInt) error {
@@ -140,41 +146,34 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Addres
 		return fmt.Errorf("invalheight genesis: height is not zero")
 	}
 	var err error
-	//dbBatch := dag.db.NewBatch()
 
-	// init genesis
+	// init genesis balance
+	for addrKey, value := range genesisBalance {
+		addr, _ := ogTypes.HexToAddress20(string(addrKey))
+		dag.chosenStateDB.SetBalance(addr, value)
+	}
+	// commit state and init a genesis state root
+	root, err := dag.chosenStateDB.Commit()
+	if err != nil {
+		return fmt.Errorf("commit genesis state err: %v", err)
+	}
+	trieDB := dag.chosenStateDB.Database().TrieDB()
+	err = trieDB.Commit(root, false)
+	if err != nil {
+		return fmt.Errorf("commit genesis trie err: %v", err)
+	}
+
+	// write genesis
+	genesis.StateRoot = root
 	err = dag.accessor.WriteGenesis(genesis)
 	if err != nil {
 		return err
 	}
-	// init latest sequencer
-	err = dag.accessor.WriteLatestSequencer(nil, genesis)
-	if err != nil {
-		return err
-	}
-
-	err = dag.accessor.WriteSequencerByHeight(nil, genesis)
-	if err != nil {
-		return err
-	}
-	// store genesis as first tx
-	err = dag.WriteTransaction(nil, genesis)
+	err = dag.writeSequencer(nil, genesis)
 	if err != nil {
 		return err
 	}
 	log.Tracef("successfully store genesis: %s", genesis)
-
-	// init genesis balance
-	for addrKey, value := range genesisBalance {
-		//tx := &types.Tx{}
-		//tx.To = addr
-		//tx.Value = value
-		//tx.Type = types.TxBaseTypeNormal
-		//tx.GetBase().Hash = tx.CalcTxHash()
-		//dag.WriteTransaction(dbBatch, tx)
-		addr, _ := ogTypes.HexToAddress20(string(addrKey))
-		dag.statedb.SetBalance(addr, value)
-	}
 
 	dag.genesis = genesis
 	dag.latestSequencer = genesis
@@ -185,24 +184,24 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Addres
 
 // LoadLastState load genesis and latestsequencer data from ogdb.
 // return false if there is no genesis stored in the db.
-func (dag *Dag) LoadLastState() (bool, ogTypes.Hash) {
+func (dag *Dag) LoadLastState() ogTypes.Hash {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
 	genesis := dag.accessor.ReadGenesis()
 	if genesis == nil {
-		return false, &ogTypes.Hash32{}
+		return nil
 	}
 	dag.genesis = genesis
+
+	// TODO no need to set latest sequencer here
 	seq := dag.accessor.ReadLatestSequencer()
 	if seq == nil {
 		dag.latestSequencer = genesis
 	} else {
 		dag.latestSequencer = seq
 	}
-	root := dag.latestSequencer.StateRoot
-
-	return true, root
+	return dag.latestSequencer.StateRoot
 }
 
 // Genesis returns the genesis tx of dag
@@ -235,21 +234,11 @@ func (dag *Dag) Accessor() *Accessor {
 }
 
 // Push trys to move a tx from tx pool to dag db.
-func (dag *Dag) Push(batch *PushBatch) error {
+func (dag *Dag) Push(batch *PushBatch) (ogTypes.Hash, error) {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
 	return dag.push(batch)
-}
-
-// PrePush simulates the action of pushing sequencer into Dag ledger. Simulates will
-// store the changes into cache statedb. Once the same sequencer comes, the cachedBatches
-// states will becomes regular ones.
-func (dag *Dag) PrePush(batch *PushBatch) (ogTypes.Hash, error) {
-	dag.mu.Lock()
-	defer dag.mu.Unlock()
-
-	return dag.prePush(batch)
 }
 
 // GetTx gets tx from dag network indexed by tx hash. This function querys
@@ -261,10 +250,10 @@ func (dag *Dag) GetTx(hash ogTypes.Hash) types.Txi {
 	return dag.getTx(hash)
 }
 func (dag *Dag) getTx(hash ogTypes.Hash) types.Txi {
-	tx := dag.txcached.get(hash)
-	if tx != nil {
-		return tx
-	}
+	//tx := dag.txcached.get(hash)
+	//if tx != nil {
+	//	return tx
+	//}
 	return dag.accessor.ReadTransaction(hash)
 }
 
@@ -272,9 +261,9 @@ func (dag *Dag) Has(hash ogTypes.Hash) bool {
 	return dag.GetTx(hash) != nil
 }
 
-func (dag *Dag) Exist(addr ogTypes.Address) bool {
-	return dag.statedb.Exist(addr)
-}
+//func (dag *Dag) Exist(addr ogTypes.Address) bool {
+//	return dag.statedb.Exist(addr)
+//}
 
 // GetTxByNonce gets tx from dag by sender's address and tx nonce
 func (dag *Dag) GetTxByNonce(addr ogTypes.Address, nonce uint64) types.Txi {
@@ -490,7 +479,7 @@ func (dag *Dag) GetBalance(addr ogTypes.Address, tokenID int32) *math.BigInt {
 }
 
 func (dag *Dag) getBalance(addr ogTypes.Address, tokenID int32) *math.BigInt {
-	return dag.statedb.GetTokenBalance(addr, tokenID)
+	return dag.chosenStateDB.GetTokenBalance(addr, tokenID)
 }
 
 func (dag *Dag) GetAllTokenBalance(addr ogTypes.Address) state.BalanceSet {
@@ -501,21 +490,21 @@ func (dag *Dag) GetAllTokenBalance(addr ogTypes.Address) state.BalanceSet {
 }
 
 func (dag *Dag) getAlltokenBalance(addr ogTypes.Address) state.BalanceSet {
-	return dag.statedb.GetAllTokenBalance(addr)
+	return dag.chosenStateDB.GetAllTokenBalance(addr)
 }
 
 func (dag *Dag) GetToken(tokenId int32) *state.TokenObject {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	if tokenId > dag.statedb.LatestTokenID() {
+	if tokenId > dag.chosenStateDB.LatestTokenID() {
 		return nil
 	}
 	return dag.getToken(tokenId)
 }
 
 func (dag *Dag) getToken(tokenId int32) *state.TokenObject {
-	return dag.statedb.GetTokenObject(tokenId)
+	return dag.chosenStateDB.GetTokenObject(tokenId)
 }
 
 func (dag *Dag) GetLatestTokenId() int32 {
@@ -526,7 +515,7 @@ func (dag *Dag) GetLatestTokenId() int32 {
 }
 
 func (dag *Dag) getLatestTokenId() int32 {
-	return dag.statedb.LatestTokenID()
+	return dag.chosenStateDB.LatestTokenID()
 }
 
 func (dag *Dag) GetTokens() []*state.TokenObject {
@@ -556,8 +545,7 @@ func (dag *Dag) GetLatestNonce(addr ogTypes.Address) (uint64, error) {
 }
 
 func (dag *Dag) getLatestNonce(addr ogTypes.Address) (uint64, error) {
-
-	return dag.statedb.GetNonce(addr), nil
+	return dag.chosenStateDB.GetNonce(addr), nil
 }
 
 // GetState get contract's state from statedb.
@@ -569,7 +557,7 @@ func (dag *Dag) GetState(addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
 }
 
 func (dag *Dag) getState(addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
-	return dag.statedb.GetState(addr, key)
+	return dag.chosenStateDB.GetState(addr, key)
 }
 
 //GetTxsByAddress get all txs from this address
@@ -604,134 +592,140 @@ func (dag *Dag) RollBack() {
 	// TODO
 }
 
-func (dag *Dag) prePush(batch *PushBatch) (ogTypes.Hash, error) {
-	log.Tracef("prePush the batch: %s", batch.String())
+//func (dag *Dag) prePush(batch *PushBatch) (ogTypes.Hash, error) {
+//	log.Tracef("prePush the batch: %s", batch.String())
+//
+//	sort.Sort(batch.Txs)
+//
+//	//dag.preloadDB.Reset()
+//	//for _, txi := range batch.Txs {
+//	//	_, _, err := dag.processTransaction(txi, true)
+//	//	if err != nil {
+//	//		return &ogTypes.Hash32{}, fmt.Errorf("process tx error: %v", err)
+//	//	}
+//	//}
+//	//return dag.preloadDB.Commit()
+//}
 
-	sort.Sort(batch.Txs)
-
-	//dag.preloadDB.Reset()
-	//for _, txi := range batch.Txs {
-	//	_, _, err := dag.ProcessTransaction(txi, true)
-	//	if err != nil {
-	//		return &ogTypes.Hash32{}, fmt.Errorf("process tx error: %v", err)
-	//	}
-	//}
-	//return dag.preloadDB.Commit()
-}
-
-func (dag *Dag) push(batch *PushBatch) error {
-	log.Tracef("push the batch: %s", batch.String())
-
-	if dag.latestSequencer.Height+1 != batch.Seq.Height {
-		return fmt.Errorf("last sequencer Height mismatch old %d, new %d", dag.latestSequencer.Height, batch.Seq.Height)
-	}
+func (dag *Dag) push(pushBatch *PushBatch) (*types.Sequencer, error) {
+	log.Tracef("push the pushBatch: %s", pushBatch.String())
 
 	var err error
-	sId := dag.statedb.Snapshot()
-	dbBatch := dag.accessor.NewBatch()
-	sort.Sort(batch.Txs)
+	seq := pushBatch.Seq
+	sort.Sort(pushBatch.Txs)
 
-	// TODO handle sequencer height 1, for its parents is genesis.
-	dag.cachedBatches.getConfirmBatch(batch.Seq.GetParentSeqHash())
-	state.NewStateDB(state.DefaultStateDBConfig(), state.NewDatabase(dag.db), root)
-	newStateDB := state.NewStateDB()
-	newConfirmBatch(dag)
+	parentSeqI := dag.getTx(seq.GetParentSeqHash())
+	if parentSeqI != nil && parentSeqI.GetType() != types.TxBaseTypeSequencer {
+		return nil, fmt.Errorf("parent sequencer not exists: %s", seq.GetParentSeqHash().Hex())
+	}
+	parentSeq := parentSeqI.(*types.Sequencer)
+	confirmBatch, err := newConfirmBatch(seq, dag.db, parentSeq.StateRoot)
+	if err != nil {
+		return nil, err
+	}
 
 	// store the tx and update the state
 	receipts := make(ReceiptSet)
-	var txhashes []ogTypes.Hash
-	var writedTxs types.Txis
-	for _, txi := range batch.Txs {
-		txi.GetBase().Height = batch.Seq.Height
-
-		receipt, err := dag.ProcessTransaction(batch.Seq, txi)
+	for _, txi := range pushBatch.Txs {
+		txi.GetBase().Height = seq.Height
+		receipt, err := dag.processTransaction(confirmBatch.db, seq, txi)
 		if err != nil {
-			dag.Revert(sId, nil)
-			log.WithField("sid ", sId).WithField("hash ", txi.GetTxHash()).WithError(err).Warn(
-				"process tx error , revert to snap short")
-			return err
+			return nil, err
 		}
 		receipts[txi.GetTxHash().Hex()] = receipt
-		txhashes = append(txhashes, txi.GetTxHash())
-
-		err = dag.WriteTransaction(dbBatch, txi)
-		if err != nil {
-			dag.Revert(sId, writedTxs)
-			return fmt.Errorf("write tx into db error: %v", err)
-		}
-		tx := txi
-		writedTxs = append(writedTxs, tx)
 		log.WithField("tx", txi).Tracef("successfully process tx")
 	}
-
-	// save latest sequencer into db
-	batch.Seq.GetBase().Height = batch.Seq.Height
-	err = dag.WriteTransaction(dbBatch, batch.Seq)
+	// process sequencer
+	seqReceipt, err := dag.processTransaction(confirmBatch.db, seq, seq)
 	if err != nil {
-		return err
-	}
-	receipt, err := dag.ProcessTransaction(batch.Seq, batch.Seq)
-	if err != nil {
-		return err
-	}
-	receipts[batch.Seq.GetTxHash().Hex()] = receipt
-
-	// write receipts.
-	err = dag.accessor.WriteReceipts(dbBatch, batch.Seq.Height, receipts)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// commit statedb's changes to trie and triedb
-	root, err := dag.statedb.Commit()
+	root, err := confirmBatch.db.Commit()
 	if err != nil {
-		return fmt.Errorf("can't Commit statedb, err: %v", err)
+		return nil, fmt.Errorf("can't Commit statedb, err: %v", err)
 	}
-	dag.statedb.ClearJournalAndRefund()
-	if root.Cmp(batch.Seq.StateRoot) != 0 {
-		dag.statedb.RevertToSnapshot(sId)
-		return fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x", root.Bytes, batch.Seq.StateRoot.Bytes)
-	}
+	confirmBatch.db.ClearJournalAndRefund()
 
+	if pushBatch.IsInitial {
+		seq.StateRoot = root
+		seq.CalcTxHash()
+	} else if root.Cmp(seq.StateRoot) != 0 {
+		return nil, fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x",
+			root.Bytes(), seq.StateRoot.Bytes())
+	}
 	// flush triedb into diskdb.
-	triedb := dag.statedb.Database().TrieDB()
+	triedb := confirmBatch.db.Database().TrieDB()
 	err = triedb.Commit(root, false)
 	if err != nil {
-		log.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
-		dag.statedb.RevertToSnapshot(sId)
-		return fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
+		return nil, fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
 	}
 
+	receipts[seq.GetTxHash().Hex()] = seqReceipt
+
+	err = dag.flushAllToDB(pushBatch, receipts)
+	if err != nil {
+		return nil, err
+	}
+
+	// change chosen batch if current is higher than chosen one
+	if seq.Height > dag.latestSequencer.Height {
+		dag.latestSequencer = seq
+		dag.chosenStateDB = confirmBatch.db
+		dag.chosenBatch = confirmBatch
+	}
+	dag.cachedBatches.push(confirmBatch)
+
+	log.Tracef("successfully store seq: %s", seq.GetTxHash())
+	log.WithField("height", seq.Height).WithField("txs number ", len(pushBatch.Txs)).Info("new height")
+	return seq, nil
+}
+
+func (dag *Dag) commit() {
+
+}
+
+func (dag *Dag) flushAllToDB(pushBatch *PushBatch, receipts ReceiptSet) (err error) {
+	dbBatch := dag.accessor.NewBatch()
+
+	// write txs
+	var txHashes []ogTypes.Hash
+	for _, tx := range pushBatch.Txs {
+		err = dag.writeTransaction(dbBatch, tx)
+		if err != nil {
+			return err
+		}
+		txHashes = append(txHashes, tx.GetTxHash())
+	}
 	// store the hashs of the txs confirmed by this sequencer.
-	if len(txhashes) > 0 {
-		dag.accessor.WriteIndexedTxHashs(dbBatch, batch.Seq.Height, txhashes)
+	if len(txHashes) > 0 {
+		dag.accessor.WriteIndexedTxHashs(dbBatch, pushBatch.Seq.Height, txHashes)
 	}
-	err = dag.accessor.WriteSequencerByHeight(dbBatch, batch.Seq)
+	// write sequencer
+	err = dag.writeSequencer(dbBatch, pushBatch.Seq)
 	if err != nil {
 		return err
 	}
-	// set latest sequencer
-	err = dag.accessor.WriteLatestSequencer(dbBatch, batch.Seq)
+	// write receipts
+	err = dag.accessor.WriteReceipts(dbBatch, pushBatch.Seq.Height, receipts)
 	if err != nil {
 		return err
 	}
+
 	err = dbBatch.Write()
 	if err != nil {
-		log.WithError(err).Warn("dbbatch write error")
+		log.WithError(err).Warn("dbBatch write error")
 		return err
 	}
-	dag.latestSequencer = batch.Seq
-
-	log.Tracef("successfully store seq: %s", batch.Seq.GetTxHash())
-	log.WithField("height", batch.Seq.Height).WithField("txs number ", len(txhashes)).Info("new height")
 	return nil
 }
 
-// WriteTransaction write the tx or sequencer into ogdb. It first writes
+// writeTransaction write the tx or sequencer into ogdb. It first writes
 // the latest nonce of the tx's sender, then write the ([address, nonce] -> hash)
 // relation into db, finally write the tx itself. Data will be overwritten
 // if it already exists in db.
-func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
+func (dag *Dag) writeTransaction(putter *Putter, tx types.Txi) error {
 	// Write tx hash. This is aimed to allow users to query tx hash
 	// by sender address and tx nonce.
 	if tx.GetType() != types.TxBaseTypeArchive {
@@ -751,13 +745,13 @@ func (dag *Dag) WriteTransaction(putter *Putter, tx types.Txi) error {
 	return nil
 }
 
-func (dag *Dag) DeleteTransaction(hash ogTypes.Hash) error {
+func (dag *Dag) deleteTransaction(hash ogTypes.Hash) error {
 	return dag.accessor.DeleteTransaction(hash)
 }
 
-// ProcessTransaction execute the tx and update the data in statedb.
-func (dag *Dag) ProcessTransaction(seq *types.Sequencer, tx types.Txi) (*Receipt, error) {
-	txReceipt, err := dag.txProcessor.Process(dag.statedb, tx)
+// processTransaction execute the tx and update the data in statedb.
+func (dag *Dag) processTransaction(stateDB *state.StateDB, seq *types.Sequencer, tx types.Txi) (*Receipt, error) {
+	txReceipt, err := dag.txProcessor.Process(stateDB, tx)
 	if err != nil {
 		return txReceipt, err
 	}
@@ -765,7 +759,24 @@ func (dag *Dag) ProcessTransaction(seq *types.Sequencer, tx types.Txi) (*Receipt
 	if !dag.vmProcessor.CanProcess(tx) {
 		return txReceipt, nil
 	}
-	return dag.vmProcessor.Process(dag.statedb, tx, seq.Height)
+	return dag.vmProcessor.Process(stateDB, tx, seq.Height)
+}
+
+func (dag *Dag) writeSequencer(putter *Putter, seq *types.Sequencer) (err error) {
+	err = dag.writeTransaction(putter, seq)
+	if err != nil {
+		return err
+	}
+	err = dag.accessor.WriteSequencerByHeight(putter, seq)
+	if err != nil {
+		return err
+	}
+	// set latest sequencer
+	err = dag.accessor.WriteLatestSequencer(putter, seq)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // CallContract calls contract but disallow any modifications on
@@ -774,7 +785,7 @@ func (dag *Dag) CallContract(addr ogTypes.Address20, data []byte) ([]byte, error
 	// create ovm object.
 	//
 	// TODO gaslimit not implemented yet.
-	vmContext := ovm.NewOVMContext(&ovm.DefaultChainContext{}, DefaultCoinbase, dag.statedb)
+	vmContext := ovm.NewOVMContext(&ovm.DefaultChainContext{}, DefaultCoinbase, dag.chosenStateDB)
 	txContext := &ovm.TxContext{
 		From:       DefaultCoinbase,
 		Value:      math.NewBigInt(0),
@@ -798,14 +809,8 @@ func (dag *Dag) CallContract(addr ogTypes.Address20, data []byte) ([]byte, error
 	return ret, err
 }
 
-func (dag *Dag) Revert(snapShotID int, txs types.Txis) {
-	dag.statedb.RevertToSnapshot(snapShotID)
-	for _, txi := range txs {
-		err := dag.DeleteTransaction(txi.GetTxHash())
-		if err != nil {
-			log.WithField("tx ", txi).WithError(err).Error("delete tx error")
-		}
-	}
+func (dag *Dag) revert(snapShotID int) {
+	dag.chosenStateDB.RevertToSnapshot(snapShotID)
 }
 
 type txcached struct {
@@ -843,8 +848,9 @@ func (tc *txcached) add(tx types.Txi) {
 }
 
 type PushBatch struct {
-	Seq *types.Sequencer
-	Txs types.Txis
+	Seq       *types.Sequencer
+	Txs       types.Txis
+	IsInitial bool
 }
 
 func (c *PushBatch) String() string {

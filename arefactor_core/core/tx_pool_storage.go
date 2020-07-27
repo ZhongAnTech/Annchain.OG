@@ -213,7 +213,7 @@ func (s *txPoolStorage) tryProcessTx(tx types.Txi) TxQuality {
 	return TxQualityIsGood
 }
 
-func (s *txPoolStorage) switchToConfirmBatch(batch *confirmBatch) (txToRejudge []*txEnvelope) {
+func (s *txPoolStorage) switchToConfirmBatch(batch *ConfirmBatch) (txToRejudge []*txEnvelope) {
 	txToRejudge = make([]*txEnvelope, 0)
 	newTxOrder := make([]*txEnvelope, 0)
 	for _, hash := range s.getTxHashesInOrder() {
@@ -245,7 +245,7 @@ func (s *txPoolStorage) switchToConfirmBatch(batch *confirmBatch) (txToRejudge [
 	}
 
 	// deal account flows
-	batches := make([]*confirmBatch, 0)
+	batches := make([]*ConfirmBatch, 0)
 	curBatch := batch
 	for curBatch != nil {
 		batches = append(batches, curBatch)
@@ -254,7 +254,7 @@ func (s *txPoolStorage) switchToConfirmBatch(batch *confirmBatch) (txToRejudge [
 	for i := len(batches) - 1; i >= 0; i-- {
 		curBatch = batches[i]
 
-		for addrKey, detail := range curBatch.details {
+		for addrKey, detail := range curBatch.db {
 			addr, _ := ogTypes.AddressFromAddressKey(addrKey)
 			balanceStates := make(map[int32]*BalanceState)
 

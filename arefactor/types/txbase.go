@@ -169,11 +169,11 @@ func (t *TxBase) CalcTxHash() (hash og_types.Hash) {
 	w := NewBinaryWriter()
 
 	for _, ancestor := range t.ParentsHash {
-		w.Write(ancestor.Bytes)
+		w.Write(ancestor.Bytes())
 	}
 	// do not use Height to calculate tx hash.
 	w.Write(t.Weight)
-	w.Write(t.CalcMinedHash().Bytes)
+	w.Write(t.CalcMinedHash().Bytes())
 
 	result := sha3.Sum256(w.Bytes())
 	hash.FromBytes(result[0:])

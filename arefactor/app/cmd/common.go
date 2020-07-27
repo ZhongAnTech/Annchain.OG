@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 func ensureFolder(folder string, perm os.FileMode) {
@@ -27,12 +28,17 @@ func defaultPath(givenPath string, defaultRoot string, suffix string) string {
 }
 
 func ensureFolders() core.FolderConfig {
+	rootAbs, err := filepath.Abs(viper.GetString("dir.root"))
+	if err != nil {
+		logrus.WithError(err).Fatal("failed to detect root folder")
+	}
+
 	config := core.FolderConfig{
-		Root:    viper.GetString("dir.root"),
-		Log:     defaultPath(viper.GetString("dir.log"), viper.GetString("dir.root"), "log"),
-		Data:    defaultPath(viper.GetString("dir.data"), viper.GetString("dir.root"), "data"),
-		Config:  defaultPath(viper.GetString("dir.config"), viper.GetString("dir.root"), "config"),
-		Private: defaultPath(viper.GetString("dir.private"), viper.GetString("dir.root"), "private"),
+		Root:    rootAbs,
+		Log:     defaultPath(viper.GetString("dir.log"), rootAbs, "log"),
+		Data:    defaultPath(viper.GetString("dir.data"), rootAbs, "data"),
+		Config:  defaultPath(viper.GetString("dir.config"), rootAbs, "config"),
+		Private: defaultPath(viper.GetString("dir.private"), rootAbs, "private"),
 	}
 	ensureFolder(config.Root, 0755)
 	ensureFolder(config.Log, 0755)

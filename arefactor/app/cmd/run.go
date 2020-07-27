@@ -31,8 +31,8 @@ var runCmd = &cobra.Command{
 	Short: "Start a full node",
 	Long:  `Start a full node`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logrus.WithField("pid", os.Getpid()).Info("OG Starting")
 		folderConfigs := ensureFolders()
+		logrus.WithField("c", folderConfigs).Info("folders")
 		readConfig(folderConfigs.Config)
 		mylog.InitLogger(logrus.StandardLogger(), mylog.LogConfig{
 			MaxSize:    10,
@@ -43,6 +43,7 @@ var runCmd = &cobra.Command{
 			OutputFile: "og",
 		})
 		mylog.LogInit(mylog.LogLevel(viper.GetString("log.level")))
+		logrus.WithField("pid", os.Getpid()).Info("OG Starting")
 
 		//startPerformanceMonitor()
 		//writeConfig()

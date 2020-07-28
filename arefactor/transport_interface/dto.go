@@ -29,7 +29,7 @@ const (
 
 type IncomingLetter struct {
 	Msg  *WireMessage
-	From string
+	From string // peer Id
 }
 
 func (i IncomingLetter) String() string {

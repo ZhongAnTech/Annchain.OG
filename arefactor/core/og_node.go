@@ -104,12 +104,14 @@ func (n *OgNode) Setup() {
 
 	// consensus. Current all peers are Partner
 	cpConsensusPartner := &consensus.Partner{
-		Logger:                   logrus.StandardLogger(),
-		Reporter:                 lowLevelReporter,
-		ProposalGenerator:        proposalGenerator,
-		ProposalVerifier:         &dummy.DummyProposalVerifier{},
-		CommitteeProvider:        committeeProvider,
-		ConsensusSigner:          &dummy.DummyConsensusSigner{}, // should be replaced by bls signer
+		Logger:            logrus.StandardLogger(),
+		Reporter:          lowLevelReporter,
+		ProposalGenerator: proposalGenerator,
+		ProposalVerifier:  &dummy.DummyProposalVerifier{},
+		CommitteeProvider: committeeProvider,
+		ConsensusSigner: &dummy.DummyConsensusSigner{
+			Id: viper.GetInt("id"),
+		}, // should be replaced by bls signer
 		ConsensusAccountProvider: consensusAccountProvider,
 		Hasher:                   &consensus.SHA256Hasher{},
 		Ledger:                   ledger,

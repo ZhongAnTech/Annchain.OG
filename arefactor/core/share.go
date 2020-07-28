@@ -27,7 +27,9 @@ func getReporter() *soccerdash.Reporter {
 		Id:            hostname + viper.GetString("id"),
 		TargetAddress: viper.GetString("report.address"),
 		BufferSize:    viper.GetInt("report.buffer_size"),
-		Logger:        logrus.StandardLogger(),
+		Logger:        nil,
+		//Logger:        logrus.StandardLogger(),
+
 	}
 	return reporter
 }

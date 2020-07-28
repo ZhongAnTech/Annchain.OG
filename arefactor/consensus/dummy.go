@@ -13,9 +13,10 @@ type DefaultProposalContextProvider struct {
 }
 
 func (d DefaultProposalContextProvider) GetProposalContext() *consensus_interface.ProposalContext {
+	consensusState := d.Safety.ConsensusState()
 	return &consensus_interface.ProposalContext{
 		CurrentRound: d.PaceMaker.CurrentRound,
-		HighQC:       d.Safety.ConsensusState().HighQC,
-		TC:           d.PaceMaker.lastTC,
+		HighQC:       consensusState.HighQC,
+		TC:           consensusState.LastTC,
 	}
 }

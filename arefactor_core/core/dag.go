@@ -59,11 +59,13 @@ type Dag struct {
 	txProcessor TxProcessor
 	vmProcessor VmProcessor
 
-	genesis         *types.Sequencer
-	latestSequencer *types.Sequencer
-	chosenStateDB   *state.StateDB
-	chosenBatch     *ConfirmBatch
-	cachedBatches   *CachedConfirms
+	genesis            *types.Sequencer
+	latestSequencer    *types.Sequencer
+	confirmedSequencer *types.Sequencer
+	chosenStateDB      *state.StateDB
+	chosenBatch        *ConfirmBatch
+	cachedBatches      *CachedConfirms // stores speculated sequencers, use state root as batch key
+	pendedBatches      *CachedConfirms // stores pushed sequencers, use sequencer hash as batch key
 
 	//txcached *txcached
 
@@ -101,6 +103,7 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 	dag.chosenStateDB = statedb
 	dag.chosenBatch = nil
 	dag.cachedBatches = newCachedConfirms()
+	dag.pendedBatches = newCachedConfirms()
 
 	if dag.GetHeight() > 0 && root.Length() == 0 {
 		panic("should not be empty hash. Database may be corrupted. Please clean datadir")
@@ -121,7 +124,7 @@ func (dag *Dag) Stop() {
 	close(dag.close)
 
 	dag.chosenStateDB.Stop()
-	for _, batch := range dag.cachedBatches.batches {
+	for _, batch := range dag.pendedBatches.batches {
 		batch.stop()
 	}
 	log.Infof("Dag Stopped")
@@ -177,6 +180,7 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Addres
 
 	dag.genesis = genesis
 	dag.latestSequencer = genesis
+	dag.confirmedSequencer = genesis
 
 	log.Infof("Dag finish init")
 	return nil
@@ -592,24 +596,67 @@ func (dag *Dag) RollBack() {
 	// TODO
 }
 
-//func (dag *Dag) prePush(batch *PushBatch) (ogTypes.Hash, error) {
-//	log.Tracef("prePush the batch: %s", batch.String())
-//
-//	sort.Sort(batch.Txs)
-//
-//	//dag.preloadDB.Reset()
-//	//for _, txi := range batch.Txs {
-//	//	_, _, err := dag.processTransaction(txi, true)
-//	//	if err != nil {
-//	//		return &ogTypes.Hash32{}, fmt.Errorf("process tx error: %v", err)
-//	//	}
-//	//}
-//	//return dag.preloadDB.Commit()
-//}
+func (dag *Dag) speculate(pushBatch *PushBatch) (ogTypes.Hash, error) {
+	log.Tracef("speculate the batch: %s", pushBatch.String())
+
+	confirmBatch, err := dag.process(pushBatch)
+	if err != nil {
+		return nil, err
+	}
+	dag.cachedBatches.purePush(confirmBatch.db.Root(), confirmBatch)
+	return confirmBatch.db.Root(), nil
+}
 
 func (dag *Dag) push(pushBatch *PushBatch) (*types.Sequencer, error) {
 	log.Tracef("push the pushBatch: %s", pushBatch.String())
 
+	var err error
+	seq := pushBatch.Seq
+
+	//var confirmBatch *ConfirmBatch
+	confirmBatch := dag.cachedBatches.getConfirmBatch(seq.StateRoot)
+	if confirmBatch == nil {
+		confirmBatch, err = dag.process(pushBatch)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		confirmBatch.seq = seq
+		dag.cachedBatches.pureDelete(seq.StateRoot)
+	}
+
+	root := confirmBatch.db.Root()
+
+	// flush triedb into diskdb.
+	triedb := confirmBatch.db.Database().TrieDB()
+	err = triedb.Commit(root, false)
+	if err != nil {
+		return nil, fmt.Errorf("can't flush trie from triedb to diskdb, err: %v", err)
+	}
+
+	err = dag.flushAllToDB(confirmBatch)
+	if err != nil {
+		return nil, err
+	}
+
+	// change chosen batch if current is higher than chosen one
+	if seq.Height > dag.latestSequencer.Height {
+		dag.latestSequencer = seq
+		dag.chosenStateDB = confirmBatch.db
+		dag.chosenBatch = confirmBatch
+	}
+	dag.pendedBatches.push(seq.GetTxHash(), confirmBatch)
+
+	log.Tracef("successfully store seq: %s", seq.GetTxHash())
+	log.WithField("height", seq.Height).WithField("txs number ", len(pushBatch.Txs)).Info("new height")
+	return seq, nil
+}
+
+func (dag *Dag) commit(seq *types.Sequencer) {
+	// TODO
+}
+
+func (dag *Dag) process(pushBatch *PushBatch) (*ConfirmBatch, error) {
 	var err error
 	seq := pushBatch.Seq
 	sort.Sort(pushBatch.Txs)
@@ -632,7 +679,7 @@ func (dag *Dag) push(pushBatch *PushBatch) (*types.Sequencer, error) {
 		if err != nil {
 			return nil, err
 		}
-		receipts[txi.GetTxHash().Hex()] = receipt
+		receipts[txi.GetTxHash().HashKey()] = receipt
 		log.WithField("tx", txi).Tracef("successfully process tx")
 	}
 	// process sequencer
@@ -641,57 +688,25 @@ func (dag *Dag) push(pushBatch *PushBatch) (*types.Sequencer, error) {
 		return nil, err
 	}
 
+	confirmBatch.txReceipts = receipts
+	confirmBatch.seqReceipt = seqReceipt
+
 	// commit statedb's changes to trie and triedb
-	root, err := confirmBatch.db.Commit()
+	_, err = confirmBatch.db.Commit()
 	if err != nil {
 		return nil, fmt.Errorf("can't Commit statedb, err: %v", err)
 	}
 	confirmBatch.db.ClearJournalAndRefund()
 
-	if pushBatch.IsInitial {
-		seq.StateRoot = root
-		seq.CalcTxHash()
-	} else if root.Cmp(seq.StateRoot) != 0 {
-		return nil, fmt.Errorf("root not the same. root in statedb: %x, root in seq: %x",
-			root.Bytes(), seq.StateRoot.Bytes())
-	}
-	// flush triedb into diskdb.
-	triedb := confirmBatch.db.Database().TrieDB()
-	err = triedb.Commit(root, false)
-	if err != nil {
-		return nil, fmt.Errorf("can't flush trie from triedb into diskdb, err: %v", err)
-	}
-
-	receipts[seq.GetTxHash().Hex()] = seqReceipt
-
-	err = dag.flushAllToDB(pushBatch, receipts)
-	if err != nil {
-		return nil, err
-	}
-
-	// change chosen batch if current is higher than chosen one
-	if seq.Height > dag.latestSequencer.Height {
-		dag.latestSequencer = seq
-		dag.chosenStateDB = confirmBatch.db
-		dag.chosenBatch = confirmBatch
-	}
-	dag.cachedBatches.push(confirmBatch)
-
-	log.Tracef("successfully store seq: %s", seq.GetTxHash())
-	log.WithField("height", seq.Height).WithField("txs number ", len(pushBatch.Txs)).Info("new height")
-	return seq, nil
+	return confirmBatch, nil
 }
 
-func (dag *Dag) commit() {
-
-}
-
-func (dag *Dag) flushAllToDB(pushBatch *PushBatch, receipts ReceiptSet) (err error) {
+func (dag *Dag) flushAllToDB(confirmBatch *ConfirmBatch) (err error) {
 	dbBatch := dag.accessor.NewBatch()
 
 	// write txs
 	var txHashes []ogTypes.Hash
-	for _, tx := range pushBatch.Txs {
+	for _, tx := range confirmBatch.elders {
 		err = dag.writeTransaction(dbBatch, tx)
 		if err != nil {
 			return err
@@ -700,15 +715,16 @@ func (dag *Dag) flushAllToDB(pushBatch *PushBatch, receipts ReceiptSet) (err err
 	}
 	// store the hashs of the txs confirmed by this sequencer.
 	if len(txHashes) > 0 {
-		dag.accessor.WriteIndexedTxHashs(dbBatch, pushBatch.Seq.Height, txHashes)
+		dag.accessor.WriteIndexedTxHashs(dbBatch, confirmBatch.seq.Height, txHashes)
 	}
 	// write sequencer
-	err = dag.writeSequencer(dbBatch, pushBatch.Seq)
+	err = dag.writeSequencer(dbBatch, confirmBatch.seq)
 	if err != nil {
 		return err
 	}
 	// write receipts
-	err = dag.accessor.WriteReceipts(dbBatch, pushBatch.Seq.Height, receipts)
+	confirmBatch.txReceipts[confirmBatch.seq.GetTxHash().HashKey()] = confirmBatch.seqReceipt
+	err = dag.accessor.WriteReceipts(dbBatch, confirmBatch.seq.Height, confirmBatch.txReceipts)
 	if err != nil {
 		return err
 	}
@@ -848,9 +864,8 @@ func (tc *txcached) add(tx types.Txi) {
 }
 
 type PushBatch struct {
-	Seq       *types.Sequencer
-	Txs       types.Txis
-	IsInitial bool
+	Seq *types.Sequencer
+	Txs types.Txis
 }
 
 func (c *PushBatch) String() string {

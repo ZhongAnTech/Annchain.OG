@@ -42,12 +42,25 @@ func (c *CachedConfirms) existTx(seqHash ogTypes.Hash, txHash ogTypes.Hash) bool
 	return false
 }
 
-func (c *CachedConfirms) push(batch *ConfirmBatch) {
-	parentBatch := batch.seq.GetParentSeqHash()
+func (c *CachedConfirms) push(hashKey ogTypes.Hash, batch *ConfirmBatch) {
+	parentBatch := c.getConfirmBatch(batch.seq.GetParentSeqHash())
 	if parentBatch == nil {
 		c.fronts = append(c.fronts, batch)
+	} else {
+		parentBatch.bindChildren(batch)
+		batch.bindParent(parentBatch)
 	}
-	c.batches[batch.seq.GetTxHash().HashKey()] = batch
+	c.batches[hashKey.HashKey()] = batch
+}
+
+// purePush only store the ConfirmBatch to the batch map, regardless the fronts
+func (c *CachedConfirms) purePush(hash ogTypes.Hash, batch *ConfirmBatch) {
+	c.batches[hash.HashKey()] = batch
+}
+
+// pureDelete only delete the ConfirmBatch from batch map, regardless fronts
+func (c *CachedConfirms) pureDelete(hash ogTypes.Hash) {
+	delete(c.batches, hash.HashKey())
 }
 
 func (c *CachedConfirms) confirm(batch *ConfirmBatch) {
@@ -109,6 +122,8 @@ type ConfirmBatch struct {
 
 	db             *state.StateDB
 	seq            *types.Sequencer
+	seqReceipt     *Receipt
+	txReceipts     ReceiptSet
 	elders         []types.Txi
 	eldersQueryMap map[ogTypes.HashKey]types.Txi
 
@@ -125,6 +140,8 @@ func newConfirmBatch(seq *types.Sequencer, db ogdb.Database, baseRoot ogTypes.Ha
 		children:       make([]*ConfirmBatch, 0),
 		db:             stateDB,
 		seq:            seq,
+		seqReceipt:     nil,
+		txReceipts:     nil,
 		elders:         make([]types.Txi, 0),
 		eldersQueryMap: make(map[ogTypes.HashKey]types.Txi),
 	}

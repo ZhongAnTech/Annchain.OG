@@ -122,4 +122,4 @@ func (r *Receipt) MsgSize() int {
 }
 
 //msgp:tuple ReceiptSet
-type ReceiptSet map[string]*Receipt
+type ReceiptSet map[ogTypes.HashKey]*Receipt

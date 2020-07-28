@@ -700,7 +700,7 @@ func (pool *TxPool) SimConfirm(seq *types.Sequencer) (hash common.Hash, err erro
 	return common.Hash{}, nil
 }
 
-// preConfirm try to confirm sequencer and store the related data into pool.cachedBatches.
+// preConfirm try to confirm sequencer and store the related data into pool.pendedBatches.
 // Once a sequencer is hardly confirmed after 3 later preConfirms, the function confirm()
 // will be dialed.
 func (pool *TxPool) preConfirm(seq *types.Sequencer) error {
@@ -738,7 +738,7 @@ func (pool *TxPool) preConfirm(seq *types.Sequencer) error {
 	}
 	batch.bindParent(parentBatch)
 
-	// add batch into cachedBatches confirms
+	// add batch into pendedBatches confirms
 	pool.cachedBatches.preConfirm(batch)
 
 	// deal with chosen batch first
@@ -829,7 +829,7 @@ func (pool *TxPool) isBadSeq(seq *types.Sequencer) error {
 	}
 
 	// TODO
-	// Reimplement this if statement. Consider the cachedBatches confirm batches.
+	// Reimplement this if statement. Consider the pendedBatches confirm batches.
 
 	// TODO check if confirmed seq is correct
 

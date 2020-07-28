@@ -1,6 +1,7 @@
 package dummy
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"github.com/annchain/commongo/files"
 	"github.com/annchain/commongo/math"
 	"github.com/annchain/commongo/utilfuncs"
-	"github.com/minio/sha256-simd"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"math/rand"
@@ -69,8 +69,14 @@ type IntArrayLedger struct {
 	genesis                       *og_interface.Genesis
 	confirmedBlockIdHeightMapping map[string]int64
 	confirmedBlockContents        map[int64]og_interface.BlockContent  // height-content
-	allBlockContents              map[string]og_interface.BlockContent // height-content
+	allBlockContents              map[string]og_interface.BlockContent // blockId-content
 	consensusState                *consensus_interface.ConsensusState
+}
+
+func (d *IntArrayLedger) InitDefault() {
+	d.confirmedBlockIdHeightMapping = make(map[string]int64)
+	d.confirmedBlockContents = make(map[int64]og_interface.BlockContent)
+	d.allBlockContents = make(map[string]og_interface.BlockContent)
 }
 
 func (d *IntArrayLedger) GetConsensusState() *consensus_interface.ConsensusState {
@@ -81,8 +87,8 @@ func (d *IntArrayLedger) GetConsensusState() *consensus_interface.ConsensusState
 }
 
 func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interface.Block) (executionResult consensus_interface.ExecutionResult) {
-	fmt.Println(prevBlockId)
-	fmt.Println(block.Id)
+	fmt.Println("Speculate Prev block:", prevBlockId)
+	fmt.Println("Speculate Curr block:", block.Id)
 	fmt.Println(block.String())
 	_, ok := d.allBlockContents[prevBlockId]
 
@@ -103,6 +109,7 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 			Fatal("myhash is not aligned with given hash")
 	}
 	d.allBlockContents[block.Id] = newBlock
+	logrus.WithField("block", newBlock).Info("speculated new block")
 
 	return consensus_interface.ExecutionResult{
 		BlockId:        newBlock.GetHash().HashString(),
@@ -130,10 +137,13 @@ func (d *IntArrayLedger) Commit(blockId string) {
 
 func (d *IntArrayLedger) AddBlock(block og_interface.BlockContent) {
 	if _, ok := d.confirmedBlockContents[block.GetHeight()]; ok {
-		logrus.WithField("height", block.GetHeight()).Fatal("block already added")
+		logrus.WithField("height", block.GetHeight()).Debug("block already added")
+		return
 	}
 	d.confirmedBlockContents[block.GetHeight()] = block
+	d.allBlockContents[block.GetHash().HashString()] = block
 	d.height = math.BiggerInt64(block.GetHeight(), d.height)
+	d.SaveLedger()
 }
 
 func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {
@@ -149,10 +159,6 @@ func (d *IntArrayLedger) AddRandomBlock(height int64) {
 		PreviousSum: previousBlock.MySum,
 		MySum:       step + previousBlock.MySum,
 	})
-}
-
-func (d *IntArrayLedger) InitDefault() {
-	d.confirmedBlockContents = make(map[int64]og_interface.BlockContent)
 }
 
 // StaticSetup supposely will load ledger from disk.
@@ -249,8 +255,10 @@ func (d *IntArrayLedger) LoadLedger() (err error) {
 		if block.GetHash().HashString() != hash {
 			return errors.New("hash not aligned")
 		}
-		d.confirmedBlockContents[int64(height)] = block
-		d.height = math.BiggerInt64(d.height, int64(height))
+		if block.Height != int64(height) {
+			return errors.New("height not aligned")
+		}
+		d.AddBlock(block)
 		logrus.WithFields(
 			logrus.Fields{
 				"height": d.height,
@@ -329,7 +337,7 @@ func (d *IntArrayLedger) InitConsensusStateGenesis() {
 		PreferredRound: 0,
 		HighQC: &consensus_interface.QC{
 			VoteData: consensus_interface.VoteInfo{
-				Id:               "",
+				Id:               "43c43df069cd1534d94b34451f4814c1d1553481db37e9dcc376377bff5479b7",
 				Round:            0,
 				ParentId:         "",
 				ParentRound:      0,
@@ -343,7 +351,8 @@ func (d *IntArrayLedger) InitConsensusStateGenesis() {
 	return
 }
 func (d *IntArrayLedger) SaveConsensusState(consensusState *consensus_interface.ConsensusState) {
-	bytes, err := json.Marshal(consensusState)
+	logrus.WithField("state", consensusState).Trace("saving consensus state")
+	bytes, err := json.MarshalIndent(consensusState, "", "    ")
 	if err != nil {
 		logrus.WithError(err).Fatal("dump consensus state")
 	}
@@ -417,7 +426,21 @@ func (i *IntArrayProposalGenerator) InitDefault() {
 }
 
 func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface.ProposalContext) *consensus_interface.ContentProposal {
-	previousBlock := i.Ledger.confirmedBlockContents[context.CurrentRound-1].(*IntArrayBlockContent)
+	if _, ok := i.Ledger.allBlockContents[context.HighQC.VoteData.Id]; !ok {
+		fmt.Println(context.HighQC.VoteData.Id)
+		fmt.Println(i.Ledger.allBlockContents)
+		panic("f")
+	}
+	previousBlock := i.Ledger.allBlockContents[context.HighQC.VoteData.Id].(*IntArrayBlockContent)
+
+	//previousBlock2 := i.Ledger.confirmedBlockContents[i.Ledger.height].(*IntArrayBlockContent)
+
+	//if *previousBlock != *previousBlock2{
+	//	fmt.Println(previousBlock)
+	//	fmt.Println(previousBlock2)
+	//	panic("not aligned")
+	//}
+
 	v := i.rander.Intn(100)
 	newBlock := &IntArrayBlockContent{
 		Height:      i.Ledger.height + 1,

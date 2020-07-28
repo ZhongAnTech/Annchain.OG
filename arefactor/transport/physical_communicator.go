@@ -371,10 +371,30 @@ func (c *PhysicalCommunicator) Enqueue(req *transport_interface.OutgoingLetter) 
 	//c.outgoingChannel <- req
 }
 
+func (c *PhysicalCommunicator) loopbackMessage(msg transport_interface.OutgoingMsg) {
+	logrus.Trace("loopback message")
+	wireMessage := &transport_interface.WireMessage{
+		MsgType:      msg.GetTypeValue(),
+		ContentBytes: msg.ToBytes(),
+	}
+
+	go func() {
+		i := rand.Int31()
+		logrus.WithField("rand", i).Debug("non-blocking inner send start")
+		c.incomingChannel <- &transport_interface.IncomingLetter{
+			Msg:  wireMessage,
+			From: c.node.ID().String(),
+		}
+		logrus.WithField("rand", i).Debug("non-blocking inner send end")
+	}()
+}
+
 // we use direct connection currently so let's build a connection if not exists.
 func (c *PhysicalCommunicator) handleOutgoing(req *transport_interface.OutgoingLetter) {
+	// TODO: handle self loop message
 	logrus.Trace("physical is handling send request")
 	if req.SendType == transport_interface.SendTypeBroadcast {
+		c.loopbackMessage(req.Msg)
 		for _, neighbour := range c.activePeers {
 			neighbour.EnqueueSend(req)
 		}
@@ -386,6 +406,12 @@ func (c *PhysicalCommunicator) handleOutgoing(req *transport_interface.OutgoingL
 		if err != nil {
 			logrus.WithError(err).WithField("peerIdEncoded", peerIdEncoded).Warn("decoding peer")
 		}
+		// check if it is a self loop message
+		if peerId == c.node.ID() {
+			c.loopbackMessage(req.Msg)
+			continue
+		}
+
 		// get active neighbour
 		neighbour, ok := c.activePeers[peerId]
 		if !ok {

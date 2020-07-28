@@ -13,9 +13,8 @@ type PendingBlockTree struct {
 	Logger         *logrus.Logger
 	cache          map[string]*consensus_interface.Block
 	childRelations map[string][]string
-	//highQC         *consensus_interface.QC    // highest known QC
-	Ledger consensus_interface.Ledger // Ledger should be operated by
-	Safety *Safety
+	Ledger         consensus_interface.Ledger // Ledger should be operated by
+	Safety         *Safety
 }
 
 func (t *PendingBlockTree) ExecuteProposal(block *consensus_interface.Block) (executionResult consensus_interface.ExecutionResult) {

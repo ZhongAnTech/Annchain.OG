@@ -46,13 +46,6 @@ type Partner struct {
 
 func (n *Partner) InitDefault() {
 	n.quit = make(chan bool)
-	// for each hash, init a SignatureCollector
-	n.pendingBlockTree = &PendingBlockTree{
-		Logger: n.Logger,
-		Ledger: n.Ledger,
-	}
-	n.pendingBlockTree.InitDefault()
-
 	n.safety = &Safety{
 		Ledger:   n.Ledger,
 		Reporter: n.Reporter,
@@ -60,14 +53,23 @@ func (n *Partner) InitDefault() {
 		Hasher:   n.Hasher,
 	}
 	n.safety.InitDefault()
+
+	// for each hash, init a SignatureCollector
+	n.pendingBlockTree = &PendingBlockTree{
+		Logger: n.Logger,
+		cache:  nil,
+		Ledger: n.Ledger,
+		Safety: n.safety,
+	}
+	n.pendingBlockTree.InitDefault()
+
 	n.paceMaker = &PaceMaker{
 		Logger:            n.Logger,
-		CurrentRound:      0,
+		CurrentRound:      n.Ledger.GetConsensusState().LastVoteRound,
 		Safety:            n.safety,
 		Partner:           n,
 		ConsensusSigner:   n.ConsensusSigner,
 		AccountProvider:   n.ConsensusAccountProvider,
-		Ledger:            n.Ledger,
 		CommitteeProvider: n.CommitteeProvider,
 		Reporter:          n.Reporter,
 	}
@@ -100,12 +102,13 @@ func (n *Partner) Start() {
 			//}
 
 		case <-n.paceMaker.timer.C:
-			logrus.WithField("round", n.paceMaker.CurrentRound).Warn("packMaker timeout")
+			logrus.WithField("round", n.paceMaker.CurrentRound).Warn("paceMaker timeout")
 			n.paceMaker.LocalTimeoutRound()
 		}
-		n.Reporter.Report("lastTC", n.paceMaker.lastTC, false)
+		consensusState := n.safety.ConsensusState()
+		n.Reporter.Report("lastTC", consensusState.LastTC, false)
 		n.Reporter.Report("CurrentRound", n.paceMaker.CurrentRound, false)
-		n.Reporter.Report("HighQC", n.safety.ConsensusState().HighQC.VoteData, false)
+		n.Reporter.Report("HighQC", consensusState.HighQC.VoteData, false)
 
 		logrus.Trace("partner loop round end")
 	}
@@ -124,7 +127,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	p := &consensus_interface.ContentProposal{}
 	err := p.FromBytes(msg.ContentBytes)
 	if err != nil {
-		logrus.WithError(err).Debug("failed to decode ContentProposal")
+		logrus.WithError(err).Warn("failed to decode ContentProposal")
 		return
 	}
 
@@ -147,7 +150,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	// TODO: now sync. change to async in the future
 	verifyResult := n.ProposalVerifier.VerifyProposal(p)
 	if !verifyResult.Ok {
-		logrus.Debug("proposal verification failed")
+		logrus.Warn("proposal verification failed")
 		return
 	}
 
@@ -188,7 +191,10 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 		}
 
 		n.notifyNewOutgoingMessage(letter)
+	} else {
+		logrus.WithField("proposal", p.Proposal).Warn("I don't vote this proposal.")
 	}
+
 }
 
 func (n *Partner) ProcessVoteMessage(msg *consensus_interface.HotStuffSignedMessage) {
@@ -202,33 +208,33 @@ func (n *Partner) ProcessVoteMessage(msg *consensus_interface.HotStuffSignedMess
 	n.ProcessVote(p, msg.Signature, msg.SenderMemberId)
 }
 
-func (t *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature consensus_interface.Signature, fromId string) {
-	id, err := t.CommitteeProvider.GetPeerIndex(fromId)
+func (n *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature consensus_interface.Signature, fromId string) {
+	id, err := n.CommitteeProvider.GetPeerIndex(fromId)
 	if err != nil {
 		logrus.WithError(err).WithField("peerId", fromId).
 			Fatal("error in finding peer in committee")
 	}
 
-	voteIndex := t.Hasher.Hash(vote.LedgerCommitInfo.GetHashContent())
+	voteIndex := n.Hasher.Hash(vote.LedgerCommitInfo.GetHashContent())
 
-	collector := t.ensureQCCollector(voteIndex)
+	collector := n.ensureQCCollector(voteIndex)
 	collector.Collect(signature, id)
 
 	logrus.WithField("sigs", collector.GetCurrentCount()).
 		WithField("sig", signature).Debug("signature got one")
 
 	if collector.Collected() {
-		t.Logger.WithField("vote", vote).Info("votes collected")
+		n.Logger.WithField("vote", vote).Info("votes collected")
 		qc := &consensus_interface.QC{
 			VoteData:       vote.VoteInfo, // TODO: check if the voteinfo is aligned
 			JointSignature: collector.GetJointSignature(),
 		}
 
-		t.pendingBlockTree.EnsureHighQC(qc)
-		t.paceMaker.AdvanceRound(qc, nil, "vote qc got")
+		n.pendingBlockTree.EnsureHighQC(qc)
+		n.paceMaker.AdvanceRound(qc, nil, "vote qc got")
 
 	} else {
-		t.Logger.WithField("vote", vote).
+		n.Logger.WithField("vote", vote).
 			WithField("now", collector.GetCurrentCount()).Trace("votes yet collected")
 	}
 }
@@ -310,18 +316,18 @@ func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter)
 
 // notifications
 
-func (d *Partner) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
-	return d.myNewIncomingMessageEventChan
+func (n *Partner) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
+	return n.myNewIncomingMessageEventChan
 }
 
 // subscribe mine
-func (d *Partner) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
-	d.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
-	d.paceMaker.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
+func (n *Partner) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
+	n.newOutgoingMessageSubscribers = append(n.newOutgoingMessageSubscribers, sub)
+	n.paceMaker.newOutgoingMessageSubscribers = append(n.newOutgoingMessageSubscribers, sub)
 }
 
-func (d *Partner) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
-	for _, subscriber := range d.newOutgoingMessageSubscribers {
+func (n *Partner) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
+	for _, subscriber := range n.newOutgoingMessageSubscribers {
 		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing hotstuff partner"+subscriber.Name()).C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}

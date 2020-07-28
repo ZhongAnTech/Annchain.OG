@@ -44,6 +44,11 @@ type ConsensusState struct {
 	LastVoteRound  int64
 	PreferredRound int64
 	HighQC         *QC
+	LastTC         *TC
+}
+
+func (c ConsensusState) String() string {
+	return fmt.Sprintf("LastVoteRound %d PreferredRound %d HighQC %s", c.LastVoteRound, c.PreferredRound, c.HighQC)
 }
 
 type ConsensusAccountProvider interface {

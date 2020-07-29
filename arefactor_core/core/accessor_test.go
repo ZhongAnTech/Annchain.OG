@@ -251,7 +251,7 @@ func TestDag_Start(t *testing.T) {
 	acc := core.NewAccessor(db)
 	seq := tx_types.RandomSequencer()
 	height := seq.Height
-	//acc.WriteLatestSequencer(nil,seq)
+	//acc.WriteLatestConfirmedSeq(nil,seq)
 	batch := acc.NewBatch()
 	acc.WriteSequencerByHeight(batch, seq)
 	fmt.Println(seq)

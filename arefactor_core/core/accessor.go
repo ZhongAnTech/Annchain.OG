@@ -30,8 +30,8 @@ import (
 )
 
 var (
-	prefixGenesisKey   = []byte("genesis")
-	prefixLatestSeqKey = []byte("latestseq")
+	prefixGenesisKey            = []byte("genesis")
+	prefixLatestConfirmedSeqKey = []byte("latestseq")
 
 	prefixReceiptKey = []byte("rp")
 
@@ -63,8 +63,8 @@ func genesisKey() []byte {
 	return prefixGenesisKey
 }
 
-func latestSequencerKey() []byte {
-	return prefixLatestSeqKey
+func latestConfirmedSeqKey() []byte {
+	return prefixLatestConfirmedSeqKey
 }
 
 func receiptKey(seqID uint64) []byte {
@@ -207,10 +207,10 @@ func (da *Accessor) WriteGenesis(genesis *types.Sequencer) error {
 	return da.put(nil, genesisKey(), data)
 }
 
-// ReadLatestSequencer get latest sequencer from db.
+// ReadLatestConfirmedSeq get latest sequencer from db.
 // return nil if there is no sequencer.
-func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
-	data, _ := da.db.Get(latestSequencerKey())
+func (da *Accessor) ReadLatestConfirmedSeq() *types.Sequencer {
+	data, _ := da.db.Get(latestConfirmedSeqKey())
 	if len(data) == 0 {
 		return nil
 	}
@@ -222,13 +222,13 @@ func (da *Accessor) ReadLatestSequencer() *types.Sequencer {
 	return &seq
 }
 
-// WriteGenesis writes latest sequencer into db.
-func (da *Accessor) WriteLatestSequencer(putter *Putter, seq *types.Sequencer) error {
+// WriteLatestConfirmedSeq writes latest sequencer into db.
+func (da *Accessor) WriteLatestConfirmedSeq(putter *Putter, seq *types.Sequencer) error {
 	data, err := seq.MarshalMsg()
 	if err != nil {
 		return err
 	}
-	return da.put(putter, latestSequencerKey(), data)
+	return da.put(putter, latestConfirmedSeqKey(), data)
 }
 
 // ReadLastStateRoot read latest state root from db.

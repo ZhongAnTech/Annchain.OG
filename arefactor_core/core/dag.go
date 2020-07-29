@@ -35,6 +35,8 @@ var (
 	// is filled in [tx.To].
 	emptyAddress = ogTypes.BytesToAddress20(nil)
 
+	emptyRoot = ogTypes.BytesToHash32(nil)
+
 	DefaultGasLimit = uint64(10000000000)
 
 	DefaultCoinbase, _ = ogTypes.HexToAddress20("0x1234567812345678AABBCCDDEEFF998877665544")
@@ -81,29 +83,38 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		db:       db,
 		accessor: NewAccessor(db),
 		//txcached:    newTxcached(10000), // TODO delete txcached later
-		txProcessor: txProcessor,
-		vmProcessor: vmProcessor,
-		close:       make(chan struct{}),
+		txProcessor:   txProcessor,
+		vmProcessor:   vmProcessor,
+		chosenBatch:   nil,
+		cachedBatches: newCachedConfirms(),
+		pendedBatches: newCachedConfirms(),
+		close:         make(chan struct{}),
 	}
 
-	root := dag.LoadLastState()
-	if root == nil {
+	genesis, latestConfirmedSeq := dag.LoadLatestConfirmedSeq()
+	if genesis == nil {
 		genesis, balance := DefaultGenesis(conf.GenesisPath)
+		statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db), emptyRoot)
+		if err != nil {
+			return nil, fmt.Errorf("create statedb err: %v", err)
+		}
+		dag.chosenStateDB = statedb
 		if err := dag.Init(genesis, balance); err != nil {
 			return nil, err
 		}
 		return dag, nil
 	}
+	dag.genesis = genesis
+	dag.latestSequencer = latestConfirmedSeq
+	dag.confirmedSequencer = latestConfirmedSeq
 
+	root := latestConfirmedSeq.StateRoot
 	log.Infof("the root loaded from last state is: %x", root.Bytes())
 	statedb, err := state.NewStateDB(stateDBConfig, state.NewDatabase(db), root)
 	if err != nil {
 		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
 	dag.chosenStateDB = statedb
-	dag.chosenBatch = nil
-	dag.cachedBatches = newCachedConfirms()
-	dag.pendedBatches = newCachedConfirms()
 
 	if dag.GetHeight() > 0 && root.Length() == 0 {
 		panic("should not be empty hash. Database may be corrupted. Please clean datadir")
@@ -129,19 +140,6 @@ func (dag *Dag) Stop() {
 	}
 	log.Infof("Dag Stopped")
 }
-
-//// TODO
-//// This is a temp function to solve the not working problem when
-//// restart the node. The perfect solution is to load the root from
-//// latest sequencer every time restart the node.
-//func (dag *Dag) LoadStateRoot() ogTypes.Hash {
-//	return dag.accessor.ReadLastStateRoot()
-//}
-
-//// StateDatabase is for testing only
-//func (dag *Dag) StateDatabase() *state.StateDB {
-//	return dag.statedb
-//}
 
 // Init inits genesis sequencer and genesis state of the network.
 func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.AddressKey]*math.BigInt) error {
@@ -176,6 +174,12 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Addres
 	if err != nil {
 		return err
 	}
+
+	// set latest sequencer
+	err = dag.accessor.WriteLatestConfirmedSeq(nil, genesis)
+	if err != nil {
+		return err
+	}
 	log.Tracef("successfully store genesis: %s", genesis)
 
 	dag.genesis = genesis
@@ -186,26 +190,23 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Addres
 	return nil
 }
 
-// LoadLastState load genesis and latestsequencer data from ogdb.
-// return false if there is no genesis stored in the db.
-func (dag *Dag) LoadLastState() ogTypes.Hash {
+// LoadLatestConfirmedSeq load genesis and latest confirmed sequencer from db.
+func (dag *Dag) LoadLatestConfirmedSeq() (*types.Sequencer, *types.Sequencer) {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
 	genesis := dag.accessor.ReadGenesis()
 	if genesis == nil {
-		return nil
+		return nil, nil
 	}
 	dag.genesis = genesis
 
-	// TODO no need to set latest sequencer here
-	seq := dag.accessor.ReadLatestSequencer()
+	seq := dag.accessor.ReadLatestConfirmedSeq()
 	if seq == nil {
-		dag.latestSequencer = genesis
+		return nil, nil
 	} else {
-		dag.latestSequencer = seq
+		return genesis, seq
 	}
-	return dag.latestSequencer.StateRoot
 }
 
 // Genesis returns the genesis tx of dag
@@ -224,6 +225,13 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 	return dag.latestSequencer
 }
 
+func (dag *Dag) LatestConfirmedSequencer() *types.Sequencer {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.confirmedSequencer
+}
+
 //GetHeight get cuurent height
 func (dag *Dag) GetHeight() uint64 {
 	dag.mu.RLock()
@@ -238,7 +246,7 @@ func (dag *Dag) Accessor() *Accessor {
 }
 
 // Push trys to move a tx from tx pool to dag db.
-func (dag *Dag) Push(batch *PushBatch) (ogTypes.Hash, error) {
+func (dag *Dag) Push(batch *PushBatch) error {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
@@ -258,6 +266,8 @@ func (dag *Dag) getTx(hash ogTypes.Hash) types.Txi {
 	//if tx != nil {
 	//	return tx
 	//}
+
+	// TODO refactor this
 	return dag.accessor.ReadTransaction(hash)
 }
 
@@ -382,6 +392,7 @@ func (dag *Dag) GetSequencerByHash(hash ogTypes.Hash) *types.Sequencer {
 	}
 }
 
+// GetSequencerByHeight only support those confirmed sequencers
 func (dag *Dag) GetSequencerByHeight(height uint64) *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -404,22 +415,22 @@ func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
 	return seq
 }
 
-func (dag *Dag) GetSequencerHashByHeight(height uint64) ogTypes.Hash {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-
-	return dag.getSequencerHashByHeight(height)
-}
-
-func (dag *Dag) getSequencerHashByHeight(height uint64) ogTypes.Hash {
-	seq, err := dag.accessor.ReadSequencerByHeight(height)
-	if err != nil || seq == nil {
-		log.WithField("height", height).Warn("head not found")
-		return nil
-	}
-	hash := seq.GetTxHash()
-	return hash
-}
+//func (dag *Dag) GetSequencerHashByHeight(height uint64) ogTypes.Hash {
+//	dag.mu.RLock()
+//	defer dag.mu.RUnlock()
+//
+//	return dag.getSequencerHashByHeight(height)
+//}
+//
+//func (dag *Dag) getSequencerHashByHeight(height uint64) ogTypes.Hash {
+//	seq, err := dag.accessor.ReadSequencerByHeight(height)
+//	if err != nil || seq == nil {
+//		log.WithField("height", height).Warn("head not found")
+//		return nil
+//	}
+//	hash := seq.GetTxHash()
+//	return hash
+//}
 
 func (dag *Dag) GetSequencer(hash ogTypes.Hash, seqHeight uint64) *types.Sequencer {
 	dag.mu.RLock()
@@ -607,7 +618,7 @@ func (dag *Dag) speculate(pushBatch *PushBatch) (ogTypes.Hash, error) {
 	return confirmBatch.db.Root(), nil
 }
 
-func (dag *Dag) push(pushBatch *PushBatch) (*types.Sequencer, error) {
+func (dag *Dag) push(pushBatch *PushBatch) error {
 	log.Tracef("push the pushBatch: %s", pushBatch.String())
 
 	var err error
@@ -618,7 +629,7 @@ func (dag *Dag) push(pushBatch *PushBatch) (*types.Sequencer, error) {
 	if confirmBatch == nil {
 		confirmBatch, err = dag.process(pushBatch)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else {
 		confirmBatch.seq = seq
@@ -631,12 +642,7 @@ func (dag *Dag) push(pushBatch *PushBatch) (*types.Sequencer, error) {
 	triedb := confirmBatch.db.Database().TrieDB()
 	err = triedb.Commit(root, false)
 	if err != nil {
-		return nil, fmt.Errorf("can't flush trie from triedb to diskdb, err: %v", err)
-	}
-
-	err = dag.flushAllToDB(confirmBatch)
-	if err != nil {
-		return nil, err
+		return fmt.Errorf("can't flush trie from triedb to diskdb, err: %v", err)
 	}
 
 	// change chosen batch if current is higher than chosen one
@@ -649,11 +655,22 @@ func (dag *Dag) push(pushBatch *PushBatch) (*types.Sequencer, error) {
 
 	log.Tracef("successfully store seq: %s", seq.GetTxHash())
 	log.WithField("height", seq.Height).WithField("txs number ", len(pushBatch.Txs)).Info("new height")
-	return seq, nil
+	return nil
 }
 
-func (dag *Dag) commit(seq *types.Sequencer) {
-	// TODO
+func (dag *Dag) commit(seq *types.Sequencer) (err error) {
+	confirmBatch := dag.pendedBatches.getConfirmBatch(seq.GetTxHash())
+	if confirmBatch == nil {
+		return fmt.Errorf("can't find pended seq: %s", seq.GetTxHash().Hex())
+	}
+
+	err = dag.flushAllToDB(confirmBatch)
+	if err != nil {
+		return err
+	}
+
+	dag.confirmedSequencer = seq
+	return nil
 }
 
 func (dag *Dag) process(pushBatch *PushBatch) (*ConfirmBatch, error) {
@@ -778,6 +795,7 @@ func (dag *Dag) processTransaction(stateDB *state.StateDB, seq *types.Sequencer,
 	return dag.vmProcessor.Process(stateDB, tx, seq.Height)
 }
 
+// writeSequencer flushes sequencer into db indexed by seq hash and seq height
 func (dag *Dag) writeSequencer(putter *Putter, seq *types.Sequencer) (err error) {
 	err = dag.writeTransaction(putter, seq)
 	if err != nil {
@@ -788,7 +806,7 @@ func (dag *Dag) writeSequencer(putter *Putter, seq *types.Sequencer) (err error)
 		return err
 	}
 	// set latest sequencer
-	err = dag.accessor.WriteLatestSequencer(putter, seq)
+	err = dag.accessor.WriteLatestConfirmedSeq(nil, seq)
 	if err != nil {
 		return err
 	}

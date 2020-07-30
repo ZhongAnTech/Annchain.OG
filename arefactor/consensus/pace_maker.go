@@ -6,6 +6,7 @@ import (
 	"github.com/latifrons/goffchan"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
+	"math/rand"
 	"time"
 )
 
@@ -21,6 +22,7 @@ type PaceMaker struct {
 
 	CommitteeProvider consensus_interface.CommitteeProvider
 	Reporter          *soccerdash.Reporter
+	BlockTime         time.Duration
 
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 
@@ -45,6 +47,7 @@ func (m *PaceMaker) AddSubscriberNewOutgoingMessageEvent(sub transport_interface
 
 func (m *PaceMaker) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range m.newOutgoingMessageSubscribers {
+		logrus.WithField("to", subscriber.Name()).WithField("type", event.String()).Info("notifyNewOutgoingmessage")
 		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing hotstuff pacemaker"+subscriber.Name()).C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
@@ -78,6 +81,7 @@ func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, 
 		"memberIndex": id,
 		"round":       p.Round,
 		"tcs":         collector.GetCurrentCount(),
+		"rand":        rand.Int31(),
 	}).Warn("T got")
 
 	if collector.Collected() {
@@ -90,7 +94,9 @@ func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, 
 }
 
 func (m *PaceMaker) LocalTimeoutRound() {
-	collector := m.ensureTCCollector(m.CurrentRound)
+
+	logrus.WithField("rand", rand.Int31()).WithField("round", m.CurrentRound).Warn("local timeout")
+	_ = m.ensureTCCollector(m.CurrentRound)
 
 	m.Safety.IncreaseLastVoteRound(m.CurrentRound)
 
@@ -116,7 +122,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	}
 	m.notifyNewOutgoingMessage(letter)
 
-	collector.Collect(signature, m.CommitteeProvider.GetMyPeerIndex())
+	//collector.Collect(signature, m.CommitteeProvider.GetMyPeerIndex())
 	logrus.Info("paceMaker reset timer")
 	m.timer.Reset(m.GetRoundTimer(m.CurrentRound))
 }
@@ -132,7 +138,7 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 		latestRound = tc.Round
 	}
 	if latestRound < m.CurrentRound {
-		m.Logger.WithField("cround", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Debug("qc round is less than current round so do not advance")
+		m.Logger.WithField("cround", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Debug("qc/tc round is less than current round so do not advance")
 		return
 	}
 	m.StopLocalTimer(latestRound)
@@ -195,7 +201,7 @@ func (m *PaceMaker) StopLocalTimer(r int64) {
 }
 
 func (m *PaceMaker) GetRoundTimer(round int64) time.Duration {
-	return time.Second * 10
+	return m.BlockTime + time.Second*5
 }
 
 func (m *PaceMaker) StartLocalTimer(round int64, duration time.Duration) {

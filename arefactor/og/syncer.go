@@ -296,7 +296,7 @@ func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.I
 				PreviousSum: messageContent.PreviousSum,
 				MySum:       messageContent.MySum,
 			}
-			b.Ledger.AddBlock(bc)
+			b.Ledger.ConfirmBlock(bc)
 			// TODO: announce event
 		}
 		logrus.WithField("height", m.Height).Info("height updated")

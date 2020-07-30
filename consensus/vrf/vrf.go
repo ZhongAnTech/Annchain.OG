@@ -23,8 +23,7 @@ import (
 
 //go:generate msgp
 
-type Vrf struct{
-	
+type Vrf struct {
 }
 
 func (as *Vrf) GenerateVrf() *VrfInfo {
@@ -71,7 +70,7 @@ type VrfData struct {
 //		logrus.WithField("height ", height).Warn("we don't have this sequencer yet")
 //		return nil, nil
 //	}
-//	txs := as.Idag.GetTxisByNumber(sq.Height)
+//	txs := as.Idag.GetTxisByHeight(sq.Height)
 //	vd := &VrfData{}
 //	vd.SeqHash = sq.Hash
 //	vd.Height = sq.Height

@@ -240,10 +240,18 @@ func (dag *Dag) GetHeight() uint64 {
 	return dag.latestSequencer.Height
 }
 
-// Accessor returns the db accessor of dag
-func (dag *Dag) Accessor() *Accessor {
-	return dag.accessor
+func (dag *Dag) GetConfirmedHeight() uint64 {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.confirmedSequencer.Height
+
 }
+
+//// Accessor returns the db accessor of dag
+//func (dag *Dag) Accessor() *Accessor {
+//	return dag.accessor
+//}
 
 // Push trys to move a tx from tx pool to dag db.
 func (dag *Dag) Push(batch *PushBatch) error {
@@ -253,21 +261,23 @@ func (dag *Dag) Push(batch *PushBatch) error {
 	return dag.push(batch)
 }
 
-// GetTx gets tx from dag network indexed by tx hash. This function querys
-// ogdb only.
+// GetTx gets tx from dag network indexed by tx hash
 func (dag *Dag) GetTx(hash ogTypes.Hash) types.Txi {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
 	return dag.getTx(hash)
 }
-func (dag *Dag) getTx(hash ogTypes.Hash) types.Txi {
-	//tx := dag.txcached.get(hash)
-	//if tx != nil {
-	//	return tx
-	//}
 
-	// TODO refactor this
+func (dag *Dag) getTx(hash ogTypes.Hash) types.Txi {
+	tx, _ := dag.cachedBatches.getTxAndReceipt(hash)
+	if tx != nil {
+		return tx
+	}
+	return dag.accessor.ReadTransaction(hash)
+}
+
+func (dag *Dag) getConfirmedTx(hash ogTypes.Hash) types.Txi {
 	return dag.accessor.ReadTransaction(hash)
 }
 
@@ -288,6 +298,10 @@ func (dag *Dag) GetTxByNonce(addr ogTypes.Address, nonce uint64) types.Txi {
 }
 
 func (dag *Dag) getTxByNonce(addr ogTypes.Address, nonce uint64) types.Txi {
+	tx := dag.cachedBatches.getTxByNonce(dag.chosenBatch, addr, nonce)
+	if tx != nil {
+		return tx
+	}
 	return dag.accessor.ReadTxByNonce(addr, nonce)
 }
 
@@ -310,16 +324,16 @@ func (dag *Dag) getTxis(hashs []ogTypes.Hash) types.Txis {
 	return txs
 }
 
-func (dag *Dag) getTxisByType(hashs []ogTypes.Hash, baseType types.TxBaseType) types.Txis {
-	var txs types.Txis
-	for _, hash := range hashs {
-		tx := dag.getTx(hash)
-		if tx != nil && tx.GetType() == baseType {
-			txs = append(txs, tx)
-		}
-	}
-	return txs
-}
+//func (dag *Dag) getTxisByType(hashs []ogTypes.Hash, baseType types.TxBaseType) types.Txis {
+//	var txs types.Txis
+//	for _, hash := range hashs {
+//		tx := dag.getTxAndReceipt(hash)
+//		if tx != nil && tx.GetType() == baseType {
+//			txs = append(txs, tx)
+//		}
+//	}
+//	return txs
+//}
 
 // GetTxConfirmHeight returns the height of sequencer that confirm this tx.
 func (dag *Dag) GetTxConfirmHeight(hash ogTypes.Hash) (uint64, error) {
@@ -337,12 +351,21 @@ func (dag *Dag) getTxConfirmHeight(hash ogTypes.Hash) (uint64, error) {
 	return tx.GetBase().GetHeight(), nil
 }
 
-func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
+func (dag *Dag) GetTxisByHeight(height uint64) types.Txis {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	hashs := dag.getTxsHashesByNumber(height)
-	if hashs == nil {
+	if height > dag.latestSequencer.GetHeight() {
+		return nil
+	}
+	txs := dag.cachedBatches.getTxsByHeight(dag.chosenBatch, height)
+	if txs != nil {
+		return txs
+	}
+
+	hashs, err := dag.accessor.ReadIndexedTxHashs(height)
+	if err != nil {
+		log.WithError(err).WithField("height", height).Trace("hashes not found")
 		return nil
 	}
 	if len(hashs) == 0 {
@@ -352,26 +375,30 @@ func (dag *Dag) GetTxisByNumber(height uint64) types.Txis {
 	return dag.getTxis(hashs)
 }
 
-func (dag *Dag) GetTxsByNumberAndType(height uint64, txType types.TxBaseType) types.Txis {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-
-	hashs := dag.getTxsHashesByNumber(height)
-	if hashs == nil {
-		return nil
-	}
-	if len(hashs) == 0 {
-		return nil
-	}
-	log.WithField("len tx ", len(hashs)).WithField("height", height).Trace("get txs")
-	return dag.getTxisByType(hashs, txType)
-}
+//func (dag *Dag) GetTxsByNumberAndType(height uint64, txType types.TxBaseType) types.Txis {
+//	dag.mu.RLock()
+//	defer dag.mu.RUnlock()
+//
+//	hashs := dag.getTxsHashesByHeight(height)
+//	if hashs == nil {
+//		return nil
+//	}
+//	if len(hashs) == 0 {
+//		return nil
+//	}
+//	log.WithField("len tx ", len(hashs)).WithField("height", height).Trace("get txs")
+//	return dag.getTxisByType(hashs, txType)
+//}
 
 func (dag *Dag) GetReceipt(hash ogTypes.Hash) *Receipt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	tx := dag.getTx(hash)
+	_, receipt := dag.cachedBatches.getTxAndReceipt(hash)
+	if receipt != nil {
+		return receipt
+	}
+	tx := dag.getConfirmedTx(hash)
 	if tx == nil {
 		return nil
 	}
@@ -407,6 +434,8 @@ func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
 	if height > dag.latestSequencer.Height {
 		return nil
 	}
+	//dag.cachedBatches.getTxByNonce(dag.ch)
+
 	seq, err := dag.accessor.ReadSequencerByHeight(height)
 	if err != nil || seq == nil {
 		log.WithField("height", height).WithError(err).Warn("head not found")
@@ -467,23 +496,23 @@ func (dag *Dag) GetSequencer(hash ogTypes.Hash, seqHeight uint64) *types.Sequenc
 //	return cf
 //}
 
-func (dag *Dag) GetTxsHashesByNumber(Height uint64) []ogTypes.Hash {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-
-	return dag.getTxsHashesByNumber(Height)
-}
-
-func (dag *Dag) getTxsHashesByNumber(Height uint64) []ogTypes.Hash {
-	if Height > dag.latestSequencer.Number() {
-		return nil
-	}
-	hashs, err := dag.accessor.ReadIndexedTxHashs(Height)
-	if err != nil {
-		log.WithError(err).WithField("height", Height).Trace("hashes not found")
-	}
-	return hashs
-}
+//func (dag *Dag) GetTxsHashesByNumber(Height uint64) []ogTypes.Hash {
+//	dag.mu.RLock()
+//	defer dag.mu.RUnlock()
+//
+//	return dag.getTxsHashesByHeight(Height)
+//}
+//
+//func (dag *Dag) getTxsHashesByHeight(height uint64) []ogTypes.Hash {
+//	if height > dag.latestSequencer.Number() {
+//		return nil
+//	}
+//	hashs, err := dag.accessor.ReadIndexedTxHashs(height)
+//	if err != nil {
+//		log.WithError(err).WithField("height", height).Trace("hashes not found")
+//	}
+//	return hashs
+//}
 
 // getBalance read the confirmed balance of an address from ogdb.
 func (dag *Dag) GetBalance(addr ogTypes.Address, tokenID int32) *math.BigInt {
@@ -551,7 +580,7 @@ func (dag *Dag) getTokens() []*state.TokenObject {
 	return tokens
 }
 
-// GetLatestNonce returns the latest tx of an addresss.
+// GetLatestNonce returns the latest tx of an address.
 func (dag *Dag) GetLatestNonce(addr ogTypes.Address) (uint64, error) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -575,32 +604,32 @@ func (dag *Dag) getState(addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
 	return dag.chosenStateDB.GetState(addr, key)
 }
 
-//GetTxsByAddress get all txs from this address
-func (dag *Dag) GetTxsByAddress(addr ogTypes.Address) []types.Txi {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-
-	return dag.getTxsByAddress(addr)
-}
-
-func (dag *Dag) getTxsByAddress(addr ogTypes.Address) []types.Txi {
-	nonce, err := dag.getLatestNonce(addr)
-	if (err != nil) || (nonce == 0) {
-		return nil
-	}
-	var i int64
-	var txs []types.Txi
-	for i = int64(nonce); i > 0; i-- {
-		tx := dag.getTxByNonce(addr, uint64(i))
-		if tx != nil {
-			txs = append(txs, tx)
-		}
-	}
-	if len(txs) == 0 {
-		return nil
-	}
-	return txs
-}
+////GetTxsByAddress get all txs from this address
+//func (dag *Dag) GetTxsByAddress(addr ogTypes.Address) []types.Txi {
+//	dag.mu.RLock()
+//	defer dag.mu.RUnlock()
+//
+//	return dag.getTxsByAddress(addr)
+//}
+//
+//func (dag *Dag) getTxsByAddress(addr ogTypes.Address) []types.Txi {
+//	nonce, err := dag.getLatestNonce(addr)
+//	if (err != nil) || (nonce == 0) {
+//		return nil
+//	}
+//	var i int64
+//	var txs []types.Txi
+//	for i = int64(nonce); i > 0; i-- {
+//		tx := dag.getTxByNonce(addr, uint64(i))
+//		if tx != nil {
+//			txs = append(txs, tx)
+//		}
+//	}
+//	if len(txs) == 0 {
+//		return nil
+//	}
+//	return txs
+//}
 
 // RollBack rolls back the dag network.
 func (dag *Dag) RollBack() {
@@ -696,6 +725,7 @@ func (dag *Dag) process(pushBatch *PushBatch) (*ConfirmBatch, error) {
 		if err != nil {
 			return nil, err
 		}
+		confirmBatch.addTx(txi)
 		receipts[txi.GetTxHash().HashKey()] = receipt
 		log.WithField("tx", txi).Tracef("successfully process tx")
 	}

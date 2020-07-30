@@ -34,7 +34,7 @@ package archive_test
 //	}
 //}
 //
-//func (d *DummyDag) GetTxisByNumber(id uint64) types.Txis {
+//func (d *DummyDag) GetTxisByHeight(id uint64) types.Txis {
 //	var txis types.Txis
 //	txis = append(txis, archive.RandomTx(), archive.RandomTx())
 //	return txis

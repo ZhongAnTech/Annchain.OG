@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
 	"github.com/annchain/OG/arefactor_core/core/state"
@@ -33,13 +32,46 @@ func (c *CachedConfirms) getConfirmBatch(seqHash ogTypes.Hash) *ConfirmBatch {
 	return c.batches[seqHash.HashKey()]
 }
 
-func (c *CachedConfirms) existTx(seqHash ogTypes.Hash, txHash ogTypes.Hash) bool {
-	batch := c.batches[seqHash.HashKey()]
-	if batch != nil {
-		return batch.existTx(txHash)
+//func (c *CachedConfirms) existTx(seqHash ogTypes.Hash, txHash ogTypes.Hash) bool {
+//	batch := c.batches[seqHash.HashKey()]
+//	if batch != nil {
+//		return batch.existTx(txHash)
+//	}
+//	//return c.ledger.GetTx(txHash) != nil
+//	return false
+//}
+
+func (c *CachedConfirms) getTxAndReceipt(hash ogTypes.Hash) (types.Txi, *Receipt) {
+	for _, batch := range c.batches {
+		if batch.existCurrentTx(hash) {
+			return batch.getCurrentTx(hash), batch.getCurrentReceipt(hash)
+		}
 	}
-	//return c.ledger.GetTx(txHash) != nil
-	return false
+	return nil, nil
+}
+
+func (c *CachedConfirms) getTxByNonce(baseBatch *ConfirmBatch, addr ogTypes.Address, nonce uint64) types.Txi {
+	for baseBatch != nil {
+		txi := baseBatch.getCurrentTxByNonce(addr, nonce)
+		if txi != nil {
+			return txi
+		}
+		baseBatch = baseBatch.parent
+	}
+	return nil
+}
+
+func (c *CachedConfirms) getTxsByHeight(baseBatch *ConfirmBatch, height uint64) []types.Txi {
+	for baseBatch != nil {
+		if baseBatch.seq.GetHeight() < height {
+			return nil
+		}
+		if baseBatch.seq.GetHeight() == height {
+			return baseBatch.elders
+		}
+		baseBatch = baseBatch.parent
+	}
+	return nil
 }
 
 func (c *CachedConfirms) push(hashKey ogTypes.Hash, batch *ConfirmBatch) {
@@ -74,6 +106,9 @@ func (c *CachedConfirms) confirm(batch *ConfirmBatch) {
 		c.traverseFromRoot(batchToDelete, func(b *ConfirmBatch) {
 			delete(c.batches, b.seq.GetTxHash().HashKey())
 		})
+	}
+	for _, childBatch := range batch.children {
+		childBatch.confirmParent(batch)
 	}
 	c.fronts = batch.children
 }
@@ -120,12 +155,13 @@ type ConfirmBatch struct {
 	parent   *ConfirmBatch
 	children []*ConfirmBatch
 
-	db             *state.StateDB
-	seq            *types.Sequencer
-	seqReceipt     *Receipt
-	txReceipts     ReceiptSet
-	elders         []types.Txi
-	eldersQueryMap map[ogTypes.HashKey]types.Txi
+	db               *state.StateDB
+	seq              *types.Sequencer
+	seqReceipt       *Receipt
+	txReceipts       ReceiptSet
+	elders           []types.Txi
+	eldersQueryMap   map[ogTypes.HashKey]types.Txi
+	eldersQueryNonce map[ogTypes.AddressKey]*TxList
 
 	//db        map[ogTypes.AddressKey]*batchDetail
 }
@@ -152,26 +188,26 @@ func (c *ConfirmBatch) stop() {
 	c.db.Stop()
 }
 
-func (c *ConfirmBatch) construct(elders map[ogTypes.HashKey]types.Txi) error {
-	for _, txi := range elders {
-		// return error if a sequencer confirm a tx that has same nonce as itself.
-		if txi.Sender() == c.seq.Sender() && txi.GetNonce() == c.seq.GetNonce() {
-			return fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
-				c.seq.GetNonce(), txi.GetTxHash())
-		}
-
-		switch tx := txi.(type) {
-		case *types.Sequencer:
-			break
-		case *types.Tx:
-			//c.processTx(tx)
-			// TODO
-		default:
-			c.addTx(tx)
-		}
-	}
-	return nil
-}
+//func (c *ConfirmBatch) construct(elders map[ogTypes.HashKey]types.Txi) error {
+//	for _, txi := range elders {
+//		// return error if a sequencer confirm a tx that has same nonce as itself.
+//		if txi.Sender() == c.seq.Sender() && txi.GetNonce() == c.seq.GetNonce() {
+//			return fmt.Errorf("seq's nonce is the same as a tx it confirmed, nonce: %d, tx hash: %s",
+//				c.seq.GetNonce(), txi.GetTxHash())
+//		}
+//
+//		switch tx := txi.(type) {
+//		case *types.Sequencer:
+//			break
+//		case *types.Tx:
+//			//c.processTx(tx)
+//			// TODO
+//		default:
+//			c.addTx(tx)
+//		}
+//	}
+//	return nil
+//}
 
 //func (c *ConfirmBatch) isValid() error {
 //	// verify balance and nonce
@@ -242,6 +278,13 @@ func (c *ConfirmBatch) addTx(tx types.Txi) {
 func (c *ConfirmBatch) addTxToElders(tx types.Txi) {
 	c.elders = append(c.elders, tx)
 	c.eldersQueryMap[tx.GetTxHash().HashKey()] = tx
+
+	txList := c.eldersQueryNonce[tx.Sender().AddressKey()]
+	if txList == nil {
+		txList = NewTxList()
+	}
+	txList.Put(tx)
+	c.eldersQueryNonce[tx.Sender().AddressKey()] = txList
 }
 
 func (c *ConfirmBatch) existCurrentTx(hash ogTypes.Hash) bool {
@@ -258,8 +301,19 @@ func (c *ConfirmBatch) existTx(hash ogTypes.Hash) bool {
 	if c.parent != nil {
 		return c.parent.existTx(hash)
 	}
-	//return c.ledger.GetTx(hash) != nil
 	return false
+}
+
+func (c *ConfirmBatch) getCurrentTx(hash ogTypes.Hash) types.Txi {
+	return c.eldersQueryMap[hash.HashKey()]
+}
+
+func (c *ConfirmBatch) getCurrentTxByNonce(addr ogTypes.Address, nonce uint64) types.Txi {
+	txList := c.eldersQueryNonce[addr.AddressKey()]
+	if txList == nil {
+		return nil
+	}
+	return txList.Get(nonce)
 }
 
 func (c *ConfirmBatch) existSeq(seqHash ogTypes.Hash) bool {
@@ -273,6 +327,13 @@ func (c *ConfirmBatch) existSeq(seqHash ogTypes.Hash) bool {
 	return false
 }
 
+func (c *ConfirmBatch) getCurrentReceipt(hash ogTypes.Hash) *Receipt {
+	if c.seq.GetTxHash().Cmp(hash) == 0 {
+		return c.seqReceipt
+	}
+	return c.txReceipts[hash.HashKey()]
+}
+
 //func (c *ConfirmBatch) getCurrentBalance(addr ogTypes.Address, tokenID int32) *math.BigInt {
 //	detail := c.getDetail(addr)
 //	if detail == nil {
@@ -283,7 +344,7 @@ func (c *ConfirmBatch) existSeq(seqHash ogTypes.Hash) bool {
 
 // getBalance get balance from its own StateDB
 func (c *ConfirmBatch) getBalance(addr ogTypes.Address, tokenID int32) *math.BigInt {
-	return c.db.GetBalance(addr)
+	return c.db.GetTokenBalance(addr, tokenID)
 
 	//blc := c.getCurrentBalance(addr, tokenID)
 	//if blc != nil {

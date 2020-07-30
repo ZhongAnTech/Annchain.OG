@@ -21,6 +21,7 @@ import (
 
 var (
 	LedgerFile             = "ledger.ledger"
+	TempLedgerFile         = "ledger_temp.ledger"
 	ConsensusStateFile     = "consensus_state.ledger"
 	ConsensusCommitteeFile = "consensus_committee.ledger"
 )
@@ -108,7 +109,8 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 			WithField("given", block.Id).
 			Fatal("myhash is not aligned with given hash")
 	}
-	d.allBlockContents[block.Id] = newBlock
+	d.KnowBlock(newBlock)
+
 	logrus.WithField("block", newBlock).Info("speculated new block")
 
 	return consensus_interface.ExecutionResult{
@@ -132,16 +134,26 @@ func (d *IntArrayLedger) Commit(blockId string) {
 		logrus.WithField("blockId", blockId).Warn("blockId not found")
 		return
 	}
-	d.AddBlock(block)
+	d.ConfirmBlock(block)
 }
 
-func (d *IntArrayLedger) AddBlock(block og_interface.BlockContent) {
+// KnowBlock just knows the existance of the block.
+// Block may not be confirmed.
+func (d *IntArrayLedger) KnowBlock(block og_interface.BlockContent) {
+	logrus.WithField("blockId", block.GetHash().HashString()).Debug("know this block")
+	d.allBlockContents[block.GetHash().HashString()] = block
+}
+
+// ConfirmBlock add the block to the permanent ledger.
+func (d *IntArrayLedger) ConfirmBlock(block og_interface.BlockContent) {
 	if _, ok := d.confirmedBlockContents[block.GetHeight()]; ok {
 		logrus.WithField("height", block.GetHeight()).Debug("block already added")
 		return
 	}
+	id := block.GetHash().HashString()
 	d.confirmedBlockContents[block.GetHeight()] = block
-	d.allBlockContents[block.GetHash().HashString()] = block
+	d.confirmedBlockIdHeightMapping[id] = block.GetHeight()
+	d.allBlockContents[id] = block
 	d.height = math.BiggerInt64(block.GetHeight(), d.height)
 	d.SaveLedger()
 }
@@ -153,7 +165,7 @@ func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {
 func (d *IntArrayLedger) AddRandomBlock(height int64) {
 	previousBlock := d.GetBlock(height - 1).(*IntArrayBlockContent)
 	step := rand.Intn(50)
-	d.AddBlock(&IntArrayBlockContent{
+	d.ConfirmBlock(&IntArrayBlockContent{
 		Height:      height,
 		Step:        step,
 		PreviousSum: previousBlock.MySum,
@@ -169,6 +181,10 @@ func (d *IntArrayLedger) StaticSetup() {
 	// if error, init ledger and consensus
 	var err error
 	err = d.LoadLedger()
+	if err != nil {
+		reInit = true
+	}
+	err = d.LoadTempLedger()
 	if err != nil {
 		reInit = true
 	}
@@ -212,12 +228,12 @@ func (d *IntArrayLedger) StaticSetup() {
 func (d *IntArrayLedger) InitLedgerGenesis() {
 	logrus.Info("Initializing Ledger genesis")
 	d.height = 0
-	d.confirmedBlockContents[0] = &IntArrayBlockContent{
+	d.ConfirmBlock(&IntArrayBlockContent{
 		Height:      0,
 		Step:        0,
 		PreviousSum: 0,
 		MySum:       0,
-	}
+	})
 }
 
 func (d *IntArrayLedger) SaveLedger() {
@@ -231,6 +247,49 @@ func (d *IntArrayLedger) SaveLedger() {
 	}
 	err := files.WriteLines(lines, path.Join(d.DataPath, LedgerFile))
 	utilfuncs.PanicIfError(err, "dump ledger")
+
+	lines = []string{}
+	// dump pending blocks
+	for hash, block := range d.allBlockContents {
+		_, ok := d.confirmedBlockIdHeightMapping[hash]
+		if ok {
+			// dumped
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("%s %s", hash, block.String()))
+	}
+	err = files.WriteLines(lines, path.Join(d.DataPath, TempLedgerFile))
+	utilfuncs.PanicIfError(err, "dump ledger")
+}
+
+func (d *IntArrayLedger) LoadTempLedger() (err error) {
+	if !files.FileExists(path.Join(d.DataPath, TempLedgerFile)) {
+		err = errors.New("ledger file not exists: " + path.Join(d.DataPath, TempLedgerFile))
+		return
+	}
+	lines, err := files.ReadLines(path.Join(d.DataPath, TempLedgerFile))
+	if err != nil {
+		return
+	}
+
+	for _, line := range lines {
+		slots := strings.Split(line, " ")
+		hash := slots[0]
+		blockString := slots[1]
+		block := &IntArrayBlockContent{}
+		block.FromString(blockString)
+
+		if block.GetHash().HashString() != hash {
+			return errors.New("hash not aligned")
+		}
+		d.KnowBlock(block)
+		logrus.WithFields(
+			logrus.Fields{
+				"height": d.height,
+				"hash":   block.GetHash().HashString(),
+			}).Debug("loaded temp ledger")
+	}
+	return
 }
 
 func (d *IntArrayLedger) LoadLedger() (err error) {
@@ -258,7 +317,7 @@ func (d *IntArrayLedger) LoadLedger() (err error) {
 		if block.Height != int64(height) {
 			return errors.New("height not aligned")
 		}
-		d.AddBlock(block)
+		d.ConfirmBlock(block)
 		logrus.WithFields(
 			logrus.Fields{
 				"height": d.height,
@@ -417,8 +476,9 @@ func (d *IntArrayLedger) applyGenesisStore(gs *og_interface.GenesisStore) {
 }
 
 type IntArrayProposalGenerator struct {
-	Ledger *IntArrayLedger
-	rander *rand.Rand
+	Ledger    *IntArrayLedger
+	rander    *rand.Rand
+	BlockTime time.Duration
 }
 
 func (i *IntArrayProposalGenerator) InitDefault() {
@@ -443,7 +503,7 @@ func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface
 
 	v := i.rander.Intn(100)
 	newBlock := &IntArrayBlockContent{
-		Height:      i.Ledger.height + 1,
+		Height:      previousBlock.Height + 1,
 		Step:        v,
 		PreviousSum: previousBlock.MySum,
 		MySum:       previousBlock.MySum + v,
@@ -457,9 +517,15 @@ func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface
 		},
 		TC: context.TC,
 	}
+	time.Sleep(i.BlockTime)
 	return proposal
 }
 
-func (i IntArrayProposalGenerator) GenerateProposalAsync(context *consensus_interface.ProposalContext) {
-	panic("implement me")
+func (i *IntArrayProposalGenerator) GenerateProposalAsync(context *consensus_interface.ProposalContext, callback func(*consensus_interface.ContentProposal)) {
+	go func(context *consensus_interface.ProposalContext, callback func(*consensus_interface.ContentProposal)) {
+		logrus.WithField("context", context).Info("start generating proposal")
+		proposal := i.GenerateProposal(context)
+		logrus.WithField("proposal", proposal).Info("proposal generated")
+		callback(proposal)
+	}(context, callback)
 }

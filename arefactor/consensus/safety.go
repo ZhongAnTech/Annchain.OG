@@ -37,11 +37,7 @@ func (s *Safety) InitDefault() {
 
 func (s *Safety) UpdatePreferredRound(qc *consensus_interface.QC) {
 	if qc.VoteData.ParentRound > s.consensusState.PreferredRound {
-		s.Logger.WithField("qc", qc).Trace("update preferred round")
-		s.consensusStateMu.Lock()
-		s.consensusState.PreferredRound = qc.VoteData.ParentRound
-		s.consensusStateMu.Unlock()
-		s.Reporter.Report("PreferredRound", s.consensusState.PreferredRound, false)
+		s.SetPreferredRound(qc.VoteData.ParentRound)
 	}
 }
 
@@ -109,6 +105,8 @@ func (s *Safety) SetLastVoteRound(round int64) {
 	logrus.WithField("from", s.consensusState.LastVoteRound).WithField("to", round).Trace("update lastVoteRound")
 	s.consensusState.LastVoteRound = round
 	s.Ledger.SaveConsensusState(s.consensusState)
+
+	s.Reporter.Report("LastVoteRound", s.consensusState.LastVoteRound, false)
 }
 
 func (s *Safety) SetHighQC(qc *consensus_interface.QC) {
@@ -117,6 +115,8 @@ func (s *Safety) SetHighQC(qc *consensus_interface.QC) {
 	logrus.WithField("from", s.consensusState.HighQC).WithField("to", qc).Trace("update highQC")
 	s.consensusState.HighQC = qc
 	s.Ledger.SaveConsensusState(s.consensusState)
+
+	s.Reporter.Report("HighQC", s.consensusState.HighQC, false)
 }
 
 func (s *Safety) SetLastTC(tc *consensus_interface.TC) {
@@ -125,6 +125,8 @@ func (s *Safety) SetLastTC(tc *consensus_interface.TC) {
 	logrus.WithField("from", s.consensusState.LastTC).WithField("to", tc).Trace("update lastTC")
 	s.consensusState.LastTC = tc
 	s.Ledger.SaveConsensusState(s.consensusState)
+
+	s.Reporter.Report("LastTC", s.consensusState.LastTC, false)
 }
 
 func (s *Safety) SetPreferredRound(round int64) {
@@ -133,4 +135,6 @@ func (s *Safety) SetPreferredRound(round int64) {
 	logrus.WithField("from", s.consensusState.PreferredRound).WithField("to", round).Trace("update lastTC")
 	s.consensusState.PreferredRound = round
 	s.Ledger.SaveConsensusState(s.consensusState)
+
+	s.Reporter.Report("PreferredRound", s.consensusState.PreferredRound, false)
 }

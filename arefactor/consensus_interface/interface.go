@@ -1,6 +1,10 @@
 package consensus_interface
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/annchain/commongo/utilfuncs"
+)
 
 // OgLedgerAccount represents a full account of a user.
 type ConsensusAccount interface {
@@ -24,6 +28,12 @@ type ProposalContext struct {
 	CurrentRound int64
 	HighQC       *QC
 	TC           *TC
+}
+
+func (p ProposalContext) String() string {
+	s, err := json.Marshal(p)
+	utilfuncs.PanicIfError(err, "marshal proposal")
+	return string(s)
 }
 
 type VerifyResult struct {
@@ -65,7 +75,7 @@ type ProposalContextProvider interface {
 // ProposalGenerator provides a proposal whenever needed
 type ProposalGenerator interface {
 	GenerateProposal(context *ProposalContext) *ContentProposal
-	GenerateProposalAsync(context *ProposalContext)
+	GenerateProposalAsync(context *ProposalContext, callback func(*ContentProposal))
 }
 
 type ProposalVerifier interface {
@@ -115,9 +125,9 @@ type Ledger interface {
 	// Commit commits the pending prefix of the given BlockId and prune other branches
 	Commit(blockId string)
 	SaveConsensusState(*ConsensusState)
+	GetConsensusState() *ConsensusState
 	CurrentHeight() int64
 	CurrentCommittee() *Committee
-	GetConsensusState() *ConsensusState
 }
 
 type Hasher interface {

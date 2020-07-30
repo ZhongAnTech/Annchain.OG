@@ -64,6 +64,7 @@ func (c *PhysicalCommunicator) AddSubscriberNewIncomingMessageEvent(sub transpor
 func (c *PhysicalCommunicator) notifyNewIncomingMessage(incomingLetter *transport_interface.IncomingLetter) {
 	for _, sub := range c.newIncomingMessageSubscribers {
 		//sub.NewIncomingMessageEventChannel() <- message
+		logrus.WithField("sub", sub.Name()).WithField("type", incomingLetter.Msg.MsgType).Debug("receive message")
 		<-goffchan.NewTimeoutSenderShort(sub.NewIncomingMessageEventChannel(), incomingLetter, "receive message "+sub.Name()).C
 		//sub.NewIncomingMessageEventChannel() <- message
 	}

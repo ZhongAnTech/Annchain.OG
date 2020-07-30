@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"path"
+	"time"
 )
 
 // OgNode is the basic entry point for all modules to start.
@@ -27,6 +28,7 @@ func (n *OgNode) InitDefault() {
 }
 
 func (n *OgNode) Setup() {
+	blockTime := time.Second * 5
 	// load private info
 	privateGenerator := &og.CachedPrivateGenerator{}
 
@@ -98,7 +100,8 @@ func (n *OgNode) Setup() {
 	cpCommunityManager.StaticSetup()
 
 	proposalGenerator := &dummy.IntArrayProposalGenerator{
-		Ledger: ledger,
+		Ledger:    ledger,
+		BlockTime: blockTime,
 	}
 	proposalGenerator.InitDefault()
 
@@ -115,6 +118,7 @@ func (n *OgNode) Setup() {
 		ConsensusAccountProvider: consensusAccountProvider,
 		Hasher:                   &consensus.SHA256Hasher{},
 		Ledger:                   ledger,
+		BlockTime:                blockTime,
 	}
 	cpConsensusPartner.InitDefault()
 

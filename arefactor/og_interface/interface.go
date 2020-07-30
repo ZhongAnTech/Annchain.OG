@@ -69,5 +69,5 @@ type Ledger interface {
 	CurrentHeight() int64
 	CurrentCommittee() *consensus_interface.Committee
 	GetBlock(height int64) BlockContent
-	AddBlock(block BlockContent)
+	ConfirmBlock(block BlockContent)
 }

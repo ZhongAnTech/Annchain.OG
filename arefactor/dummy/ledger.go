@@ -31,6 +31,7 @@ type IntArrayBlockContent struct {
 	Step        int // Step is the action within current block
 	PreviousSum int // PreviousSum simulates the previous hash
 	MySum       int // MySum simulates the state root which is the ledger execution state.
+	Submitter   int // generator of this block
 }
 
 func (i *IntArrayBlockContent) FromString(s string) {
@@ -224,16 +225,21 @@ func (d *IntArrayLedger) StaticSetup() {
 
 }
 
-// Ledger init
-func (d *IntArrayLedger) InitLedgerGenesis() {
-	logrus.Info("Initializing Ledger genesis")
-	d.height = 0
-	d.ConfirmBlock(&IntArrayBlockContent{
+func (d *IntArrayLedger) ProvideGenesis() *IntArrayBlockContent {
+	return &IntArrayBlockContent{
 		Height:      0,
 		Step:        0,
 		PreviousSum: 0,
 		MySum:       0,
-	})
+		Submitter:   0,
+	}
+}
+
+// Ledger init
+func (d *IntArrayLedger) InitLedgerGenesis() {
+	logrus.Info("Initializing Ledger genesis")
+	d.height = 0
+	d.ConfirmBlock(d.ProvideGenesis())
 }
 
 func (d *IntArrayLedger) SaveLedger() {
@@ -390,13 +396,17 @@ func (d *IntArrayLedger) LoadConsensusCommittee() (err error) {
 
 // Consensus State init
 func (d *IntArrayLedger) InitConsensusStateGenesis() {
+	// get hash of the first block
+	genesis := d.ProvideGenesis()
+	hash := genesis.GetHash().HashString()
+
 	// generate high qc and genesis
 	d.consensusState = &consensus_interface.ConsensusState{
 		LastVoteRound:  0,
 		PreferredRound: 0,
 		HighQC: &consensus_interface.QC{
 			VoteData: consensus_interface.VoteInfo{
-				Id:               "43c43df069cd1534d94b34451f4814c1d1553481db37e9dcc376377bff5479b7",
+				Id:               hash,
 				Round:            0,
 				ParentId:         "",
 				ParentRound:      0,
@@ -479,6 +489,7 @@ type IntArrayProposalGenerator struct {
 	Ledger    *IntArrayLedger
 	rander    *rand.Rand
 	BlockTime time.Duration
+	MyId      int
 }
 
 func (i *IntArrayProposalGenerator) InitDefault() {
@@ -507,6 +518,7 @@ func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface
 		Step:        v,
 		PreviousSum: previousBlock.MySum,
 		MySum:       previousBlock.MySum + v,
+		Submitter:   i.MyId,
 	}
 	proposal := &consensus_interface.ContentProposal{
 		Proposal: consensus_interface.Block{

@@ -143,7 +143,7 @@ func (c *PhysicalCommunicator) mainLoopReceive() {
 			// TODO: close all peers
 			return
 		case incomingLetter := <-c.incomingChannel:
-			c.NetworkReporter.Report("receive:"+incomingLetter.From, time.Now().String())
+			//c.NetworkReporter.Report("receive:"+incomingLetter.From, time.Now().String())
 			c.notifyNewIncomingMessage(incomingLetter)
 		}
 	}
@@ -421,7 +421,7 @@ func (c *PhysicalCommunicator) handleOutgoing(req *transport_interface.OutgoingL
 			continue
 		}
 		logrus.WithField("peerId", peerId).Trace("go send")
-		c.NetworkReporter.Report("send:"+peerId.String(), time.Now().String())
+		//c.NetworkReporter.Report("send:"+peerId.String(), time.Now().String())
 		neighbour.EnqueueSend(req)
 	}
 }

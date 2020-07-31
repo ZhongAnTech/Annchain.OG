@@ -63,9 +63,10 @@ type Dag struct {
 
 	genesis            *types.Sequencer
 	latestSequencer    *types.Sequencer
+	latestStateDB      *state.StateDB
+	latestBatch        *ConfirmBatch
 	confirmedSequencer *types.Sequencer
-	chosenStateDB      *state.StateDB
-	chosenBatch        *ConfirmBatch
+	confirmedStateDB   *state.StateDB
 	cachedBatches      *CachedConfirms // stores speculated sequencers, use state root as batch key
 	pendedBatches      *CachedConfirms // stores pushed sequencers, use sequencer hash as batch key
 
@@ -85,7 +86,7 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		//txcached:    newTxcached(10000), // TODO delete txcached later
 		txProcessor:   txProcessor,
 		vmProcessor:   vmProcessor,
-		chosenBatch:   nil,
+		latestBatch:   nil,
 		cachedBatches: newCachedConfirms(),
 		pendedBatches: newCachedConfirms(),
 		close:         make(chan struct{}),
@@ -98,7 +99,8 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		if err != nil {
 			return nil, fmt.Errorf("create statedb err: %v", err)
 		}
-		dag.chosenStateDB = statedb
+		dag.latestStateDB = statedb
+		dag.confirmedStateDB = statedb
 		if err := dag.Init(genesis, balance); err != nil {
 			return nil, err
 		}
@@ -114,7 +116,8 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 	if err != nil {
 		return nil, fmt.Errorf("create statedb err: %v", err)
 	}
-	dag.chosenStateDB = statedb
+	dag.latestStateDB = statedb
+	dag.confirmedStateDB = statedb
 
 	if dag.GetHeight() > 0 && root.Length() == 0 {
 		panic("should not be empty hash. Database may be corrupted. Please clean datadir")
@@ -134,7 +137,7 @@ func (dag *Dag) Start() {
 func (dag *Dag) Stop() {
 	close(dag.close)
 
-	dag.chosenStateDB.Stop()
+	dag.latestStateDB.Stop()
 	for _, batch := range dag.pendedBatches.batches {
 		batch.stop()
 	}
@@ -151,14 +154,14 @@ func (dag *Dag) Init(genesis *types.Sequencer, genesisBalance map[ogTypes.Addres
 	// init genesis balance
 	for addrKey, value := range genesisBalance {
 		addr, _ := ogTypes.HexToAddress20(string(addrKey))
-		dag.chosenStateDB.SetBalance(addr, value)
+		dag.latestStateDB.SetBalance(addr, value)
 	}
 	// commit state and init a genesis state root
-	root, err := dag.chosenStateDB.Commit()
+	root, err := dag.latestStateDB.Commit()
 	if err != nil {
 		return fmt.Errorf("commit genesis state err: %v", err)
 	}
-	trieDB := dag.chosenStateDB.Database().TrieDB()
+	trieDB := dag.latestStateDB.Database().TrieDB()
 	err = trieDB.Commit(root, false)
 	if err != nil {
 		return fmt.Errorf("commit genesis trie err: %v", err)
@@ -298,7 +301,7 @@ func (dag *Dag) GetTxByNonce(addr ogTypes.Address, nonce uint64) types.Txi {
 }
 
 func (dag *Dag) getTxByNonce(addr ogTypes.Address, nonce uint64) types.Txi {
-	tx := dag.cachedBatches.getTxByNonce(dag.chosenBatch, addr, nonce)
+	tx := dag.cachedBatches.getTxByNonce(dag.latestBatch, addr, nonce)
 	if tx != nil {
 		return tx
 	}
@@ -358,7 +361,7 @@ func (dag *Dag) GetTxisByHeight(height uint64) types.Txis {
 	if height > dag.latestSequencer.GetHeight() {
 		return nil
 	}
-	txs := dag.cachedBatches.getTxsByHeight(dag.chosenBatch, height)
+	txs := dag.cachedBatches.getTxsByHeight(dag.latestBatch, height)
 	if txs != nil {
 		return txs
 	}
@@ -434,8 +437,10 @@ func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
 	if height > dag.latestSequencer.Height {
 		return nil
 	}
-	//dag.cachedBatches.getTxByNonce(dag.ch)
-
+	seq := dag.cachedBatches.getSeqByHeight(dag.latestBatch, height)
+	if seq != nil {
+		return seq
+	}
 	seq, err := dag.accessor.ReadSequencerByHeight(height)
 	if err != nil || seq == nil {
 		log.WithField("height", height).WithError(err).Warn("head not found")
@@ -514,94 +519,103 @@ func (dag *Dag) GetSequencer(hash ogTypes.Hash, seqHeight uint64) *types.Sequenc
 //	return hashs
 //}
 
-// getBalance read the confirmed balance of an address from ogdb.
-func (dag *Dag) GetBalance(addr ogTypes.Address, tokenID int32) *math.BigInt {
+func (dag *Dag) GetBalance(addr ogTypes.Address, tokenID int32, confirmed bool) *math.BigInt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getBalance(addr, tokenID)
+	return dag.getBalance(addr, tokenID, confirmed)
 }
 
-func (dag *Dag) getBalance(addr ogTypes.Address, tokenID int32) *math.BigInt {
-	return dag.chosenStateDB.GetTokenBalance(addr, tokenID)
+func (dag *Dag) getBalance(addr ogTypes.Address, tokenID int32, confirmed bool) *math.BigInt {
+	return dag.getDB(confirmed).GetTokenBalance(addr, tokenID)
 }
 
-func (dag *Dag) GetAllTokenBalance(addr ogTypes.Address) state.BalanceSet {
+func (dag *Dag) GetAllTokenBalance(addr ogTypes.Address, confirmed bool) state.BalanceSet {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getAlltokenBalance(addr)
+	return dag.getAlltokenBalance(addr, confirmed)
 }
 
-func (dag *Dag) getAlltokenBalance(addr ogTypes.Address) state.BalanceSet {
-	return dag.chosenStateDB.GetAllTokenBalance(addr)
+func (dag *Dag) getAlltokenBalance(addr ogTypes.Address, confirmed bool) state.BalanceSet {
+	return dag.getDB(confirmed).GetAllTokenBalance(addr)
 }
 
-func (dag *Dag) GetToken(tokenId int32) *state.TokenObject {
+func (dag *Dag) GetToken(tokenId int32, confirmed bool) *state.TokenObject {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	if tokenId > dag.chosenStateDB.LatestTokenID() {
+	return dag.getToken(tokenId, confirmed)
+}
+
+func (dag *Dag) getToken(tokenId int32, confirmed bool) *state.TokenObject {
+	db := dag.getDB(confirmed)
+	if tokenId > db.LatestTokenID() {
 		return nil
 	}
-	return dag.getToken(tokenId)
+	return db.GetTokenObject(tokenId)
 }
 
-func (dag *Dag) getToken(tokenId int32) *state.TokenObject {
-	return dag.chosenStateDB.GetTokenObject(tokenId)
-}
-
-func (dag *Dag) GetLatestTokenId() int32 {
+func (dag *Dag) GetLatestTokenId(confirmed bool) int32 {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getLatestTokenId()
+	return dag.getLatestTokenId(confirmed)
 }
 
-func (dag *Dag) getLatestTokenId() int32 {
-	return dag.chosenStateDB.LatestTokenID()
+func (dag *Dag) getLatestTokenId(confirmed bool) int32 {
+	return dag.getDB(confirmed).LatestTokenID()
 }
 
-func (dag *Dag) GetTokens() []*state.TokenObject {
+func (dag *Dag) GetTokens(confirmed bool) []*state.TokenObject {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getTokens()
+	return dag.getTokens(confirmed)
 }
 
-func (dag *Dag) getTokens() []*state.TokenObject {
+func (dag *Dag) getTokens(confirmed bool) []*state.TokenObject {
 	tokens := make([]*state.TokenObject, 0)
-	lid := dag.getLatestTokenId()
+	lid := dag.getLatestTokenId(confirmed)
 
 	for i := int32(0); i <= lid; i++ {
-		token := dag.getToken(i)
+		token := dag.getToken(i, confirmed)
 		tokens = append(tokens, token)
 	}
 	return tokens
 }
 
 // GetLatestNonce returns the latest tx of an address.
-func (dag *Dag) GetLatestNonce(addr ogTypes.Address) (uint64, error) {
+func (dag *Dag) GetLatestNonce(addr ogTypes.Address, confirmed bool) (uint64, error) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getLatestNonce(addr)
+	return dag.getLatestNonce(addr, confirmed)
 }
 
-func (dag *Dag) getLatestNonce(addr ogTypes.Address) (uint64, error) {
-	return dag.chosenStateDB.GetNonce(addr), nil
+func (dag *Dag) getLatestNonce(addr ogTypes.Address, confirmed bool) (uint64, error) {
+	return dag.getDB(confirmed).GetNonce(addr), nil
 }
 
 // GetState get contract's state from statedb.
-func (dag *Dag) GetState(addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
+func (dag *Dag) GetState(addr ogTypes.Address, key ogTypes.Hash, confirmed bool) ogTypes.Hash {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getState(addr, key)
+	return dag.getState(addr, key, confirmed)
 }
 
-func (dag *Dag) getState(addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
-	return dag.chosenStateDB.GetState(addr, key)
+func (dag *Dag) getState(addr ogTypes.Address, key ogTypes.Hash, confirmed bool) ogTypes.Hash {
+	return dag.getDB(confirmed).GetState(addr, key)
+}
+
+func (dag *Dag) getDB(confirmed bool) (db *state.StateDB) {
+	if confirmed {
+		db = dag.confirmedStateDB
+	} else {
+		db = dag.latestStateDB
+	}
+	return
 }
 
 ////GetTxsByAddress get all txs from this address
@@ -677,8 +691,8 @@ func (dag *Dag) push(pushBatch *PushBatch) error {
 	// change chosen batch if current is higher than chosen one
 	if seq.Height > dag.latestSequencer.Height {
 		dag.latestSequencer = seq
-		dag.chosenStateDB = confirmBatch.db
-		dag.chosenBatch = confirmBatch
+		dag.latestStateDB = confirmBatch.db
+		dag.latestBatch = confirmBatch
 	}
 	dag.pendedBatches.push(seq.GetTxHash(), confirmBatch)
 
@@ -698,6 +712,7 @@ func (dag *Dag) commit(seq *types.Sequencer) (err error) {
 		return err
 	}
 
+	dag.pendedBatches.confirm(confirmBatch)
 	dag.confirmedSequencer = seq
 	return nil
 }
@@ -849,7 +864,7 @@ func (dag *Dag) CallContract(addr ogTypes.Address20, data []byte) ([]byte, error
 	// create ovm object.
 	//
 	// TODO gaslimit not implemented yet.
-	vmContext := ovm.NewOVMContext(&ovm.DefaultChainContext{}, DefaultCoinbase, dag.chosenStateDB)
+	vmContext := ovm.NewOVMContext(&ovm.DefaultChainContext{}, DefaultCoinbase, dag.latestStateDB)
 	txContext := &ovm.TxContext{
 		From:       DefaultCoinbase,
 		Value:      math.NewBigInt(0),
@@ -874,7 +889,7 @@ func (dag *Dag) CallContract(addr ogTypes.Address20, data []byte) ([]byte, error
 }
 
 func (dag *Dag) revert(snapShotID int) {
-	dag.chosenStateDB.RevertToSnapshot(snapShotID)
+	dag.latestStateDB.RevertToSnapshot(snapShotID)
 }
 
 type txcached struct {

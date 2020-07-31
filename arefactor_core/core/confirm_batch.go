@@ -9,14 +9,14 @@ import (
 )
 
 type CachedConfirms struct {
-	frontHeight uint64
-	fronts      []*ConfirmBatch
-	batches     map[ogTypes.HashKey]*ConfirmBatch
+	//highest *ConfirmBatch
+	fronts  []*ConfirmBatch
+	batches map[ogTypes.HashKey]*ConfirmBatch
 }
 
 func newCachedConfirms() *CachedConfirms {
 	return &CachedConfirms{
-		//ledger:  ledger,
+		//highest: nil,
 		fronts:  make([]*ConfirmBatch, 0),
 		batches: make(map[ogTypes.HashKey]*ConfirmBatch),
 	}
@@ -61,6 +61,7 @@ func (c *CachedConfirms) getTxByNonce(baseBatch *ConfirmBatch, addr ogTypes.Addr
 	return nil
 }
 
+// getTxsByHeight searching txs by sequencer height, traverse from leaf to root
 func (c *CachedConfirms) getTxsByHeight(baseBatch *ConfirmBatch, height uint64) []types.Txi {
 	for baseBatch != nil {
 		if baseBatch.seq.GetHeight() < height {
@@ -68,6 +69,20 @@ func (c *CachedConfirms) getTxsByHeight(baseBatch *ConfirmBatch, height uint64) 
 		}
 		if baseBatch.seq.GetHeight() == height {
 			return baseBatch.elders
+		}
+		baseBatch = baseBatch.parent
+	}
+	return nil
+}
+
+// getSeqByHeight searching sequencer by sequencer height, traverse from leaf to root
+func (c *CachedConfirms) getSeqByHeight(baseBatch *ConfirmBatch, height uint64) *types.Sequencer {
+	for baseBatch != nil {
+		if baseBatch.seq.GetHeight() < height {
+			return nil
+		}
+		if baseBatch.seq.GetHeight() == height {
+			return baseBatch.seq
 		}
 		baseBatch = baseBatch.parent
 	}
@@ -83,6 +98,12 @@ func (c *CachedConfirms) push(hashKey ogTypes.Hash, batch *ConfirmBatch) {
 		batch.bindParent(parentBatch)
 	}
 	c.batches[hashKey.HashKey()] = batch
+
+	//// set highest batch
+	//if c.highest != nil && c.highest.seq.GetHeight() >= batch.seq.GetHeight() {
+	//	return
+	//}
+	//c.highest = batch
 }
 
 // purePush only store the ConfirmBatch to the batch map, regardless the fronts
@@ -102,15 +123,16 @@ func (c *CachedConfirms) confirm(batch *ConfirmBatch) {
 		if batchToDelete.isSame(batch) {
 			continue
 		}
-
 		c.traverseFromRoot(batchToDelete, func(b *ConfirmBatch) {
 			delete(c.batches, b.seq.GetTxHash().HashKey())
 		})
 	}
+	c.fronts = batch.children
+
+	// unbind children's parent to nil
 	for _, childBatch := range batch.children {
 		childBatch.confirmParent(batch)
 	}
-	c.fronts = batch.children
 }
 
 // traverseFromRoot traverse the cached ConfirmBatch trees and process the function "f" for

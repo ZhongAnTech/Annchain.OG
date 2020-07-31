@@ -29,6 +29,7 @@ func (n *OgNode) InitDefault() {
 
 func (n *OgNode) Setup() {
 	blockTime := time.Second * 5
+	myId := viper.GetInt("id")
 	// load private info
 	privateGenerator := &og.CachedPrivateGenerator{}
 
@@ -102,6 +103,7 @@ func (n *OgNode) Setup() {
 	proposalGenerator := &dummy.IntArrayProposalGenerator{
 		Ledger:    ledger,
 		BlockTime: blockTime,
+		MyId:      myId,
 	}
 	proposalGenerator.InitDefault()
 
@@ -113,7 +115,7 @@ func (n *OgNode) Setup() {
 		ProposalVerifier:  &dummy.DummyProposalVerifier{},
 		CommitteeProvider: committeeProvider,
 		ConsensusSigner: &dummy.DummyConsensusSigner{
-			Id: viper.GetInt("id"),
+			Id: myId,
 		}, // should be replaced by bls signer
 		ConsensusAccountProvider: consensusAccountProvider,
 		Hasher:                   &consensus.SHA256Hasher{},

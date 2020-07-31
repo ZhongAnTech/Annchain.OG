@@ -116,7 +116,7 @@ func (s *Safety) SetHighQC(qc *consensus_interface.QC) {
 	s.consensusState.HighQC = qc
 	s.Ledger.SaveConsensusState(s.consensusState)
 
-	s.Reporter.Report("HighQC", s.consensusState.HighQC, false)
+	//s.Reporter.Report("HighQC", s.consensusState.HighQC, false)
 }
 
 func (s *Safety) SetLastTC(tc *consensus_interface.TC) {

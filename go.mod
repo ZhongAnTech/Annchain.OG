@@ -1,6 +1,6 @@
 module github.com/annchain/OG
 
-go 1.12
+go 1.13
 
 require (
 	github.com/annchain/bloom v2.0.4+incompatible
@@ -12,6 +12,7 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/gin-gonic/gin v1.5.0
+	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
 	github.com/go-co-op/gocron v0.2.0
 	github.com/golang/snappy v0.0.1
 	github.com/google/uuid v1.1.1
@@ -36,8 +37,9 @@ require (
 	github.com/tebeka/strftime v0.1.3 // indirect
 	github.com/tinylib/msgp v1.1.0
 	github.com/willf/bitset v1.1.10 // indirect
+	go.mongodb.org/mongo-driver v1.4.0
 	go.uber.org/atomic v1.4.0
-	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f
+	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
 	golang.org/x/sys v0.0.0-20191008105621-543471e840be
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0

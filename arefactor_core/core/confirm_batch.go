@@ -41,6 +41,17 @@ func (c *CachedConfirms) getConfirmBatch(seqHash ogTypes.Hash) *ConfirmBatch {
 //	return false
 //}
 
+func (c *CachedConfirms) existTx(baseBatchHash ogTypes.Hash, hash ogTypes.Hash) bool {
+	baseBatch := c.getConfirmBatch(baseBatchHash)
+	for baseBatch != nil {
+		if baseBatch.existCurrentTx(hash) {
+			return true
+		}
+		baseBatch = baseBatch.parent
+	}
+	return false
+}
+
 func (c *CachedConfirms) getTxAndReceipt(hash ogTypes.Hash) (types.Txi, *Receipt) {
 	for _, batch := range c.batches {
 		if batch.existCurrentTx(hash) {
@@ -50,7 +61,8 @@ func (c *CachedConfirms) getTxAndReceipt(hash ogTypes.Hash) (types.Txi, *Receipt
 	return nil, nil
 }
 
-func (c *CachedConfirms) getTxByNonce(baseBatch *ConfirmBatch, addr ogTypes.Address, nonce uint64) types.Txi {
+func (c *CachedConfirms) getTxByNonce(baseBatchHash ogTypes.Hash, addr ogTypes.Address, nonce uint64) types.Txi {
+	baseBatch := c.getConfirmBatch(baseBatchHash)
 	for baseBatch != nil {
 		txi := baseBatch.getCurrentTxByNonce(addr, nonce)
 		if txi != nil {
@@ -62,7 +74,8 @@ func (c *CachedConfirms) getTxByNonce(baseBatch *ConfirmBatch, addr ogTypes.Addr
 }
 
 // getTxsByHeight searching txs by sequencer height, traverse from leaf to root
-func (c *CachedConfirms) getTxsByHeight(baseBatch *ConfirmBatch, height uint64) []types.Txi {
+func (c *CachedConfirms) getTxsByHeight(baseBatchHash ogTypes.Hash, height uint64) []types.Txi {
+	baseBatch := c.getConfirmBatch(baseBatchHash)
 	for baseBatch != nil {
 		if baseBatch.seq.GetHeight() < height {
 			return nil
@@ -76,7 +89,8 @@ func (c *CachedConfirms) getTxsByHeight(baseBatch *ConfirmBatch, height uint64) 
 }
 
 // getSeqByHeight searching sequencer by sequencer height, traverse from leaf to root
-func (c *CachedConfirms) getSeqByHeight(baseBatch *ConfirmBatch, height uint64) *types.Sequencer {
+func (c *CachedConfirms) getSeqByHeight(baseBatchHash ogTypes.Hash, height uint64) *types.Sequencer {
+	baseBatch := c.getConfirmBatch(baseBatchHash)
 	for baseBatch != nil {
 		if baseBatch.seq.GetHeight() < height {
 			return nil
@@ -185,7 +199,7 @@ type ConfirmBatch struct {
 	eldersQueryMap   map[ogTypes.HashKey]types.Txi
 	eldersQueryNonce map[ogTypes.AddressKey]*TxList
 
-	//db        map[ogTypes.AddressKey]*batchDetail
+	//db        map[ogTypes.AddressKey]*accountDetail
 }
 
 func newConfirmBatch(seq *types.Sequencer, db ogdb.Database, baseRoot ogTypes.Hash) (*ConfirmBatch, error) {
@@ -233,8 +247,8 @@ func (c *ConfirmBatch) stop() {
 
 //func (c *ConfirmBatch) isValid() error {
 //	// verify balance and nonce
-//	for _, batchDetail := range c.getDetails() {
-//		err := batchDetail.isValid()
+//	for _, accountDetail := range c.getDetails() {
+//		err := accountDetail.isValid()
 //		if err != nil {
 //			return err
 //		}
@@ -246,7 +260,7 @@ func (c *ConfirmBatch) isSame(cb *ConfirmBatch) bool {
 	return c.seq.GetTxHash().Cmp(cb.seq.GetTxHash()) == 0
 }
 
-//func (c *ConfirmBatch) getOrCreateDetail(addr ogTypes.Address) *batchDetail {
+//func (c *ConfirmBatch) getOrCreateDetail(addr ogTypes.Address) *accountDetail {
 //	detailCost := c.getDetail(addr)
 //	if detailCost == nil {
 //		detailCost = c.createDetail(addr)
@@ -254,20 +268,20 @@ func (c *ConfirmBatch) isSame(cb *ConfirmBatch) bool {
 //	return detailCost
 //}
 //
-//func (c *ConfirmBatch) getDetail(addr ogTypes.Address) *batchDetail {
+//func (c *ConfirmBatch) getDetail(addr ogTypes.Address) *accountDetail {
 //	return c.db[addr.AddressKey()]
 //}
 //
-//func (c *ConfirmBatch) getDetails() map[ogTypes.AddressKey]*batchDetail {
+//func (c *ConfirmBatch) getDetails() map[ogTypes.AddressKey]*accountDetail {
 //	return c.db
 //}
 //
-//func (c *ConfirmBatch) createDetail(addr ogTypes.Address) *batchDetail {
+//func (c *ConfirmBatch) createDetail(addr ogTypes.Address) *accountDetail {
 //	c.db[addr.AddressKey()] = newBatchDetail(addr, c)
 //	return c.db[addr.AddressKey()]
 //}
 //
-//func (c *ConfirmBatch) setDetail(detail *batchDetail) {
+//func (c *ConfirmBatch) setDetail(detail *accountDetail) {
 //	c.db[detail.address.AddressKey()] = detail
 //}
 

@@ -228,6 +228,27 @@ func (dag *Dag) LatestSequencer() *types.Sequencer {
 	return dag.latestSequencer
 }
 
+func (dag *Dag) LatestSequencerHash() ogTypes.Hash {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.latestSequencer.GetTxHash()
+}
+
+func (dag *Dag) ConfirmedSequencer() *types.Sequencer {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.confirmedSequencer
+}
+
+func (dag *Dag) ConfirmedSequencerHash() ogTypes.Hash {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.confirmedSequencer.GetTxHash()
+}
+
 func (dag *Dag) LatestConfirmedSequencer() *types.Sequencer {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -273,7 +294,7 @@ func (dag *Dag) GetTx(hash ogTypes.Hash) types.Txi {
 }
 
 func (dag *Dag) getTx(hash ogTypes.Hash) types.Txi {
-	tx, _ := dag.cachedBatches.getTxAndReceipt(hash)
+	tx, _ := dag.pendedBatches.getTxAndReceipt(hash)
 	if tx != nil {
 		return tx
 	}
@@ -284,24 +305,26 @@ func (dag *Dag) getConfirmedTx(hash ogTypes.Hash) types.Txi {
 	return dag.accessor.ReadTransaction(hash)
 }
 
-func (dag *Dag) Has(hash ogTypes.Hash) bool {
-	return dag.GetTx(hash) != nil
-}
-
-//func (dag *Dag) Exist(addr ogTypes.Address) bool {
-//	return dag.statedb.Exist(addr)
-//}
-
-// GetTxByNonce gets tx from dag by sender's address and tx nonce
-func (dag *Dag) GetTxByNonce(addr ogTypes.Address, nonce uint64) types.Txi {
+func (dag *Dag) ExistTx(baseSeqHash ogTypes.Hash, hash ogTypes.Hash) bool {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getTxByNonce(addr, nonce)
+	if dag.pendedBatches.existTx(baseSeqHash, hash) {
+		return true
+	}
+	return dag.accessor.ReadTransaction(hash) != nil
 }
 
-func (dag *Dag) getTxByNonce(addr ogTypes.Address, nonce uint64) types.Txi {
-	tx := dag.cachedBatches.getTxByNonce(dag.latestBatch, addr, nonce)
+// GetTxByNonce gets tx from dag by sender's address and tx nonce
+func (dag *Dag) GetTxByNonce(baseSeqHash ogTypes.Hash, addr ogTypes.Address, nonce uint64) types.Txi {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.getTxByNonce(baseSeqHash, addr, nonce)
+}
+
+func (dag *Dag) getTxByNonce(baseSeqHash ogTypes.Hash, addr ogTypes.Address, nonce uint64) types.Txi {
+	tx := dag.pendedBatches.getTxByNonce(baseSeqHash, addr, nonce)
 	if tx != nil {
 		return tx
 	}
@@ -361,7 +384,8 @@ func (dag *Dag) GetTxisByHeight(height uint64) types.Txis {
 	if height > dag.latestSequencer.GetHeight() {
 		return nil
 	}
-	txs := dag.cachedBatches.getTxsByHeight(dag.latestBatch, height)
+	baseSeqHash := dag.latestBatch.seq.GetTxHash()
+	txs := dag.pendedBatches.getTxsByHeight(baseSeqHash, height)
 	if txs != nil {
 		return txs
 	}
@@ -397,7 +421,7 @@ func (dag *Dag) GetReceipt(hash ogTypes.Hash) *Receipt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	_, receipt := dag.cachedBatches.getTxAndReceipt(hash)
+	_, receipt := dag.pendedBatches.getTxAndReceipt(hash)
 	if receipt != nil {
 		return receipt
 	}
@@ -437,7 +461,8 @@ func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
 	if height > dag.latestSequencer.Height {
 		return nil
 	}
-	seq := dag.cachedBatches.getSeqByHeight(dag.latestBatch, height)
+	baseSeqHash := dag.latestBatch.seq.GetTxHash()
+	seq := dag.pendedBatches.getSeqByHeight(baseSeqHash, height)
 	if seq != nil {
 		return seq
 	}

@@ -64,7 +64,6 @@ type Dag struct {
 	genesis            *types.Sequencer
 	latestSequencer    *types.Sequencer
 	latestStateDB      *state.StateDB
-	latestBatch        *ConfirmBatch
 	confirmedSequencer *types.Sequencer
 	confirmedStateDB   *state.StateDB
 	cachedBatches      *CachedConfirms // stores speculated sequencers, use state root as batch key
@@ -86,7 +85,6 @@ func NewDag(conf DagConfig, stateDBConfig state.StateDBConfig, db ogdb.Database,
 		//txcached:    newTxcached(10000), // TODO delete txcached later
 		txProcessor:   txProcessor,
 		vmProcessor:   vmProcessor,
-		latestBatch:   nil,
 		cachedBatches: newCachedConfirms(),
 		pendedBatches: newCachedConfirms(),
 		close:         make(chan struct{}),
@@ -384,7 +382,7 @@ func (dag *Dag) GetTxisByHeight(height uint64) types.Txis {
 	if height > dag.latestSequencer.GetHeight() {
 		return nil
 	}
-	baseSeqHash := dag.latestBatch.seq.GetTxHash()
+	baseSeqHash := dag.latestSequencer.GetTxHash()
 	txs := dag.pendedBatches.getTxsByHeight(baseSeqHash, height)
 	if txs != nil {
 		return txs
@@ -461,7 +459,7 @@ func (dag *Dag) getSequencerByHeight(height uint64) *types.Sequencer {
 	if height > dag.latestSequencer.Height {
 		return nil
 	}
-	baseSeqHash := dag.latestBatch.seq.GetTxHash()
+	baseSeqHash := dag.latestSequencer.GetTxHash()
 	seq := dag.pendedBatches.getSeqByHeight(baseSeqHash, height)
 	if seq != nil {
 		return seq
@@ -544,103 +542,128 @@ func (dag *Dag) GetSequencer(hash ogTypes.Hash, seqHeight uint64) *types.Sequenc
 //	return hashs
 //}
 
-func (dag *Dag) GetBalance(addr ogTypes.Address, tokenID int32, confirmed bool) *math.BigInt {
+func (dag *Dag) GetBalance(baseSeqHash ogTypes.Hash, addr ogTypes.Address, tokenID int32) *math.BigInt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getBalance(addr, tokenID, confirmed)
+	return dag.getBalance(baseSeqHash, addr, tokenID)
 }
 
-func (dag *Dag) getBalance(addr ogTypes.Address, tokenID int32, confirmed bool) *math.BigInt {
-	return dag.getDB(confirmed).GetTokenBalance(addr, tokenID)
+func (dag *Dag) getBalance(baseSeqHash ogTypes.Hash, addr ogTypes.Address, tokenID int32) *math.BigInt {
+	db := dag.getDB(baseSeqHash)
+	if db == nil {
+		return nil
+	}
+	return db.GetTokenBalance(addr, tokenID)
 }
 
-func (dag *Dag) GetAllTokenBalance(addr ogTypes.Address, confirmed bool) state.BalanceSet {
+func (dag *Dag) GetAllTokenBalance(baseSeqHash ogTypes.Hash, addr ogTypes.Address) state.BalanceSet {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getAlltokenBalance(addr, confirmed)
+	return dag.getAlltokenBalance(baseSeqHash, addr)
 }
 
-func (dag *Dag) getAlltokenBalance(addr ogTypes.Address, confirmed bool) state.BalanceSet {
-	return dag.getDB(confirmed).GetAllTokenBalance(addr)
+func (dag *Dag) getAlltokenBalance(baseSeqHash ogTypes.Hash, addr ogTypes.Address) state.BalanceSet {
+	db := dag.getDB(baseSeqHash)
+	if db == nil {
+		return nil
+	}
+	return db.GetAllTokenBalance(addr)
 }
 
-func (dag *Dag) GetToken(tokenId int32, confirmed bool) *state.TokenObject {
+func (dag *Dag) GetToken(baseSeqHash ogTypes.Hash, tokenId int32) *state.TokenObject {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getToken(tokenId, confirmed)
+	return dag.getToken(baseSeqHash, tokenId)
 }
 
-func (dag *Dag) getToken(tokenId int32, confirmed bool) *state.TokenObject {
-	db := dag.getDB(confirmed)
+func (dag *Dag) getToken(baseSeqHash ogTypes.Hash, tokenId int32) *state.TokenObject {
+	db := dag.getDB(baseSeqHash)
+	if db == nil {
+		return nil
+	}
 	if tokenId > db.LatestTokenID() {
 		return nil
 	}
 	return db.GetTokenObject(tokenId)
 }
 
-func (dag *Dag) GetLatestTokenId(confirmed bool) int32 {
+func (dag *Dag) GetLatestTokenId(baseSeqHash ogTypes.Hash) int32 {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getLatestTokenId(confirmed)
+	return dag.getLatestTokenId(baseSeqHash)
 }
 
-func (dag *Dag) getLatestTokenId(confirmed bool) int32 {
-	return dag.getDB(confirmed).LatestTokenID()
+func (dag *Dag) getLatestTokenId(baseSeqHash ogTypes.Hash) int32 {
+	db := dag.getDB(baseSeqHash)
+	if db == nil {
+		return -1
+	}
+	return db.LatestTokenID()
 }
 
-func (dag *Dag) GetTokens(confirmed bool) []*state.TokenObject {
+func (dag *Dag) GetTokens(baseSeqHash ogTypes.Hash) []*state.TokenObject {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getTokens(confirmed)
+	return dag.getTokens(baseSeqHash)
 }
 
-func (dag *Dag) getTokens(confirmed bool) []*state.TokenObject {
+func (dag *Dag) getTokens(baseSeqHash ogTypes.Hash) []*state.TokenObject {
 	tokens := make([]*state.TokenObject, 0)
-	lid := dag.getLatestTokenId(confirmed)
+	lid := dag.getLatestTokenId(baseSeqHash)
 
 	for i := int32(0); i <= lid; i++ {
-		token := dag.getToken(i, confirmed)
+		token := dag.getToken(baseSeqHash, i)
 		tokens = append(tokens, token)
 	}
 	return tokens
 }
 
 // GetLatestNonce returns the latest tx of an address.
-func (dag *Dag) GetLatestNonce(addr ogTypes.Address, confirmed bool) (uint64, error) {
+func (dag *Dag) GetLatestNonce(baseSeqHash ogTypes.Hash, addr ogTypes.Address) (uint64, error) {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getLatestNonce(addr, confirmed)
+	return dag.getLatestNonce(baseSeqHash, addr)
 }
 
-func (dag *Dag) getLatestNonce(addr ogTypes.Address, confirmed bool) (uint64, error) {
-	return dag.getDB(confirmed).GetNonce(addr), nil
+func (dag *Dag) getLatestNonce(baseSeqHash ogTypes.Hash, addr ogTypes.Address) (uint64, error) {
+	db := dag.getDB(baseSeqHash)
+	if db == nil {
+		return 0, fmt.Errorf("base sequencer not found: %s", baseSeqHash.Hex())
+	}
+	return db.GetNonce(addr), nil
 }
 
 // GetState get contract's state from statedb.
-func (dag *Dag) GetState(addr ogTypes.Address, key ogTypes.Hash, confirmed bool) ogTypes.Hash {
+func (dag *Dag) GetState(baseSeqHash ogTypes.Hash, addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
 
-	return dag.getState(addr, key, confirmed)
+	return dag.getState(baseSeqHash, addr, key)
 }
 
-func (dag *Dag) getState(addr ogTypes.Address, key ogTypes.Hash, confirmed bool) ogTypes.Hash {
-	return dag.getDB(confirmed).GetState(addr, key)
-}
-
-func (dag *Dag) getDB(confirmed bool) (db *state.StateDB) {
-	if confirmed {
-		db = dag.confirmedStateDB
-	} else {
-		db = dag.latestStateDB
+func (dag *Dag) getState(baseSeqHash ogTypes.Hash, addr ogTypes.Address, key ogTypes.Hash) ogTypes.Hash {
+	db := dag.getDB(baseSeqHash)
+	if db == nil {
+		return nil
 	}
-	return
+	return db.GetState(addr, key)
+}
+
+func (dag *Dag) getDB(baseSeqHash ogTypes.Hash) *state.StateDB {
+	if baseSeqHash.Cmp(dag.ConfirmedSequencerHash()) == 0 {
+		return dag.confirmedStateDB
+	}
+	confirmBatch := dag.pendedBatches.getConfirmBatch(baseSeqHash)
+	if confirmBatch != nil {
+		return confirmBatch.db
+	}
+	return nil
 }
 
 ////GetTxsByAddress get all txs from this address
@@ -717,7 +740,6 @@ func (dag *Dag) push(pushBatch *PushBatch) error {
 	if seq.Height > dag.latestSequencer.Height {
 		dag.latestSequencer = seq
 		dag.latestStateDB = confirmBatch.db
-		dag.latestBatch = confirmBatch
 	}
 	dag.pendedBatches.push(seq.GetTxHash(), confirmBatch)
 

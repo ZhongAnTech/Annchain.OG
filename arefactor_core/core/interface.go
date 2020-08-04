@@ -14,6 +14,7 @@ type LedgerEngine interface {
 	ReIssueToken(tokenID int32, amount *math.BigInt) error
 	DestroyToken(tokenID int32) error
 
+	GetTokenBalance(ogTypes.Address, int32) *math.BigInt
 	SubTokenBalance(ogTypes.Address, int32, *math.BigInt)
 	AddTokenBalance(ogTypes.Address, int32, *math.BigInt)
 }

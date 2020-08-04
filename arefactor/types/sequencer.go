@@ -245,6 +245,10 @@ func (s *Sequencer) GetParentSeqHash() og_types.Hash {
 	return &og_types.Hash32{}
 }
 
+func (s *Sequencer) PrevBlock() og_types.Hash {
+	return s.GetParentSeqHash()
+}
+
 func (s *Sequencer) GetConfirmSeqHash() og_types.Hash {
 	// TODO
 	// not implemented yet!

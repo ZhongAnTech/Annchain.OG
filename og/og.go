@@ -170,6 +170,15 @@ func CreateDB() (ogdb.Database, error) {
 		cache := viper.GetInt("leveldb.cache")
 		handles := viper.GetInt("leveldb.handles")
 		return ogdb.NewLevelDB(path, cache, handles)
+	case "mongodb":
+		config := ogdb.MongoDBConfig{
+			Uri:        viper.GetString("mongodb.uri"),
+			Database:   viper.GetString("mongodb.database"),
+			Collection: viper.GetString("mongodb.collection"),
+			UserName:   viper.GetString("mongodb.username"),
+			Password:   viper.GetString("mongodb.password"),
+		}
+		return ogdb.NewMongoDBDatabase(config)
 	default:
 		return ogdb.NewMemDatabase(), nil
 	}

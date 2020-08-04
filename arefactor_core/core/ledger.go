@@ -24,6 +24,7 @@ func (ol *OgLedger) Speculate(proposal Proposal) (stateRoot ogTypes.Hash, err er
 }
 
 func (ol *OgLedger) Push(seq *types.Sequencer) error {
+	// TODO handle bad sequencer, make sure parent sequencer has been pushed before.
 
 }
 

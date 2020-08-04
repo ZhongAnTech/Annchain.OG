@@ -19,7 +19,6 @@ const (
 	TxStatusBadTx
 	TxStatusPending
 	TxStatusSeqPreConfirm
-	TxStatusSeqPreConfirmByPass
 
 	//TxStatusPreConfirm
 )
@@ -38,8 +37,6 @@ func (ts *TxStatus) String() string {
 		return "Tip"
 	case TxStatusSeqPreConfirm:
 		return "SeqPreConfirm"
-	case TxStatusSeqPreConfirmByPass:
-		return "SeqPreConfirmByPass"
 	default:
 		return "UnknownStatus"
 	}

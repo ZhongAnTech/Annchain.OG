@@ -3,7 +3,6 @@ package ioperformance
 import (
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/goroutine"
-	"github.com/sirupsen/logrus"
 	"sync"
 
 	"time"
@@ -129,7 +128,7 @@ func (s *iOPerformance) run() {
 				i++
 			}
 			s.mu.Unlock()
-			logrus.WithField("data ", s.dataSize[0]).Debug("performance")
+			//logrus.WithField("data ", s.dataSize[0]).Debug("performance")
 		//
 		case <-s.quit:
 			return

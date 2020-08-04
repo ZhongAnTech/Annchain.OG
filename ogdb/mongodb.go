@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/common"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -45,15 +46,16 @@ type MongoDBConfig struct {
 	Password   string
 }
 
-func NewMongoDBDatabase(config MongoDBConfig) *MongoDBDatabase {
+func NewMongoDBDatabase(config MongoDBConfig) (*MongoDBDatabase, error) {
 	database := &MongoDBDatabase{
 		config: config,
 	}
-	return database
+	err := database.ConnectMongoDB()
+	return database, err
 }
 
-func (db *MongoDBDatabase) ConnectMongoDB() {
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+func (db *MongoDBDatabase) ConnectMongoDB() (err error) {
+	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 
 	// user Connection database
 
@@ -71,7 +73,7 @@ func (db *MongoDBDatabase) ConnectMongoDB() {
 	client, err := mongo.Connect(ctx, clientOptions)
 
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Warn(err)
 	}
 
 	db.coll = client.Database(db.config.Database).Collection(db.config.Collection)
@@ -80,18 +82,16 @@ func (db *MongoDBDatabase) ConnectMongoDB() {
 	err = client.Ping(ctx, nil)
 
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Warn(err)
 	}
-
-	fmt.Println("Connected to user MongoDB!")
-
+	return nil
 }
 
 func (db *MongoDBDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 	filter := bson.M{
 		"_id": string(key),
 	}
@@ -117,7 +117,7 @@ func (db *MongoDBDatabase) Get(key []byte) ([]byte, error) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 	filter := bson.M{
 		"_id": string(key),
 	}
@@ -141,7 +141,7 @@ func (db *MongoDBDatabase) Delete(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 	filter := bson.M{
 		"_id": string(key),
 	}
@@ -150,6 +150,41 @@ func (db *MongoDBDatabase) Delete(key []byte) error {
 }
 
 func (db *MongoDBDatabase) Close() {
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 	_ = db.client.Disconnect(ctx)
+}
+
+func (db *MongoDBDatabase) NewBatch() Batch {
+	return &mongoBatch{db: db}
+}
+
+type mongoBatch struct {
+	db     *MongoDBDatabase
+	writes []kv
+	size   int
+}
+
+func (b *mongoBatch) Put(key, value []byte) error {
+	b.writes = append(b.writes, kv{common.CopyBytes(key), common.CopyBytes(value)})
+	b.size += len(value)
+	return nil
+}
+
+func (b *mongoBatch) Write() error {
+	for _, kv := range b.writes {
+		err := b.db.Put(kv.k, kv.v)
+		if err != nil {
+			logrus.WithError(err).Warn("mongo batch write error")
+		}
+	}
+	return nil
+}
+
+func (b *mongoBatch) ValueSize() int {
+	return b.size
+}
+
+func (b *mongoBatch) Reset() {
+	b.writes = b.writes[:0]
+	b.size = 0
 }

@@ -299,6 +299,13 @@ func (dag *Dag) getTx(hash ogTypes.Hash) types.Txi {
 	return dag.accessor.ReadTransaction(hash)
 }
 
+func (dag *Dag) GetConfirmedTx(hash ogTypes.Hash) types.Txi {
+	dag.mu.RLock()
+	defer dag.mu.RUnlock()
+
+	return dag.accessor.ReadTransaction(hash)
+}
+
 func (dag *Dag) getConfirmedTx(hash ogTypes.Hash) types.Txi {
 	return dag.accessor.ReadTransaction(hash)
 }

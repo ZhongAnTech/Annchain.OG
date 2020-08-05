@@ -567,7 +567,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 			continue
 		}
 		// check if tx in dag
-		if pool.dag.GetTx(parentHash) == nil {
+		if pool.dag.GetConfirmedTx(parentHash) == nil {
 			log.WithField("tx", tx).Tracef("fatal tx, parent %s is not exist", parentHash)
 			return TxQualityIsFatal
 		}
@@ -587,7 +587,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 		log.WithField("tx", tx).WithField("existing", txinpool).Trace("bad tx, duplicate nonce found in pool")
 		return TxQualityIsBad
 	}
-	txindag := pool.dag.GetTxByNonce(pool.dag.LatestSequencerHash(), tx.Sender(), tx.GetNonce())
+	txindag := pool.dag.GetTxByNonce(pool.dag.ConfirmedSequencerHash(), tx.Sender(), tx.GetNonce())
 	if txindag != nil {
 		if txindag.GetTxHash() == tx.GetTxHash() {
 			log.WithField("tx", tx).Error("duplicated tx in dag. Why received many times")
@@ -598,7 +598,7 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 
 	latestNonce, err := pool.storage.getLatestNonce(tx.Sender())
 	if err != nil {
-		latestNonce, err = pool.dag.GetLatestNonce(pool.dag.LatestSequencerHash(), tx.Sender())
+		latestNonce, err = pool.dag.GetLatestNonce(pool.dag.ConfirmedSequencerHash(), tx.Sender())
 		if err != nil {
 			log.Errorf("get latest nonce err: %v", err)
 			return TxQualityIsFatal
@@ -879,6 +879,57 @@ func (pool *TxPool) solveConflicts(tailBatch *ConfirmBatch) {
 type Ledger interface {
 	GetBalance(baseSeqHash ogTypes.Hash, addr ogTypes.Address, tokenID int32) *math.BigInt
 	GetLatestNonce(baseSeqHash ogTypes.Hash, addr ogTypes.Address) (uint64, error)
+}
+
+type cachedAccDetailSets struct {
+	heights []uint64
+	sets    map[uint64][]*accDetailSet
+	setsMap map[ogTypes.HashKey]*accDetailSet
+}
+
+func newCachedAccDetailSets() *cachedAccDetailSets {
+	return &cachedAccDetailSets{
+		heights: make([]uint64, 0),
+		sets:    make(map[uint64][]*accDetailSet),
+		setsMap: make(map[ogTypes.HashKey]*accDetailSet),
+	}
+}
+
+func (ca *cachedAccDetailSets) getSet(seqHash ogTypes.Hash) *accDetailSet {
+	return ca.setsMap[seqHash.HashKey()]
+}
+
+func (ca *cachedAccDetailSets) addSet(as *accDetailSet) error {
+	height := as.seq.GetHeight()
+	if len(ca.heights) == 0 {
+		return ca.addSetHelper(as)
+	}
+	if height < ca.heights[0] || height > ca.heights[len(ca.heights)-1] {
+		return fmt.Errorf("height incorrect, should between %d and %d", ca.heights[0], ca.heights[len(ca.heights)-1])
+	}
+	return ca.addSetHelper(as)
+}
+
+func (ca *cachedAccDetailSets) addSetHelper(as *accDetailSet) error {
+	height := as.seq.GetHeight()
+	arr, exists := ca.sets[height]
+	if !exists {
+		arr = make([]*accDetailSet, 0)
+	}
+	arr = append(arr, as)
+
+	ca.heights = append(ca.heights, height)
+	ca.sets[height] = arr
+	ca.setsMap[as.seq.GetTxHash().HashKey()] = as
+	return nil
+}
+
+func (ca *cachedAccDetailSets) confirmSet(seqHash ogTypes.Hash) error {
+	as, exists := ca.setsMap[seqHash.HashKey()]
+	if !exists {
+		return fmt.Errorf()
+	}
+
 }
 
 type accDetailSet struct {

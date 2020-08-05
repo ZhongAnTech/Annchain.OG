@@ -16,7 +16,6 @@ package cmd
 import (
 	"github.com/annchain/OG/arefactor/core"
 	"github.com/annchain/commongo/mylog"
-	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -63,8 +62,8 @@ var runCmd = &cobra.Command{
 
 		func() {
 			sig := <-gracefulStop
-			log.Warnf("caught sig: %+v", sig)
-			log.Warn("Exiting... Please do no kill me")
+			logrus.Warnf("caught sig: %+v", sig)
+			logrus.Warn("Exiting... Please do no kill me")
 			node.Stop()
 			os.Exit(0)
 		}()

@@ -40,6 +40,7 @@ type OutgoingLetter struct {
 	Msg            OutgoingMsg
 	SendType       SendType
 	CloseAfterSent bool
+	ExceptMyself   bool
 	EndReceivers   []string // may be the relayer
 }
 

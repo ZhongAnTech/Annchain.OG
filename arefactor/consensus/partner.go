@@ -188,6 +188,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 			Signature:           signature,
 		}
 		letter := &transport_interface.OutgoingLetter{
+			ExceptMyself:   false, // in case the next proposal generator is me.
 			Msg:            outMsg,
 			SendType:       transport_interface.SendTypeUnicast,
 			CloseAfterSent: false,
@@ -226,6 +227,7 @@ func (n *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature c
 
 	logrus.WithField("sigs", collector.GetCurrentCount()).
 		WithField("sig", signature).Debug("signature got one")
+	n.Reporter.Report("qcsig", fmt.Sprintf("B %s %d J %s", voteIndex, collector.GetCurrentCount(), collector.GetJointSignature()), false)
 
 	if collector.Collected() {
 		n.Logger.WithField("vote", vote).Info("votes collected")
@@ -271,6 +273,7 @@ func (n *Partner) ProposalGeneratedEventHandler(proposal *consensus_interface.Co
 		Signature:           signature,
 	}
 	letter := &transport_interface.OutgoingLetter{
+		ExceptMyself:   false, // announce to me also so that I can process that proposal.
 		Msg:            outMsg,
 		SendType:       transport_interface.SendTypeMulticast,
 		CloseAfterSent: false,

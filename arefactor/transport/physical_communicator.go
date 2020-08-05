@@ -395,7 +395,10 @@ func (c *PhysicalCommunicator) handleOutgoing(req *transport_interface.OutgoingL
 	// TODO: handle self loop message
 	logrus.Trace("physical is handling send request")
 	if req.SendType == transport_interface.SendTypeBroadcast {
-		c.loopbackMessage(req.Msg)
+		if !req.ExceptMyself {
+			c.loopbackMessage(req.Msg)
+		}
+
 		for _, neighbour := range c.activePeers {
 			neighbour.EnqueueSend(req)
 		}
@@ -409,7 +412,9 @@ func (c *PhysicalCommunicator) handleOutgoing(req *transport_interface.OutgoingL
 		}
 		// check if it is a self loop message
 		if peerId == c.node.ID() {
-			c.loopbackMessage(req.Msg)
+			if !req.ExceptMyself {
+				c.loopbackMessage(req.Msg)
+			}
 			continue
 		}
 

@@ -13,3 +13,7 @@ buffer_size = 30
 
 [rpc]
 port = 4441
+
+
+[features]
+consensus = true

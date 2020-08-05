@@ -10,6 +10,7 @@ import (
 	"github.com/annchain/commongo/files"
 	"github.com/annchain/commongo/math"
 	"github.com/annchain/commongo/utilfuncs"
+	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"math/rand"
@@ -66,6 +67,7 @@ func (i *IntArrayBlockContent) GetHeight() int64 {
 type IntArrayLedger struct {
 	DataPath   string
 	ConfigPath string
+	Reporter   *soccerdash.Reporter
 
 	height                        int64
 	genesis                       *og_interface.Genesis
@@ -157,6 +159,7 @@ func (d *IntArrayLedger) ConfirmBlock(block og_interface.BlockContent) {
 	d.allBlockContents[id] = block
 	d.height = math.BiggerInt64(block.GetHeight(), d.height)
 	d.SaveLedger()
+	d.Reporter.Report("lastCommit", fmt.Sprintf("%s %d", block.GetHash().HashString(), block.GetHeight()), false)
 }
 
 func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {

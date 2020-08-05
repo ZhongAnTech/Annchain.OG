@@ -59,8 +59,10 @@ func (b *Bouncer) loop() {
 				Msg: &BouncerMessage{
 					Value: 1,
 				},
-				SendType:     transport_interface.SendTypeUnicast,
-				EndReceivers: []string{b.Peers[(b.Id+1)%len(b.Peers)]},
+				SendType:       transport_interface.SendTypeUnicast,
+				CloseAfterSent: false,
+				ExceptMyself:   true,
+				EndReceivers:   []string{b.Peers[(b.Id+1)%len(b.Peers)]},
 			}
 			for _, c := range b.newOutgoingMessageSubscribers {
 				<-goffchan.NewTimeoutSender(c.NewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C
@@ -77,8 +79,10 @@ func (b *Bouncer) loop() {
 					Msg: &BouncerMessage{
 						Value: 1,
 					},
-					SendType:     transport_interface.SendTypeUnicast,
-					EndReceivers: []string{b.Peers[1]},
+					SendType:       transport_interface.SendTypeUnicast,
+					CloseAfterSent: false,
+					ExceptMyself:   true,
+					EndReceivers:   []string{b.Peers[1]},
 				}
 				for _, c := range b.newOutgoingMessageSubscribers {
 					<-goffchan.NewTimeoutSender(c.NewOutgoingMessageEventChannel(), or, "bouncer send", 3000).C

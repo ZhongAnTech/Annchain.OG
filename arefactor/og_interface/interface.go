@@ -70,4 +70,5 @@ type Ledger interface {
 	CurrentCommittee() *consensus_interface.Committee
 	GetBlock(height int64) BlockContent
 	ConfirmBlock(block BlockContent)
+	GetResource(request ResourceRequest) Resource
 }

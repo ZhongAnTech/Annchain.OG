@@ -162,6 +162,7 @@ func (d *DefaultCommunityManager) SendPing(peer string) {
 	}
 
 	oreq := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
 		Msg:            ping,
 		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,
@@ -200,6 +201,7 @@ func (d *DefaultCommunityManager) handleMsgPing(letter *transport_interface.Inco
 	}
 
 	oreq := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
 		Msg:            resp,
 		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: closeFlag,
@@ -238,6 +240,7 @@ func (d *DefaultCommunityManager) handlePeerConnected(event *transport_interface
 	}
 
 	oreq := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
 		Msg:            resp,
 		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,

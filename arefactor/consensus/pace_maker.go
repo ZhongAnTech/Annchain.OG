@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
@@ -35,7 +36,7 @@ type PaceMaker struct {
 func (m *PaceMaker) InitDefault() {
 	m.quit = make(chan bool)
 	m.pendingTCs = make(map[int64]consensus_interface.SignatureCollector)
-	m.timer = time.NewTimer(time.Second * 5)
+	m.timer = time.NewTimer(time.Second * 15)
 	m.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 
 }
@@ -76,6 +77,7 @@ func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, 
 
 	collector := m.ensureTCCollector(p.Round)
 	collector.Collect(signature, id)
+	m.Reporter.Report("tcsig", fmt.Sprintf("R%d %d J %s", p.Round, collector.GetCurrentCount(), string(collector.GetJointSignature())), false)
 
 	m.Logger.WithFields(logrus.Fields{
 		"memberIndex": id,
@@ -115,6 +117,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 		Signature:           signature,
 	}
 	letter := &transport_interface.OutgoingLetter{
+		ExceptMyself:   false, // send to me also to collect signature.
 		Msg:            outMsg,
 		SendType:       transport_interface.SendTypeMulticast,
 		CloseAfterSent: false,
@@ -133,9 +136,11 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 	latestRound := int64(0)
 	if qc != nil && latestRound < qc.VoteData.Round {
 		latestRound = qc.VoteData.Round
+		m.Safety.SetHighQC(qc)
 	}
 	if tc != nil && latestRound < tc.Round {
 		latestRound = tc.Round
+		m.Safety.SetLastTC(tc)
 	}
 	if latestRound < m.CurrentRound {
 		m.Logger.WithField("cround", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Debug("qc/tc round is less than current round so do not advance")
@@ -146,7 +151,6 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 
 	m.Reporter.Report("CurrentRound", m.CurrentRound, false)
 
-	m.Safety.SetLastTC(tc)
 	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Info("round advanced")
 	if !m.CommitteeProvider.AmILeader(m.CurrentRound) {
 
@@ -169,6 +173,7 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 			Signature:           signature,
 		}
 		letter := &transport_interface.OutgoingLetter{
+			ExceptMyself:   true,
 			Msg:            outMsg,
 			SendType:       transport_interface.SendTypeUnicast,
 			CloseAfterSent: false,

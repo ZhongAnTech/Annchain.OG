@@ -1,15 +1,14 @@
-package og
+package ogsyncer
 
 import (
 	"container/list"
 	"errors"
-	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogsyncer_interface"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/commongo/math"
-	"github.com/annchain/commongo/utilfuncs"
 	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -18,7 +17,7 @@ import (
 )
 
 const SyncCheckIntervalSeconds int = 10 // max check interval for syncing a height
-const MaxTolerantHeightDiff = 0         // syncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxPeerHeight
+const MaxTolerantHeightDiff = 0         // ogsyncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxPeerHeight
 
 type DefaultUnknownManager struct {
 	Unknowns list.List
@@ -28,8 +27,8 @@ func (d *DefaultUnknownManager) Enqueue(task og_interface.Unknown) {
 	d.Unknowns.PushBack(task)
 }
 
-type BlockByBlockSyncer struct {
-	Ledger             og_interface.Ledger
+type IntSyncer struct {
+	Fetcher            ogsyncer_interface.ResourceFetcher
 	peerHeights        map[string]int64
 	knownMaxPeerHeight int64
 	unknownManager     og_interface.UnknownManager
@@ -45,31 +44,31 @@ type BlockByBlockSyncer struct {
 	quit chan bool
 }
 
-// notify
-func (b *BlockByBlockSyncer) AddSubscriberNewOutgoingMessageEvent(transport *transport.PhysicalCommunicator) {
+// notify sending events
+func (b *IntSyncer) AddSubscriberNewOutgoingMessageEvent(transport *transport.PhysicalCommunicator) {
 	b.newOutgoingMessageSubscribers = append(b.newOutgoingMessageSubscribers, transport)
 }
 
-func (d *BlockByBlockSyncer) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
+func (d *IntSyncer) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range d.newOutgoingMessageSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing syncer"+subscriber.Name()).C
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing ogsyncer"+subscriber.Name()).C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
 }
 
-func (b *BlockByBlockSyncer) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
+func (b *IntSyncer) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
 	return b.myNewIncomingMessageEventChan
 }
 
-func (b *BlockByBlockSyncer) NewHeightDetectedEventChannel() chan *og_interface.NewHeightDetectedEvent {
+func (b *IntSyncer) NewHeightDetectedEventChannel() chan *og_interface.NewHeightDetectedEvent {
 	return b.myNewHeightDetectedEventChan
 }
 
-func (b *BlockByBlockSyncer) EventChannelPeerLeft() chan *og_interface.PeerLeftEvent {
+func (b *IntSyncer) EventChannelPeerLeft() chan *og_interface.PeerLeftEvent {
 	return b.myPeerLeftEventChan
 }
 
-func (b *BlockByBlockSyncer) InitDefault() {
+func (b *IntSyncer) InitDefault() {
 	b.peerHeights = make(map[string]int64)
 
 	b.syncTriggerChan = make(chan bool)
@@ -81,21 +80,21 @@ func (b *BlockByBlockSyncer) InitDefault() {
 	b.quit = make(chan bool)
 }
 
-func (b *BlockByBlockSyncer) Start() {
+func (b *IntSyncer) Start() {
 	b.knownMaxPeerHeight = b.Ledger.CurrentHeight()
 	go b.eventLoop()
 	go b.sync()
 }
 
-func (b *BlockByBlockSyncer) Stop() {
+func (b *IntSyncer) Stop() {
 	b.quit <- true
 }
 
-func (b *BlockByBlockSyncer) Name() string {
-	return "BlockByBlockSyncer"
+func (b *IntSyncer) Name() string {
+	return "IntSyncer"
 }
 
-func (b *BlockByBlockSyncer) updateKnownPeerHeight(peerId string, height int64) {
+func (b *IntSyncer) updateKnownPeerHeight(peerId string, height int64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	// refresh our target
@@ -104,14 +103,14 @@ func (b *BlockByBlockSyncer) updateKnownPeerHeight(peerId string, height int64) 
 
 }
 
-func (b *BlockByBlockSyncer) removeKnownPeerHeight(peerId string) {
+func (b *IntSyncer) removeKnownPeerHeight(peerId string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	// refresh our target
 	delete(b.peerHeights, peerId)
 }
 
-func (b *BlockByBlockSyncer) eventLoop() {
+func (b *IntSyncer) eventLoop() {
 	// TODO: currently believe all heights given by others are real
 	// in the future only believe height given by committee
 	for {
@@ -137,11 +136,11 @@ func (b *BlockByBlockSyncer) eventLoop() {
 	}
 }
 
-func (b *BlockByBlockSyncer) needSync() bool {
+func (b *IntSyncer) needSync() bool {
 	return b.knownMaxPeerHeight > b.Ledger.CurrentHeight()+MaxTolerantHeightDiff
 }
 
-func (b *BlockByBlockSyncer) sync() {
+func (b *IntSyncer) sync() {
 	timer := time.NewTimer(time.Second * time.Duration(SyncCheckIntervalSeconds))
 	for {
 		if !timer.Stop() {
@@ -174,7 +173,7 @@ func (b *BlockByBlockSyncer) sync() {
 	}
 }
 
-func (b *BlockByBlockSyncer) pickUpRandomSourcePeer(height int64) (peerId string, err error) {
+func (b *IntSyncer) pickUpRandomSourcePeer(height int64) (peerId string, err error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	if len(b.peerHeights) == 0 {
@@ -196,7 +195,7 @@ func (b *BlockByBlockSyncer) pickUpRandomSourcePeer(height int64) (peerId string
 	return higherPeers[rand.Intn(len(higherPeers))], nil
 }
 
-func (b *BlockByBlockSyncer) startSyncOnce() {
+func (b *IntSyncer) startSyncOnce() {
 	if !b.needSync() {
 		logrus.Debug("no need to sync")
 		return
@@ -217,6 +216,7 @@ func (b *BlockByBlockSyncer) startSyncOnce() {
 	}
 
 	letter := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
 		Msg:            req,
 		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,
@@ -225,85 +225,92 @@ func (b *BlockByBlockSyncer) startSyncOnce() {
 	b.notifyNewOutgoingMessage(letter)
 }
 
-func (b *BlockByBlockSyncer) handleIncomingMessage(letter *transport_interface.IncomingLetter) {
+func (b *IntSyncer) handleIncomingMessage(letter *transport_interface.IncomingLetter) {
 	switch message.OgMessageType(letter.Msg.MsgType) {
-	case message.OgMessageTypeHeightSyncRequest:
-		m := &message.OgMessageHeightSyncRequest{}
-		err := m.FromBytes(letter.Msg.ContentBytes)
-		if err != nil {
-			logrus.WithField("type", "OgMessageHeightSyncRequest").WithError(err).Warn("bad message")
-		}
-		logrus.WithField("height", m.Height).WithField("from", letter.From).Info("received sync request")
-		//TODO: fetch data and return
-		value := b.Ledger.GetBlock(m.Height)
-		if value == nil {
-			return
-		}
-
-		content := value.(*dummy.IntArrayBlockContent)
-
-		messageContent := &message.MessageContentInt{
-			Height:      content.Height,
-			Step:        content.Step,
-			PreviousSum: content.PreviousSum,
-			MySum:       content.MySum,
-		}
-
-		// inner data
-		resp := &message.OgMessageHeightSyncResponse{
-			Height:      m.Height,
-			Offset:      0,
-			HasNextPage: false,
-			Resources: []message.MessageContentResource{
-				{
-					ResourceType:    message.ResourceTypeInt,
-					ResourceContent: messageContent.ToBytes(),
-				},
-			},
-		}
-		// letter
-		letterOut := &transport_interface.OutgoingLetter{
-			Msg:            resp,
-			SendType:       transport_interface.SendTypeUnicast,
-			CloseAfterSent: false,
-			EndReceivers:   []string{letter.From},
-		}
-
-		b.notifyNewOutgoingMessage(letterOut)
-
-	case message.OgMessageTypeHeightSyncResponse:
-
-		m := &message.OgMessageHeightSyncResponse{}
-		err := m.FromBytes(letter.Msg.ContentBytes)
-		if err != nil {
-			logrus.WithField("type", "OgMessageHeightSyncResponse").WithError(err).Warn("bad message")
-		}
-		logrus.WithField("from", letter.From).Info("received height sync response")
-
-		// TODO: solve this height and start the next
-		// TODO: verify signature
-		for _, resource := range m.Resources {
-			if resource.ResourceType != message.ResourceTypeInt {
-				panic("invalid resource type")
-			}
-			messageContent := &message.MessageContentInt{}
-			err := messageContent.FromBytes(resource.ResourceContent)
-			utilfuncs.PanicIfError(err, "parse content")
-
-			bc := &dummy.IntArrayBlockContent{
-				Height:      m.Height,
-				Step:        messageContent.Step,
-				PreviousSum: messageContent.PreviousSum,
-				MySum:       messageContent.MySum,
-			}
-			b.Ledger.ConfirmBlock(bc)
-			// TODO: announce event
-		}
-		logrus.WithField("height", m.Height).Info("height updated")
-
-		select {
-		case b.syncTriggerChan <- true:
-		default:
-		}
+	case message.OgMessageTypeHeightRequest:
+	case message.OgMessageTypeHeightResponse:
+	case message.OgMessageTypeResourceRequest:
+	case message.OgMessageTypeResourceResponse:
+		//
+		//	m := &message.OgMessageHeightSyncRequest{}
+		//	err := m.FromBytes(letter.Msg.ContentBytes)
+		//	if err != nil {
+		//		logrus.WithField("type", "OgMessageHeightSyncRequest").WithError(err).Warn("bad message")
+		//	}
+		//	logrus.WithField("height", m.Height).WithField("from", letter.From).Info("received sync request")
+		//
+		//	//TODO: fetch data and return
+		//	value := b.Ledger.GetBlock(m.Height)
+		//	if value == nil {
+		//		return
+		//	}
+		//
+		//	content := value.(*dummy.IntArrayBlockContent)
+		//
+		//	messageContent := &ogsyncer_interface.MessageContentInt{
+		//		Height:      content.Height,
+		//		Step:        content.Step,
+		//		PreviousSum: content.PreviousSum,
+		//		MySum:       content.MySum,
+		//		Submitter:   content.Submitter,
+		//	}
+		//
+		//	// inner data
+		//	resp := &message.OgMessageHeightSyncResponse{
+		//		Height:      m.Height,
+		//		Offset:      0,
+		//		HasNextPage: false,
+		//		Resources: []message.MessageContentResource{
+		//			{
+		//				ResourceType:    ogsyncer_interface.ResourceTypeInt,
+		//				ResourceContent: messageContent.ToBytes(),
+		//			},
+		//		},
+		//	}
+		//	// letter
+		//	letterOut := &transport_interface.OutgoingLetter{
+		//		ExceptMyself:   true,
+		//		Msg:            resp,
+		//		SendType:       transport_interface.SendTypeUnicast,
+		//		CloseAfterSent: false,
+		//		EndReceivers:   []string{letter.From},
+		//	}
+		//
+		//	b.notifyNewOutgoingMessage(letterOut)
+		//
+		//case message.OgMessageTypeHeightSyncResponse:
+		//
+		//	m := &message.OgMessageHeightSyncResponse{}
+		//	err := m.FromBytes(letter.Msg.ContentBytes)
+		//	if err != nil {
+		//		logrus.WithField("type", "OgMessageHeightSyncResponse").WithError(err).Warn("bad message")
+		//	}
+		//	logrus.WithField("from", letter.From).Info("received height sync response")
+		//
+		//	// TODO: solve this height and start the next
+		//	// TODO: verify signature
+		//	for _, resource := range m.Resources {
+		//		if resource.ResourceType != ogsyncer_interface.ResourceTypeInt {
+		//			panic("invalid resource type")
+		//		}
+		//		messageContent := &ogsyncer_interface.MessageContentInt{}
+		//		err := messageContent.FromBytes(resource.ResourceContent)
+		//		utilfuncs.PanicIfError(err, "parse content")
+		//
+		//		bc := &dummy.IntArrayBlockContent{
+		//			Height:      m.Height,
+		//			Step:        messageContent.Step,
+		//			PreviousSum: messageContent.PreviousSum,
+		//			MySum:       messageContent.MySum,
+		//		}
+		//		b.Ledger.ConfirmBlock(bc)
+		//		// TODO: announce event
+		//	}
+		//	logrus.WithField("height", m.Height).Info("height updated")
+		//
+		//	select {
+		//	case b.syncTriggerChan <- true:
+		//	default:
+		//	}
 	}
 }

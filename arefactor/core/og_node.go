@@ -5,6 +5,7 @@ import (
 	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogsyncer"
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport_interface"
@@ -28,8 +29,11 @@ func (n *OgNode) InitDefault() {
 }
 
 func (n *OgNode) Setup() {
-	blockTime := time.Second * 5
+	blockTime := time.Second * 3
 	myId := viper.GetInt("id")
+	// reporter
+	lowLevelReporter := getReporter()
+
 	// load private info
 	privateGenerator := &og.CachedPrivateGenerator{}
 
@@ -71,6 +75,7 @@ func (n *OgNode) Setup() {
 	ledger := &dummy.IntArrayLedger{
 		DataPath:   n.FolderConfig.Data,
 		ConfigPath: n.FolderConfig.Config,
+		Reporter:   lowLevelReporter,
 	}
 	ledger.InitDefault()
 	ledger.StaticSetup()
@@ -82,8 +87,6 @@ func (n *OgNode) Setup() {
 	// consensus signer
 	//consensusSigner := consensus.BlsSignatureCollector{}
 
-	// reporter
-	lowLevelReporter := getReporter()
 	performanceReporter := &performance.SoccerdashReporter{
 		Reporter: lowLevelReporter,
 	}
@@ -107,23 +110,6 @@ func (n *OgNode) Setup() {
 	}
 	proposalGenerator.InitDefault()
 
-	// consensus. Current all peers are Partner
-	cpConsensusPartner := &consensus.Partner{
-		Logger:            logrus.StandardLogger(),
-		Reporter:          lowLevelReporter,
-		ProposalGenerator: proposalGenerator,
-		ProposalVerifier:  &dummy.DummyProposalVerifier{},
-		CommitteeProvider: committeeProvider,
-		ConsensusSigner: &dummy.DummyConsensusSigner{
-			Id: myId,
-		}, // should be replaced by bls signer
-		ConsensusAccountProvider: consensusAccountProvider,
-		Hasher:                   &consensus.SHA256Hasher{},
-		Ledger:                   ledger,
-		BlockTime:                blockTime,
-	}
-	cpConsensusPartner.InitDefault()
-
 	cpController := &rpc.RpcController{
 		Ledger:                    ledger,
 		CpDefaultCommunityManager: cpCommunityManager,
@@ -137,7 +123,7 @@ func (n *OgNode) Setup() {
 
 	cpRpc.InitDefault()
 
-	cpSyncer := &og.BlockByBlockSyncer{
+	cpSyncer := &ogsyncer.IntSyncer{
 		Ledger: ledger,
 	}
 	cpSyncer.InitDefault()
@@ -158,7 +144,28 @@ func (n *OgNode) Setup() {
 	n.components = append(n.components, cpOgEngine)
 	n.components = append(n.components, cpRpc)
 	n.components = append(n.components, cpSyncer)
-	n.components = append(n.components, cpConsensusPartner)
+
+	if viper.GetBool("features.consensus") {
+		// consensus. Current all peers are Partner
+		cpConsensusPartner := &consensus.Partner{
+			Logger:            logrus.StandardLogger(),
+			Reporter:          lowLevelReporter,
+			ProposalGenerator: proposalGenerator,
+			ProposalVerifier:  &dummy.DummyProposalVerifier{},
+			CommitteeProvider: committeeProvider,
+			ConsensusSigner: &dummy.DummyConsensusSigner{
+				Id: myId,
+			}, // should be replaced by bls signer
+			ConsensusAccountProvider: consensusAccountProvider,
+			Hasher:                   &consensus.SHA256Hasher{},
+			Ledger:                   ledger,
+			BlockTime:                blockTime,
+		}
+		cpConsensusPartner.InitDefault()
+		n.components = append(n.components, cpConsensusPartner)
+		cpConsensusPartner.AddSubscriberNewOutgoingMessageEvent(cpTransport)
+		cpTransport.AddSubscriberNewIncomingMessageEvent(cpConsensusPartner)
+	}
 
 	// event registration
 
@@ -166,13 +173,11 @@ func (n *OgNode) Setup() {
 	cpOgEngine.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpCommunityManager.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpSyncer.AddSubscriberNewOutgoingMessageEvent(cpTransport)
-	cpConsensusPartner.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 
 	// message receivers
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpOgEngine)
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpCommunityManager)
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpSyncer)
-	cpTransport.AddSubscriberNewIncomingMessageEvent(cpConsensusPartner)
 
 	// peer connected
 	cpTransport.AddSubscriberPeerConnectedEvent(cpCommunityManager)

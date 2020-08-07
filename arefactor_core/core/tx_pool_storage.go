@@ -175,7 +175,7 @@ func (s *txPoolStorage) flowReset(addr ogTypes.Address) {
 }
 
 func (s *txPoolStorage) flowProcess(tx types.Txi) {
-	s.flows.Add(tx)
+	s.flows.Add(s.ledger.LatestSequencerHash(), tx)
 }
 
 func (s *txPoolStorage) tryProcessTx(tx types.Txi) TxQuality {
@@ -188,7 +188,7 @@ func (s *txPoolStorage) tryProcessTx(tx types.Txi) TxQuality {
 	txNormal := tx.(*types.Tx)
 	stateFrom := s.flows.GetBalanceState(txNormal.Sender(), txNormal.TokenId)
 	if stateFrom == nil {
-		originBalance := s.ledger.GetBalance(txNormal.Sender(), txNormal.TokenId)
+		originBalance := s.ledger.GetBalance(s.ledger.LatestSequencerHash(), txNormal.Sender(), txNormal.TokenId)
 		stateFrom = NewBalanceState(originBalance)
 	}
 
@@ -210,13 +210,13 @@ func (s *txPoolStorage) tryProcessTx(tx types.Txi) TxQuality {
 	return TxQualityIsGood
 }
 
-func (s *txPoolStorage) switchToConfirmBatch(batch *ConfirmBatch) (txToRejudge []*txEnvelope) {
+func (s *txPoolStorage) switchToConfirmBatch(accSet *accDetailSet) (txToRejudge []*txEnvelope) {
 	txToRejudge = make([]*txEnvelope, 0)
 	newTxOrder := make([]*txEnvelope, 0)
 	for _, hash := range s.getTxHashesInOrder() {
 		txEnv := s.getTxEnvelope(hash)
 		if txEnv.tx.GetType() != types.TxBaseTypeSequencer {
-			if batch.existTx(hash) {
+			if accSet.existTx(hash) {
 				newTxOrder = append(newTxOrder, txEnv)
 				continue
 			} else {
@@ -224,55 +224,12 @@ func (s *txPoolStorage) switchToConfirmBatch(batch *ConfirmBatch) (txToRejudge [
 				continue
 			}
 		}
-		if txEnv.tx.GetType() == types.TxBaseTypeSequencer && batch.existSeq(hash) {
+		if txEnv.tx.GetType() == types.TxBaseTypeSequencer && accSet.existSeq(hash) {
 			newTxOrder = append(newTxOrder, txEnv)
 			continue
 		}
 	}
 	s.removeAll()
-
-	// deal confirmed txs
-	for _, txenv := range newTxOrder {
-		if txenv.tx.GetType() == types.TxBaseTypeSequencer {
-			txenv.status = TxStatusSeqPreConfirm
-		} else {
-			txenv.status = TxStatusPending
-		}
-		s.txLookup.Add(txenv)
-	}
-
-	// deal account flows
-	batches := make([]*ConfirmBatch, 0)
-	curBatch := batch
-	for curBatch != nil {
-		batches = append(batches, curBatch)
-		curBatch = curBatch.parent
-	}
-	for i := len(batches) - 1; i >= 0; i-- {
-		curBatch = batches[i]
-
-		for addrKey, detail := range curBatch.db {
-			addr, _ := ogTypes.AddressFromAddressKey(addrKey)
-			balanceStates := make(map[int32]*BalanceState)
-
-			for tokenID, blc := range detail.resultBalance {
-				originBlc := math.NewBigIntFromBigInt(blc.Value)
-				earn := detail.earn[tokenID]
-				if earn != nil {
-					originBlc = originBlc.Sub(earn)
-				}
-				cost := detail.cost[tokenID]
-				if cost != nil {
-					originBlc = originBlc.Add(cost)
-				}
-
-				balanceStates[tokenID] = NewBalanceStateWithFullData(originBlc, math.NewBigIntFromBigInt(cost.Value))
-			}
-
-			accountFLow := NewAccountFlowWithFullData(balanceStates, detail.txList)
-			s.flows.MergeFlow(addr, accountFLow)
-		}
-	}
 
 	return txToRejudge
 }

@@ -39,7 +39,7 @@ func NewAccountFlowSet(ledger Ledger) *AccountFlowSet {
 	}
 }
 
-func (a *AccountFlowSet) Add(tx types.Txi) {
+func (a *AccountFlowSet) Add(baseSeqHash og_types.Hash, tx types.Txi) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -54,7 +54,7 @@ func (a *AccountFlowSet) Add(tx types.Txi) {
 	if tx.GetType() == types.TxBaseTypeNormal {
 		txn := tx.(*types.Tx)
 		if af.balances[txn.TokenId] == nil {
-			blc := a.ledger.GetBalance(txn.Sender(), txn.TokenId)
+			blc := a.ledger.GetBalance(baseSeqHash, txn.Sender(), txn.TokenId)
 			af.balances[txn.TokenId] = NewBalanceState(blc)
 		}
 	}

@@ -247,13 +247,6 @@ func (dag *Dag) ConfirmedSequencerHash() ogTypes.Hash {
 	return dag.confirmedSequencer.GetTxHash()
 }
 
-func (dag *Dag) LatestConfirmedSequencer() *types.Sequencer {
-	dag.mu.RLock()
-	defer dag.mu.RUnlock()
-
-	return dag.confirmedSequencer
-}
-
 //GetHeight get cuurent height
 func (dag *Dag) GetHeight() uint64 {
 	dag.mu.RLock()
@@ -275,12 +268,26 @@ func (dag *Dag) GetConfirmedHeight() uint64 {
 //	return dag.accessor
 //}
 
+func (dag *Dag) Speculate(pushBatch *PushBatch) (ogTypes.Hash, error) {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+
+	return dag.speculate(pushBatch)
+}
+
 // Push trys to move a tx from tx pool to dag db.
 func (dag *Dag) Push(batch *PushBatch) error {
 	dag.mu.Lock()
 	defer dag.mu.Unlock()
 
 	return dag.push(batch)
+}
+
+func (dag *Dag) Commit(seqHash ogTypes.Hash) error {
+	dag.mu.Lock()
+	defer dag.mu.Unlock()
+
+	return dag.commit(seqHash)
 }
 
 // GetTx gets tx from dag network indexed by tx hash
@@ -513,42 +520,6 @@ func (dag *Dag) GetSequencer(hash ogTypes.Hash, seqHeight uint64) *types.Sequenc
 	}
 }
 
-//func (dag *Dag) GetConfirmTime(seqHeight uint64) *types.ConfirmTime {
-//
-//	dag.mu.RLock()
-//	defer dag.mu.RUnlock()
-//	return dag.getConfirmTime(seqHeight)
-//}
-//
-//func (dag *Dag) getConfirmTime(seqHeight uint64) *types.ConfirmTime {
-//	if seqHeight == 0 {
-//		return nil
-//	}
-//	cf := dag.accessor.readConfirmTime(seqHeight)
-//	if cf == nil {
-//		log.Warn("ConfirmTime not found")
-//	}
-//	return cf
-//}
-
-//func (dag *Dag) GetTxsHashesByNumber(Height uint64) []ogTypes.Hash {
-//	dag.mu.RLock()
-//	defer dag.mu.RUnlock()
-//
-//	return dag.getTxsHashesByHeight(Height)
-//}
-//
-//func (dag *Dag) getTxsHashesByHeight(height uint64) []ogTypes.Hash {
-//	if height > dag.latestSequencer.Number() {
-//		return nil
-//	}
-//	hashs, err := dag.accessor.ReadIndexedTxHashs(height)
-//	if err != nil {
-//		log.WithError(err).WithField("height", height).Trace("hashes not found")
-//	}
-//	return hashs
-//}
-
 func (dag *Dag) GetBalance(baseSeqHash ogTypes.Hash, addr ogTypes.Address, tokenID int32) *math.BigInt {
 	dag.mu.RLock()
 	defer dag.mu.RUnlock()
@@ -755,10 +726,10 @@ func (dag *Dag) push(pushBatch *PushBatch) error {
 	return nil
 }
 
-func (dag *Dag) commit(seq *types.Sequencer) (err error) {
-	confirmBatch := dag.pendedBatches.getConfirmBatch(seq.GetTxHash())
+func (dag *Dag) commit(seqHash ogTypes.Hash) (err error) {
+	confirmBatch := dag.pendedBatches.getConfirmBatch(seqHash)
 	if confirmBatch == nil {
-		return fmt.Errorf("can't find pended seq: %s", seq.GetTxHash().Hex())
+		return fmt.Errorf("can't find pended seq: %s", seqHash.Hex())
 	}
 
 	err = dag.flushAllToDB(confirmBatch)
@@ -767,7 +738,7 @@ func (dag *Dag) commit(seq *types.Sequencer) (err error) {
 	}
 
 	dag.pendedBatches.confirm(confirmBatch)
-	dag.confirmedSequencer = seq
+	dag.confirmedSequencer = confirmBatch.seq
 	return nil
 }
 

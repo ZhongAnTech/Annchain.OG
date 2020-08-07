@@ -16,7 +16,6 @@ package core
 import (
 	"fmt"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/status"
 	"math/rand"
 	"sort"
@@ -46,8 +45,9 @@ type TxPool struct {
 
 	queue chan *txEvent // queue stores txs that need to validate later
 
-	storage *txPoolStorage
-	dag     *Dag
+	storage    *txPoolStorage
+	cachedSets *cachedAccDetailSets
+	dag        *Dag
 
 	close chan struct{}
 
@@ -88,6 +88,7 @@ func NewTxPool(conf TxPoolConfig, dag *Dag) *TxPool {
 	pool.dag = dag
 	pool.queue = make(chan *txEvent, conf.QueueSize)
 	pool.storage = newTxPoolStorage(dag)
+	pool.cachedSets = newCachedAccDetailSets()
 	pool.close = make(chan struct{})
 
 	pool.onNewTxReceived = make(map[channelName]chan types.Txi)
@@ -152,7 +153,7 @@ func (t *txEnvelope) String() string {
 // Start begin the txpool sevices
 func (pool *TxPool) Start() {
 	log.Infof("TxPool Start")
-	go pool.loop()
+	//go pool.loop()
 }
 
 // Stop stops all the txpool sevices
@@ -220,7 +221,7 @@ func (pool *TxPool) IsLocalHash(hash ogTypes.Hash) bool {
 	if pool.Has(hash) {
 		return true
 	}
-	if pool.dag.ExistTx(hash) {
+	if pool.dag.ExistTx(pool.dag.LatestSequencerHash(), hash) {
 		return true
 	}
 	return false
@@ -331,38 +332,38 @@ func (pool *TxPool) GetAllTips() map[ogTypes.HashKey]types.Txi {
 	return pool.storage.getTipsInMap()
 }
 
-// AddLocalTx adds a tx to txpool if it is valid, note that if success it returns nil.
-// AddLocalTx only process tx that sent by local node.
-func (pool *TxPool) AddLocalTx(tx types.Txi, noFeedBack bool) error {
-	return pool.addTx(tx, TxTypeLocal, noFeedBack)
-}
-
-// AddLocalTxs adds a list of txs to txpool if they are valid. It returns
-// the process result of each tx with an error list. AddLocalTxs only process
-// txs that sent by local node.
-func (pool *TxPool) AddLocalTxs(txs []types.Txi, noFeedBack bool) []error {
-	result := make([]error, len(txs))
-	for _, tx := range txs {
-		result = append(result, pool.addTx(tx, TxTypeLocal, noFeedBack))
-	}
-	return result
-}
-
-// AddRemoteTx adds a tx to txpool if it is valid. AddRemoteTx only process tx
-// sent by remote nodes, and will hold extra functions to prevent from ddos
-// (large amount of invalid tx sent from one node in a short time) attack.
-func (pool *TxPool) AddRemoteTx(tx types.Txi, noFeedBack bool) error {
-	return pool.addTx(tx, TxTypeRemote, noFeedBack)
-}
-
-// AddRemoteTxs works as same as AddRemoteTx but processes a list of txs
-func (pool *TxPool) AddRemoteTxs(txs []types.Txi, noFeedBack bool) []error {
-	result := make([]error, len(txs))
-	for _, tx := range txs {
-		result = append(result, pool.addTx(tx, TxTypeRemote, noFeedBack))
-	}
-	return result
-}
+//// AddLocalTx adds a tx to txpool if it is valid, note that if success it returns nil.
+//// AddLocalTx only process tx that sent by local node.
+//func (pool *TxPool) AddLocalTx(tx types.Txi, noFeedBack bool) error {
+//	return pool.addTx(tx, TxTypeLocal, noFeedBack)
+//}
+//
+//// AddLocalTxs adds a list of txs to txpool if they are valid. It returns
+//// the process result of each tx with an error list. AddLocalTxs only process
+//// txs that sent by local node.
+//func (pool *TxPool) AddLocalTxs(txs []types.Txi, noFeedBack bool) []error {
+//	result := make([]error, len(txs))
+//	for _, tx := range txs {
+//		result = append(result, pool.addTx(tx, TxTypeLocal, noFeedBack))
+//	}
+//	return result
+//}
+//
+//// AddRemoteTx adds a tx to txpool if it is valid. AddRemoteTx only process tx
+//// sent by remote nodes, and will hold extra functions to prevent from ddos
+//// (large amount of invalid tx sent from one node in a short time) attack.
+//func (pool *TxPool) AddRemoteTx(tx types.Txi, noFeedBack bool) error {
+//	return pool.addTx(tx, TxTypeRemote, noFeedBack)
+//}
+//
+//// AddRemoteTxs works as same as AddRemoteTx but processes a list of txs
+//func (pool *TxPool) AddRemoteTxs(txs []types.Txi, noFeedBack bool) []error {
+//	result := make([]error, len(txs))
+//	for _, tx := range txs {
+//		result = append(result, pool.addTx(tx, TxTypeRemote, noFeedBack))
+//	}
+//	return result
+//}
 
 // Remove totally removes a tx from pool, it checks badtxs, tips,
 // pendings and txlookup.
@@ -392,110 +393,110 @@ func (pool *TxPool) clearAll() {
 	pool.storage.removeAll()
 }
 
-func (pool *TxPool) loop() {
-	defer log.Tracef("TxPool.loop() terminates")
-
-	//pool.wg.Add(1)
-	//defer pool.wg.Done()
-
-	//resetTimer := time.NewTicker(time.Duration(pool.conf.ResetDuration) * time.Second)
-
-	for {
-		select {
-		case <-pool.close:
-			log.Info("pool got quit signal quiting...")
-			return
-
-		case txEvent := <-pool.queue:
-			log.WithField("tx", txEvent.txEnv.tx).Trace("get tx from queue")
-
-			var err error
-			tx := txEvent.txEnv.tx
-			// check if tx is duplicate
-			txStatus := pool.getStatus(tx.GetTxHash())
-			if txStatus == TxStatusNotExist {
-				log.WithField("tx", tx).Warn("tx not exists")
-				txEvent.callbackChan <- types.ErrTxNotExist
-				continue
-			}
-			if txStatus != TxStatusQueue {
-				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
-				txEvent.callbackChan <- types.ErrDuplicateTx
-				continue
-			}
-
-			pool.mu.Lock()
-
-			switch tx := tx.(type) {
-			case *types.Sequencer:
-				err = pool.preConfirm(tx)
-				if err != nil {
-					break
-				}
-				maxWeight := atomic.LoadUint64(&pool.maxWeight)
-				if maxWeight < tx.GetWeight() {
-					atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
-				}
-			default:
-				err = pool.commit(tx)
-				if err != nil {
-					break
-				}
-				maxWeight := atomic.LoadUint64(&pool.maxWeight)
-				if maxWeight < tx.GetWeight() {
-					atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
-				}
-				tx.GetBase().Height = pool.dag.LatestSequencer().Height + 1 //temporary height ,will be re write after confirm
-			}
-
-			pool.mu.Unlock()
-
-			txEvent.callbackChan <- err
-		}
-	}
-}
-
-// addMember adds tx to the pool queue and wait to become tip after validation.
-func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
-	log.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addMember, tx parents: %v", tx.Parents())
-
-	// check if tx is duplicate
-	if pool.get(tx.GetTxHash()) != nil {
-		log.WithField("tx", tx).Warn("Duplicate tx found in txpool")
-		return fmt.Errorf("duplicate tx found in txpool: %s", tx.GetTxHash().Hex())
-	}
-
-	//if normalTx, ok := tx.(*tx_types.Tx); ok {
-	//	normalTx.Setconfirm()
-	//	pool.confirmStatus.AddTxNum()
-	//}
-
-	te := &txEvent{
-		callbackChan: make(chan error),
-		txEnv:        newTxEnvelope(senderType, TxStatusQueue, tx, 1),
-	}
-	pool.storage.addTxEnv(te.txEnv)
-	pool.queue <- te
-
-	// waiting for callback
-	select {
-	case err := <-te.callbackChan:
-		if err != nil {
-			pool.remove(tx, removeFromEnd)
-			return err
-		}
-
-	}
-	// notify all subscribers of newTxEvent
-	for name, subscriber := range pool.onNewTxReceived {
-		log.WithField("tx", tx).Trace("notify subscriber: ", name)
-		if !noFeedBack || name.allMsg {
-			subscriber <- tx
-		}
-	}
-	log.WithField("tx", tx).Trace("successfully added tx to txPool")
-	return nil
-}
+//func (pool *TxPool) loop() {
+//	defer log.Tracef("TxPool.loop() terminates")
+//
+//	//pool.wg.Add(1)
+//	//defer pool.wg.Done()
+//
+//	//resetTimer := time.NewTicker(time.Duration(pool.conf.ResetDuration) * time.Second)
+//
+//	for {
+//		select {
+//		case <-pool.close:
+//			log.Info("pool got quit signal quiting...")
+//			return
+//
+//		case txEvent := <-pool.queue:
+//			log.WithField("tx", txEvent.txEnv.tx).Trace("get tx from queue")
+//
+//			var err error
+//			tx := txEvent.txEnv.tx
+//			// check if tx is duplicate
+//			txStatus := pool.getStatus(tx.GetTxHash())
+//			if txStatus == TxStatusNotExist {
+//				log.WithField("tx", tx).Warn("tx not exists")
+//				txEvent.callbackChan <- types.ErrTxNotExist
+//				continue
+//			}
+//			if txStatus != TxStatusQueue {
+//				log.WithField("tx", tx).Warn("Duplicate tx found in txlookup")
+//				txEvent.callbackChan <- types.ErrDuplicateTx
+//				continue
+//			}
+//
+//			pool.mu.Lock()
+//
+//			switch tx := tx.(type) {
+//			case *types.Sequencer:
+//				err = pool.preConfirm(tx)
+//				if err != nil {
+//					break
+//				}
+//				maxWeight := atomic.LoadUint64(&pool.maxWeight)
+//				if maxWeight < tx.GetWeight() {
+//					atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
+//				}
+//			default:
+//				err = pool.commit(tx)
+//				if err != nil {
+//					break
+//				}
+//				maxWeight := atomic.LoadUint64(&pool.maxWeight)
+//				if maxWeight < tx.GetWeight() {
+//					atomic.StoreUint64(&pool.maxWeight, tx.GetWeight())
+//				}
+//				tx.GetBase().Height = pool.dag.LatestSequencer().Height + 1 //temporary height ,will be re write after confirm
+//			}
+//
+//			pool.mu.Unlock()
+//
+//			txEvent.callbackChan <- err
+//		}
+//	}
+//}
+//
+//// addMember adds tx to the pool queue and wait to become tip after validation.
+//func (pool *TxPool) addTx(tx types.Txi, senderType TxType, noFeedBack bool) error {
+//	log.WithField("noFeedBack", noFeedBack).WithField("tx", tx).Tracef("start addMember, tx parents: %v", tx.Parents())
+//
+//	// check if tx is duplicate
+//	if pool.get(tx.GetTxHash()) != nil {
+//		log.WithField("tx", tx).Warn("Duplicate tx found in txpool")
+//		return fmt.Errorf("duplicate tx found in txpool: %s", tx.GetTxHash().Hex())
+//	}
+//
+//	//if normalTx, ok := tx.(*tx_types.Tx); ok {
+//	//	normalTx.Setconfirm()
+//	//	pool.confirmStatus.AddTxNum()
+//	//}
+//
+//	te := &txEvent{
+//		callbackChan: make(chan error),
+//		txEnv:        newTxEnvelope(senderType, TxStatusQueue, tx, 1),
+//	}
+//	pool.storage.addTxEnv(te.txEnv)
+//	pool.queue <- te
+//
+//	// waiting for callback
+//	select {
+//	case err := <-te.callbackChan:
+//		if err != nil {
+//			pool.remove(tx, removeFromEnd)
+//			return err
+//		}
+//
+//	}
+//	// notify all subscribers of newTxEvent
+//	for name, subscriber := range pool.onNewTxReceived {
+//		log.WithField("tx", tx).Trace("notify subscriber: ", name)
+//		if !noFeedBack || name.allMsg {
+//			subscriber <- tx
+//		}
+//	}
+//	log.WithField("tx", tx).Trace("successfully added tx to txPool")
+//	return nil
+//}
 
 // commit commits tx to tips pool. commit() checks if this tx is bad tx and moves
 // bad tx to badtx list other than tips list. If this tx proves any txs in the
@@ -685,104 +686,79 @@ func (pool *TxPool) isBadTx(tx types.Txi) TxQuality {
 //	return nil
 //}
 
-//// SimConfirm simulates the process of confirming a sequencer and return the
-//// state root as result.
-//func (pool *TxPool) SimConfirm(seq *types.Sequencer) (hash common.Hash, err error) {
-//	// TODO
-//	// not implemented yet.
-//	err = pool.IsBadSeq(seq)
-//	if err != nil {
-//		return common.Hash{}, err
-//	}
-//	return common.Hash{}, nil
-//}
+func (pool *TxPool) PreConfirm(seq *types.Sequencer) ([]types.Txi, error) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 
-// preConfirm try to confirm sequencer and store the related data into pool.pendedBatches.
+	return pool.preConfirm(seq)
+}
+
+// preConfirm try to confirm sequencer and store the related data into pool.cachedSets.
 // Once a sequencer is hardly confirmed after 3 later preConfirms, the function confirm()
 // will be dialed.
-func (pool *TxPool) preConfirm(seq *types.Sequencer) error {
+func (pool *TxPool) preConfirm(seq *types.Sequencer) ([]types.Txi, error) {
 	if seq.GetHeight() <= pool.dag.latestSequencer.GetHeight() {
-		return fmt.Errorf("the height of seq to pre-confirm is lower than "+
+		return nil, fmt.Errorf("the height of seq to pre-confirm is lower than "+
 			"the latest seq in dag. get height: %d, latest: %d", seq.GetHeight(), pool.dag.latestSequencer.GetHeight())
 	}
 
 	err := pool.isBadSeq(seq)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	elders, err := pool.seekElders(seq)
+	_, eldersMap, err := pool.seekElders(seq)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	accountDetailSet := newAccountDetailSet(seq, pool.dag)
-	err = accountDetailSet.construct(elders)
+	err = accountDetailSet.construct(eldersMap)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = accountDetailSet.isValid(pool.dag)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	err = pool.cachedSets.addSet(accountDetailSet)
+	if err != nil {
+		return nil, err
 	}
 
 	pool.storage.switchTxStatus(seq.GetTxHash(), TxStatusSeqPreConfirm)
-	return nil
+	return accountDetailSet.eldersList, nil
+}
+
+func (pool *TxPool) Confirm(seqHash ogTypes.Hash) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	return pool.confirm(seqHash)
 }
 
 // confirm pushes a batch of txs that confirmed by a sequencer to the dag.
-func (pool *TxPool) confirm(tailSeq *types.Sequencer) error {
+func (pool *TxPool) confirm(seqHash ogTypes.Hash) error {
 
-	confirmSeqHash := tailSeq.GetConfirmSeqHash()
-	log.WithField("seq", confirmSeqHash.Hex()).Trace("start confirm seq")
-
-	batch := pool.cachedBatches.getConfirmBatch(confirmSeqHash)
-	if batch == nil {
-		return fmt.Errorf("the seq to confirm is nil, hash: %s", confirmSeqHash.Hex())
-	}
+	accSet := pool.cachedSets.getSet(seqHash)
 
 	// push pushBatch to dag
 	pushBatch := &PushBatch{
-		Seq: batch.seq,
-		Txs: batch.elders,
+		Seq: accSet.seq,
+		Txs: accSet.eldersList,
 	}
 	if err := pool.dag.Push(pushBatch); err != nil {
 		log.WithField("error", err).Errorf("dag Push error: %v", err)
 		return err
 	}
 
-	//pool.storage.switchTxStatus(tailSeq.GetTxHash(), TxStatusSeqPreConfirm)
-	pool.chosenSeq = tailSeq
-
-	// delete conflicts batch
-	pool.cachedBatches.confirm(batch)
-	// reTag the sequencer status
-	pool.cachedBatches.traverseFromRoot(batch, func(b *ConfirmBatch) {
-		curSeqHash := b.seq.GetTxHash()
-		pool.storage.switchTxStatus(curSeqHash, TxStatusSeqPreConfirmBypass)
-	})
-	leaf := pool.cachedBatches.getConfirmBatch(pool.chosenSeq.GetTxHash())
-	pool.cachedBatches.traverseFromLeaf(leaf, func(b *ConfirmBatch) {
-		curSeqHash := b.seq.GetTxHash()
-		pool.storage.switchTxStatus(curSeqHash, TxStatusSeqPreConfirm)
-	})
-
 	// solve conflicts of txs in pool
-	tailBatch := pool.cachedBatches.getConfirmBatch(tailSeq.GetTxHash())
-	pool.solveConflicts(tailBatch)
-
-	//// add seq to txpool
-	//if pool.flows.Get(seq.Sender()) == nil {
-	//	pool.flows.ResetFlow(seq.Sender(), state.NewBalanceSet())
-	//}
-	//pool.flows.Add(seq)
-	//pool.tips.Add(seq)
-	//pool.txLookup.SwitchStatus(seq.GetTxHash(), TxStatusTip)
+	pool.solveConflicts(accSet)
 
 	// notification
 	for _, c := range pool.OnBatchConfirmed {
 		if status.NodeStopped {
 			break
 		}
-		c <- batch.eldersQueryMap
+		c <- accSet.eldersMap
 	}
 	for _, c := range pool.OnNewLatestSequencer {
 		if status.NodeStopped {
@@ -791,7 +767,7 @@ func (pool *TxPool) confirm(tailSeq *types.Sequencer) error {
 		c <- true
 	}
 
-	log.WithField("seq height", batch.seq.Height).WithField("seq", batch.seq).Trace("finished confirm seq")
+	log.WithField("seq height", accSet.seq.Height).WithField("seq", accSet.seq).Trace("finished confirm seq")
 	return nil
 }
 
@@ -817,9 +793,17 @@ func (pool *TxPool) IsBadSeq(seq *types.Sequencer) error {
 	return pool.isBadSeq(seq)
 }
 
+func (pool *TxPool) SeekElders(seq *types.Sequencer) ([]types.Txi, map[ogTypes.HashKey]types.Txi, error) {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	return pool.seekElders(seq)
+}
+
 // seekElders finds all the unconfirmed elders of baseTx.
-func (pool *TxPool) seekElders(seq *types.Sequencer) (map[ogTypes.HashKey]types.Txi, error) {
-	elders := make(map[ogTypes.HashKey]types.Txi)
+func (pool *TxPool) seekElders(seq *types.Sequencer) ([]types.Txi, map[ogTypes.HashKey]types.Txi, error) {
+	eldersList := make([]types.Txi, 0)
+	eldersMap := make(map[ogTypes.HashKey]types.Txi)
 
 	inSeekingPool := map[ogTypes.HashKey]int{}
 	var seekingPool []ogTypes.Hash
@@ -836,11 +820,12 @@ func (pool *TxPool) seekElders(seq *types.Sequencer) (map[ogTypes.HashKey]types.
 			if pool.dag.ExistTx(seq.GetParentSeqHash(), elderHash) {
 				continue
 			}
-			return nil, fmt.Errorf("can't find elder %s", elderHash)
+			return nil, nil, fmt.Errorf("can't find elder %s", elderHash)
 		}
 
-		if elders[elder.GetTxHash().HashKey()] == nil {
-			elders[elder.GetTxHash().HashKey()] = elder
+		if eldersMap[elder.GetTxHash().HashKey()] == nil {
+			eldersList = append(eldersList, elder)
+			eldersMap[elder.GetTxHash().HashKey()] = elder
 		}
 		for _, elderParentHash := range elder.Parents() {
 			if _, in := inSeekingPool[elderParentHash.HashKey()]; !in {
@@ -849,15 +834,15 @@ func (pool *TxPool) seekElders(seq *types.Sequencer) (map[ogTypes.HashKey]types.
 			}
 		}
 	}
-	return elders, nil
+	return eldersList, eldersMap, nil
 }
 
 // solveConflicts remove elders from txpool and reprocess
 // all txs in the pool in order to make sure all txs are
 // correct after seq confirmation.
-func (pool *TxPool) solveConflicts(tailBatch *ConfirmBatch) {
+func (pool *TxPool) solveConflicts(accSet *accDetailSet) {
 	// TODO check if there is any bugs here
-	txToRejudge := pool.storage.switchToConfirmBatch(tailBatch)
+	txToRejudge := pool.storage.switchToConfirmBatch(accSet)
 	for _, txEnv := range txToRejudge {
 		if txEnv.judgeNum >= PoolRejudgeThreshold {
 			log.WithField("txEnvelope", txEnv.String()).Infof("exceed rejudge time, throw away")
@@ -877,6 +862,8 @@ func (pool *TxPool) solveConflicts(tailBatch *ConfirmBatch) {
 }
 
 type Ledger interface {
+	LatestSequencerHash() ogTypes.Hash
+	ConfirmedSequencerHash() ogTypes.Hash
 	GetBalance(baseSeqHash ogTypes.Hash, addr ogTypes.Address, tokenID int32) *math.BigInt
 	GetLatestNonce(baseSeqHash ogTypes.Hash, addr ogTypes.Address) (uint64, error)
 }
@@ -904,21 +891,25 @@ func (ca *cachedAccDetailSets) addSet(as *accDetailSet) error {
 	if len(ca.heights) == 0 {
 		return ca.addSetHelper(as)
 	}
-	if height < ca.heights[0] || height > ca.heights[len(ca.heights)-1] {
-		return fmt.Errorf("height incorrect, should between %d and %d", ca.heights[0], ca.heights[len(ca.heights)-1])
+	if height < ca.heights[0] {
+		return fmt.Errorf("height incorrect, should no less than minimun %d", ca.heights[0])
 	}
 	return ca.addSetHelper(as)
 }
 
 func (ca *cachedAccDetailSets) addSetHelper(as *accDetailSet) error {
 	height := as.seq.GetHeight()
+	if len(ca.heights) == 0 || height == ca.heights[len(ca.heights)-1]+1 {
+		ca.heights = append(ca.heights, height)
+		ca.sets[height] = make([]*accDetailSet, 0)
+	}
+
 	arr, exists := ca.sets[height]
 	if !exists {
-		arr = make([]*accDetailSet, 0)
+		return fmt.Errorf("height not exists: %d, current highest: %d", height, ca.heights[len(ca.heights)-1])
 	}
 	arr = append(arr, as)
 
-	ca.heights = append(ca.heights, height)
 	ca.sets[height] = arr
 	ca.setsMap[as.seq.GetTxHash().HashKey()] = as
 	return nil
@@ -927,22 +918,41 @@ func (ca *cachedAccDetailSets) addSetHelper(as *accDetailSet) error {
 func (ca *cachedAccDetailSets) confirmSet(seqHash ogTypes.Hash) error {
 	as, exists := ca.setsMap[seqHash.HashKey()]
 	if !exists {
-		return fmt.Errorf()
+		return fmt.Errorf("can't find cached detailSet: %s", seqHash.HashKey())
 	}
 
+	//height := as.seq.GetHeight()
+	var breakIndex int
+	for i, height := range ca.heights {
+		if height >= as.seq.GetHeight() {
+			breakIndex = i
+			break
+		}
+		arr := ca.sets[height]
+		for _, accSet := range arr {
+			delete(ca.setsMap, accSet.seq.GetTxHash().HashKey())
+		}
+		delete(ca.sets, height)
+	}
+	ca.heights = ca.heights[breakIndex:]
+	return nil
 }
 
 type accDetailSet struct {
-	seq     *types.Sequencer
-	ledger  Ledger
-	details map[ogTypes.AddressKey]*accountDetail
+	seq        *types.Sequencer
+	eldersList []types.Txi
+	eldersMap  map[ogTypes.HashKey]types.Txi
+	ledger     Ledger
+	details    map[ogTypes.AddressKey]*accountDetail
 }
 
 func newAccountDetailSet(seq *types.Sequencer, ledger Ledger) *accDetailSet {
 	return &accDetailSet{
-		seq:     seq,
-		ledger:  ledger,
-		details: make(map[ogTypes.AddressKey]*accountDetail),
+		seq:        seq,
+		eldersList: make([]types.Txi, 0),
+		eldersMap:  make(map[ogTypes.HashKey]types.Txi),
+		ledger:     ledger,
+		details:    make(map[ogTypes.AddressKey]*accountDetail),
 	}
 }
 
@@ -980,6 +990,8 @@ func (as *accDetailSet) processTx(tx types.Txi) {
 		detailSender := as.getOrCreateDetail(tx.Sender())
 		detailSender.addTx(tx)
 	}
+	as.eldersList = append(as.eldersList, tx)
+	as.eldersMap[tx.GetTxHash().HashKey()] = tx
 }
 
 func (as *accDetailSet) isValid(ledger Ledger) error {
@@ -1016,6 +1028,22 @@ func (as *accDetailSet) getOrCreateDetail(addr ogTypes.Address) *accountDetail {
 		detailCost = as.createDetail(addr)
 	}
 	return detailCost
+}
+
+func (as *accDetailSet) existTx(hash ogTypes.Hash) bool {
+	_, exist := as.eldersMap[hash.HashKey()]
+	return exist
+}
+
+func (as *accDetailSet) existSeq(hash ogTypes.Hash) bool {
+	txi, exist := as.eldersMap[hash.HashKey()]
+	if !exist {
+		return false
+	}
+	if txi.GetType() != types.TxBaseTypeSequencer {
+		return false
+	}
+	return true
 }
 
 // accountDetail describes all the db of a specific address within a

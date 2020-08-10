@@ -13,6 +13,7 @@ func (o *OgEngine) handleHeightRequest(letter *transport_interface.IncomingLette
 		Height: o.CurrentHeight(),
 	}
 	o.notifyNewOutgoingMessage(&transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
 		Msg:            &resp,
 		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,
@@ -32,7 +33,7 @@ func (o *OgEngine) handleHeightResponse(letter *transport_interface.IncomingLett
 		logrus.WithField("theirHeight", m.Height).
 			WithField("myHeight", o.CurrentHeight()).
 			WithField("from", letter.From).Debug("detected a new height but is not higher than mine")
-		// still need to register this height in the syncer
+		// still need to register this height in the ogsyncer
 		//return
 	}
 	// found a height that is higher that ours. Announce a new height received event
@@ -48,6 +49,7 @@ func (o *OgEngine) handlePeerJoined(event *og_interface.PeerJoinedEvent) {
 	// detect height
 	m := &message.OgMessageHeightRequest{}
 	o.notifyNewOutgoingMessage(&transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
 		Msg:            m,
 		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,

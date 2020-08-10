@@ -16,7 +16,7 @@ func (n *SoloNode) InitDefault() {
 }
 
 func (n *SoloNode) Setup() {
-	n.components = append(n.components, getPerformanceMonitor())
+	n.components = append(n.components, getPerformanceMonitor(nil))
 }
 
 func (n *SoloNode) Start() {

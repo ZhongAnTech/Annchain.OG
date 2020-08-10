@@ -1,11 +1,11 @@
 package og
 
 import (
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/annchain/commongo/utilfuncs"
 	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -162,6 +162,7 @@ func (d *DefaultCommunityManager) SendPing(peer string) {
 	}
 
 	oreq := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
 		Msg:            ping,
 		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,
@@ -200,6 +201,7 @@ func (d *DefaultCommunityManager) handleMsgPing(letter *transport_interface.Inco
 	}
 
 	oreq := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
 		Msg:            resp,
 		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: closeFlag,
@@ -238,6 +240,7 @@ func (d *DefaultCommunityManager) handlePeerConnected(event *transport_interface
 	}
 
 	oreq := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
 		Msg:            resp,
 		SendType:       transport_interface.SendTypeUnicast,
 		CloseAfterSent: false,

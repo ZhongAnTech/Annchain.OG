@@ -103,7 +103,7 @@ func (o *OgEngine) loop() {
 		case event := <-o.myPeerJoinedEventChan:
 			o.handlePeerJoined(event)
 		case <-timer.C:
-			logrus.Warn("routing check in engine")
+			logrus.Trace("routing check in engine")
 		}
 	}
 }

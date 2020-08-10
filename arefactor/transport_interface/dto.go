@@ -29,7 +29,7 @@ const (
 
 type IncomingLetter struct {
 	Msg  *WireMessage
-	From string
+	From string // peer Id
 }
 
 func (i IncomingLetter) String() string {
@@ -40,6 +40,7 @@ type OutgoingLetter struct {
 	Msg            OutgoingMsg
 	SendType       SendType
 	CloseAfterSent bool
+	ExceptMyself   bool
 	EndReceivers   []string // may be the relayer
 }
 

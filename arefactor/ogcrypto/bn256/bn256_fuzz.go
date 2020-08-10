@@ -8,10 +8,9 @@ package bn256
 
 import (
 	"bytes"
+	"github.com/annchain/OG/arefactor/ogcrypto/bn256/cloudflare"
+	"github.com/annchain/OG/arefactor/ogcrypto/bn256/google"
 	"math/big"
-
-	cloudflare "github.com/annchain/OG/vm/eth/ogcrypto/bn256/cloudflare"
-	google "github.com/annchain/OG/vm/eth/ogcrypto/bn256/google"
 )
 
 // FuzzAdd fuzzez bn256 addition between the Google and Cloudflare libraries.

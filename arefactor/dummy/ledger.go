@@ -1,17 +1,17 @@
 package dummy
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/files"
-	"github.com/annchain/OG/arefactor/common/math"
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/og_interface"
-	"github.com/minio/sha256-simd"
+	"github.com/annchain/commongo/files"
+	"github.com/annchain/commongo/math"
+	"github.com/annchain/commongo/utilfuncs"
+	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"math/rand"
 	"path"
@@ -20,10 +20,19 @@ import (
 	"time"
 )
 
+var (
+	LedgerFile             = "ledger.ledger"
+	TempLedgerFile         = "ledger_temp.ledger"
+	ConsensusStateFile     = "consensus_state.ledger"
+	ConsensusCommitteeFile = "consensus_committee.ledger"
+)
+
 type IntArrayBlockContent struct {
-	Step        int
-	PreviousSum int
-	MySum       int
+	Height      int64
+	Step        int // Step is the action within current block
+	PreviousSum int // PreviousSum simulates the previous hash
+	MySum       int // MySum simulates the state root which is the ledger execution state.
+	Submitter   int // generator of this block
 }
 
 func (i *IntArrayBlockContent) FromString(s string) {
@@ -51,112 +60,162 @@ func (i *IntArrayBlockContent) GetHash() og_interface.Hash {
 	return h
 }
 
-type IntArrayLedger struct {
-	height         int64
-	genesis        *og_interface.Genesis
-	blockContents  map[int64]og_interface.BlockContent // height-content
-	highQC         *consensus_interface.QC
-	consensusState *consensus_interface.ConsensusState
+func (i *IntArrayBlockContent) GetHeight() int64 {
+	return i.Height
 }
 
-func (d *IntArrayLedger) Speculate(prevBlockId string, blockId string, cmds string) (executeStateId string) {
-	panic("implement me")
+type IntArrayLedger struct {
+	DataPath   string
+	ConfigPath string
+	Reporter   *soccerdash.Reporter
+
+	height                        int64
+	genesis                       *og_interface.Genesis
+	confirmedBlockIdHeightMapping map[string]int64
+	confirmedBlockContents        map[int64]og_interface.BlockContent  // height-content
+	allBlockContents              map[string]og_interface.BlockContent // blockId-content
+	consensusState                *consensus_interface.ConsensusState
+}
+
+func (d *IntArrayLedger) InitDefault() {
+	d.confirmedBlockIdHeightMapping = make(map[string]int64)
+	d.confirmedBlockContents = make(map[int64]og_interface.BlockContent)
+	d.allBlockContents = make(map[string]og_interface.BlockContent)
+}
+
+func (d *IntArrayLedger) GetConsensusState() *consensus_interface.ConsensusState {
+	if d.consensusState == nil {
+		logrus.Fatal("ledger consensus state is not inited")
+	}
+	return d.consensusState
+}
+
+func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interface.Block) (executionResult consensus_interface.ExecutionResult) {
+	fmt.Println("Speculate Prev block:", prevBlockId)
+	fmt.Println("Speculate Curr block:", block.Id)
+	fmt.Println(block.String())
+	_, ok := d.allBlockContents[prevBlockId]
+
+	if !ok {
+		logrus.WithField("prevBlockId", prevBlockId).Fatal("prev block not found")
+	}
+
+	newBlock := &IntArrayBlockContent{}
+	newBlock.FromString(block.Payload)
+
+	// simulate execution. MySum is equivalent to state root and Step is equivalent to txs
+	newBlock.MySum = newBlock.PreviousSum + newBlock.Step
+
+	// my hash should be the same as given
+	if block.Id != newBlock.GetHash().HashString() {
+		logrus.WithField("myhash", newBlock.GetHash().HashString()).
+			WithField("given", block.Id).
+			Fatal("myhash is not aligned with given hash")
+	}
+	d.KnowBlock(newBlock)
+
+	logrus.WithField("block", newBlock).Info("speculated new block")
+
+	return consensus_interface.ExecutionResult{
+		BlockId:        newBlock.GetHash().HashString(),
+		ExecuteStateId: fmt.Sprintf("%d", newBlock.MySum),
+		Err:            nil,
+	}
 }
 
 func (d *IntArrayLedger) GetState(blockId string) (stateId string) {
-	panic("implement me")
+	block, ok := d.allBlockContents[blockId]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%d", block.(*IntArrayBlockContent).MySum)
 }
 
 func (d *IntArrayLedger) Commit(blockId string) {
-
-}
-
-func (d *IntArrayLedger) GetHighQC() *consensus_interface.QC {
-	return d.highQC
-}
-func (d *IntArrayLedger) SetHighQC(qc *consensus_interface.QC) {
-	d.highQC = qc
-}
-
-func (d *IntArrayLedger) SaveConsensusState(state *consensus_interface.ConsensusState) {
-	bytes, err := json.Marshal(state)
-	if err != nil {
-		logrus.WithError(err).Fatal("dump consensus state")
-	}
-
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-	err = ioutil.WriteFile(path.Join(datadir, "consensus.json"), bytes, 0644)
-	if err != nil {
-		logrus.WithError(err).Fatal("save consensus state")
-	}
-}
-
-func (d *IntArrayLedger) loadConsensusState() (err error) {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-	byteContent, err := ioutil.ReadFile(path.Join(datadir, "consensus.json"))
-
-	if err != nil {
-		logrus.WithError(err).Debug("error on loading consensus state")
+	block, ok := d.allBlockContents[blockId]
+	if !ok {
+		logrus.WithField("blockId", blockId).Warn("blockId not found")
 		return
 	}
-	cs := &consensus_interface.ConsensusState{}
-	err = json.Unmarshal(byteContent, cs)
-	if err != nil {
-		logrus.WithError(err).Fatal("unmarshal consensus state")
-		return
-	}
-	d.consensusState = cs
-	return
+	d.ConfirmBlock(block)
 }
 
-func (d *IntArrayLedger) AddBlock(height int64, block og_interface.BlockContent) {
-	d.blockContents[height] = block
-	d.height = math.BiggerInt64(height, d.height)
+// KnowBlock just knows the existance of the block.
+// Block may not be confirmed.
+func (d *IntArrayLedger) KnowBlock(block og_interface.BlockContent) {
+	logrus.WithField("blockId", block.GetHash().HashString()).Debug("know this block")
+	d.allBlockContents[block.GetHash().HashString()] = block
+}
+
+// ConfirmBlock add the block to the permanent ledger.
+func (d *IntArrayLedger) ConfirmBlock(block og_interface.BlockContent) {
+	if _, ok := d.confirmedBlockContents[block.GetHeight()]; ok {
+		logrus.WithField("height", block.GetHeight()).Debug("block already added")
+		return
+	}
+	id := block.GetHash().HashString()
+	d.confirmedBlockContents[block.GetHeight()] = block
+	d.confirmedBlockIdHeightMapping[id] = block.GetHeight()
+	d.allBlockContents[id] = block
+	d.height = math.BiggerInt64(block.GetHeight(), d.height)
+	d.SaveLedger()
+	d.Reporter.Report("lastCommit", fmt.Sprintf("%s %d", block.GetHash().HashString(), block.GetHeight()), false)
 }
 
 func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {
-	return d.blockContents[height]
+	return d.confirmedBlockContents[height]
 }
 
 func (d *IntArrayLedger) AddRandomBlock(height int64) {
 	previousBlock := d.GetBlock(height - 1).(*IntArrayBlockContent)
 	step := rand.Intn(50)
-	d.AddBlock(height, &IntArrayBlockContent{
+	d.ConfirmBlock(&IntArrayBlockContent{
+		Height:      height,
 		Step:        step,
 		PreviousSum: previousBlock.MySum,
 		MySum:       step + previousBlock.MySum,
 	})
 }
 
-func (d *IntArrayLedger) InitDefault() {
-	d.blockContents = make(map[int64]og_interface.BlockContent)
-}
-
 // StaticSetup supposely will load ledger from disk.
 func (d *IntArrayLedger) StaticSetup() {
+	// load all, if any failed, re-init all.
 	reInit := false
 	// load from local storage first.
-	err := d.loadLedger()
-	if err != nil {
-		reInit = true
-	}
-	err = d.loadConsensusState()
-	if err != nil {
-		reInit = true
-	}
 	// if error, init ledger and consensus
+	var err error
+	err = d.LoadLedger()
+	if err != nil {
+		reInit = true
+	}
+	err = d.LoadTempLedger()
+	if err != nil {
+		reInit = true
+	}
+	err = d.LoadConsensusState()
+	if err != nil {
+		reInit = true
+	}
+	err = d.LoadConsensusCommittee()
+	if err != nil {
+		reInit = true
+	}
 	if reInit {
-		d.InitGenesisLedger()
+		d.InitLedgerGenesis()
+		d.InitConsensusStateGenesis()
+		d.InitConsensusCommitteeGenesis()
+		d.SaveLedger()
+		d.SaveConsensusState(d.consensusState)
+		d.SaveConsensusCommittee()
 	}
 
-	d.height = 0
-	rootHash := &og_interface.Hash32{}
-	rootHash.FromHexNoError("0x00")
+	//rootHash := &og_interface.Hash32{}
+	//rootHash.FromHexNoError("0x00")
 
 	// check if ledger exists.
-	d.InitGenesisLedger()
+	//d.InitLedgerGenesis()
 
-	//d.LoadConsensusGenesis()
+	//d.LoadConsensusCommittee()
 	//for i := 1; i < 10000; i ++{
 	//	d.AddRandomBlock(int64(i))
 	//}
@@ -165,44 +224,122 @@ func (d *IntArrayLedger) StaticSetup() {
 	//d.AddRandomBlock(3)
 	//d.AddRandomBlock(4)
 	//d.AddRandomBlock(5)
-	//d.dumpLedger()
+	//d.SaveLedger()
 
 }
 
-// InitGenesisLedger generate genesis predefined and store it in the database file
-func (d *IntArrayLedger) InitGenesisLedger() {
-	// generate high qc and genesis
-	d.highQC = &consensus_interface.QC{
-		VoteData: consensus_interface.VoteInfo{
-			Id:               "",
-			Round:            0,
-			ParentId:         "",
-			ParentRound:      0,
-			GrandParentId:    "",
-			GrandParentRound: 0,
-			ExecStateId:      "",
-		},
-		JointSignature: nil,
-	}
-	d.height = 0
-	d.blockContents[0] = &IntArrayBlockContent{
+func (d *IntArrayLedger) ProvideGenesis() *IntArrayBlockContent {
+	return &IntArrayBlockContent{
+		Height:      0,
 		Step:        0,
 		PreviousSum: 0,
 		MySum:       0,
+		Submitter:   0,
 	}
-	err := d.LoadConsensusGenesis()
-	if err != nil {
-		// consensus genesis template not exists, cannot do further operation
-		logrus.WithError(err).Fatal("failed to load consensus genesis")
-	}
-	// write to ledger
-	d.dumpLedger()
-	d.DumpConsensusStatus()
 }
 
-func (d *IntArrayLedger) LoadConsensusGenesis() (err error) {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "config")
-	byteContent, err := ioutil.ReadFile(path.Join(datadir, "consensus_genesis.json"))
+// Ledger init
+func (d *IntArrayLedger) InitLedgerGenesis() {
+	logrus.Info("Initializing Ledger genesis")
+	d.height = 0
+	d.ConfirmBlock(d.ProvideGenesis())
+}
+
+func (d *IntArrayLedger) SaveLedger() {
+	lines := []string{}
+	for i := int64(0); i <= d.height; i++ {
+		if v, ok := d.confirmedBlockContents[i]; ok {
+			lines = append(lines, fmt.Sprintf("%d %s %s", i, v.GetHash().HashString(), v.String()))
+		} else {
+			lines = append(lines, fmt.Sprintf("%d EMPTY", i))
+		}
+	}
+	err := files.WriteLines(lines, path.Join(d.DataPath, LedgerFile))
+	utilfuncs.PanicIfError(err, "dump ledger")
+
+	lines = []string{}
+	// dump pending blocks
+	for hash, block := range d.allBlockContents {
+		_, ok := d.confirmedBlockIdHeightMapping[hash]
+		if ok {
+			// dumped
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("%s %s", hash, block.String()))
+	}
+	err = files.WriteLines(lines, path.Join(d.DataPath, TempLedgerFile))
+	utilfuncs.PanicIfError(err, "dump ledger")
+}
+
+func (d *IntArrayLedger) LoadTempLedger() (err error) {
+	if !files.FileExists(path.Join(d.DataPath, TempLedgerFile)) {
+		err = errors.New("ledger file not exists: " + path.Join(d.DataPath, TempLedgerFile))
+		return
+	}
+	lines, err := files.ReadLines(path.Join(d.DataPath, TempLedgerFile))
+	if err != nil {
+		return
+	}
+
+	for _, line := range lines {
+		slots := strings.Split(line, " ")
+		hash := slots[0]
+		blockString := slots[1]
+		block := &IntArrayBlockContent{}
+		block.FromString(blockString)
+
+		if block.GetHash().HashString() != hash {
+			return errors.New("hash not aligned")
+		}
+		d.KnowBlock(block)
+		logrus.WithFields(
+			logrus.Fields{
+				"height": d.height,
+				"hash":   block.GetHash().HashString(),
+			}).Debug("loaded temp ledger")
+	}
+	return
+}
+
+func (d *IntArrayLedger) LoadLedger() (err error) {
+	if !files.FileExists(path.Join(d.DataPath, LedgerFile)) {
+		err = errors.New("ledger file not exists: " + path.Join(d.DataPath, LedgerFile))
+		return
+	}
+	lines, err := files.ReadLines(path.Join(d.DataPath, LedgerFile))
+	if err != nil {
+		return
+	}
+
+	for _, line := range lines {
+		slots := strings.Split(line, " ")
+		height, err := strconv.Atoi(slots[0])
+		utilfuncs.PanicIfError(err, "read line")
+		hash := slots[1]
+		blockString := slots[2]
+		block := &IntArrayBlockContent{}
+		block.FromString(blockString)
+
+		if block.GetHash().HashString() != hash {
+			return errors.New("hash not aligned")
+		}
+		if block.Height != int64(height) {
+			return errors.New("height not aligned")
+		}
+		d.ConfirmBlock(block)
+		logrus.WithFields(
+			logrus.Fields{
+				"height": d.height,
+				"hash":   block.GetHash().HashString(),
+			}).Debug("loaded ledger")
+	}
+	return
+}
+
+// Consensus Committee init
+func (d *IntArrayLedger) InitConsensusCommitteeGenesis() {
+	// init from config file.
+	byteContent, err := ioutil.ReadFile(path.Join(d.ConfigPath, "consensus_genesis.json"))
 	if err != nil {
 		return
 	}
@@ -213,41 +350,10 @@ func (d *IntArrayLedger) LoadConsensusGenesis() (err error) {
 		return
 	}
 
-	// convert to genesis
-	//hash := &og_interface.Hash32{}
-	//err = hash.FromHex(gs.RootSequencerHash)
-	//utilfuncs.PanicIfError(err, "root seq hash")
-
-	peers := []*consensus_interface.CommitteeMember{}
-	//unmarshaller := crypto.PubKeyUnmarshallers[pb.KeyType_Secp256k1]
-
-	for _, v := range gs.FirstCommittee.Peers {
-		//pubKeyBytes, err := hexutil.FromHex(v.PublicKey)
-		//utilfuncs.PanicIfError(err, "pubkey")
-		//pubKey, err := unmarshaller(pubKeyBytes)
-		//utilfuncs.PanicIfError(err, "pubkey")
-
-		peers = append(peers, &consensus_interface.CommitteeMember{
-			PeerIndex:        v.PeerIndex,
-			MemberId:         v.MemberId,
-			TransportPeerId:  v.TransportPeerId,
-			ConsensusAccount: nil,
-		})
-	}
-
-	g := &og_interface.Genesis{
-		//RootSequencerHash: hash,
-		FirstCommittee: &consensus_interface.Committee{
-			Peers:   peers,
-			Version: gs.FirstCommittee.Version,
-		},
-	}
-	d.genesis = g
-	return
+	d.applyGenesisStore(gs)
 }
 
-func (d *IntArrayLedger) DumpConsensusGenesis() {
-
+func (d *IntArrayLedger) SaveConsensusCommittee() {
 	peers := []og_interface.CommitteeMemberStore{}
 	for _, v := range d.genesis.FirstCommittee.Peers {
 		//pubKeyBytes, err := v.ConsensusAccount.PublicKey.Raw()
@@ -268,86 +374,81 @@ func (d *IntArrayLedger) DumpConsensusGenesis() {
 		},
 	}
 
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "config")
-
 	bytes, err := json.MarshalIndent(gs, "", "    ")
 	if err != nil {
 		return
 	}
-	err = ioutil.WriteFile(path.Join(datadir, "consensus_genesis.json"), bytes, 0600)
+	err = ioutil.WriteFile(path.Join(d.DataPath, ConsensusCommitteeFile), bytes, 0600)
 }
 
-func (d *IntArrayLedger) DumpConsensusStatus() {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-	j, err := json.MarshalIndent(d.highQC, "", "    ")
-	utilfuncs.PanicIfError(err, "marshal high qc")
-	err = ioutil.WriteFile(path.Join(datadir, "consensus_status.json"), j, 0644)
-	utilfuncs.PanicIfError(err, "dump consensus")
-}
-
-func (d *IntArrayLedger) LoadConsensusStatus() error {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-	content, err := ioutil.ReadFile(path.Join(datadir, "consensus_status.json"))
-	if err != nil {
-		return err
-	}
-
-	d.highQC = &consensus_interface.QC{}
-
-	err = json.Unmarshal(content, d.highQC)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *IntArrayLedger) dumpLedger() {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-	lines := []string{}
-	for i := int64(0); i <= d.height; i++ {
-		if v, ok := d.blockContents[i]; ok {
-			lines = append(lines, fmt.Sprintf("%d %s %s", i, v.GetHash().HashString(), v.String()))
-		} else {
-			lines = append(lines, fmt.Sprintf("%d EMPTY", i))
-		}
-	}
-	err := files.WriteLines(lines, path.Join(datadir, "ledger.txt"))
-
-	utilfuncs.PanicIfError(err, "dump ledger")
-}
-
-func (d *IntArrayLedger) loadLedger() (err error) {
-	datadir := files.FixPrefixPath(viper.GetString("rootdir"), "data")
-
-	if !files.FileExists(path.Join(datadir, "ledger.txt")) {
-		err = errors.New("ledger file not exists: " + path.Join(datadir, "ledger.txt"))
-		return
-	}
-	lines, err := files.ReadLines(path.Join(datadir, "ledger.txt"))
+func (d *IntArrayLedger) LoadConsensusCommittee() (err error) {
+	byteContent, err := ioutil.ReadFile(path.Join(d.DataPath, ConsensusCommitteeFile))
 	if err != nil {
 		return
 	}
 
-	for _, line := range lines {
-		slots := strings.Split(line, " ")
-		height, err := strconv.Atoi(slots[0])
-		utilfuncs.PanicIfError(err, "read line")
-		hash := slots[1]
-		blockString := slots[2]
-		block := &IntArrayBlockContent{}
-		block.FromString(blockString)
-
-		if block.GetHash().HashString() != hash {
-			return errors.New("hash not aligned")
-		}
-		d.blockContents[int64(height)] = block
-		d.height = math.BiggerInt64(d.height, int64(height))
-		logrus.WithFields(
-			logrus.Fields{
-				"height": d.height,
-				"hash":   block.GetHash().HashString(),
-			}).Debug("loaded ledger")
+	gs := &og_interface.GenesisStore{}
+	err = json.Unmarshal(byteContent, gs)
+	if err != nil {
+		return
 	}
+
+	d.applyGenesisStore(gs)
+	return
+}
+
+// Consensus State init
+func (d *IntArrayLedger) InitConsensusStateGenesis() {
+	// get hash of the first block
+	genesis := d.ProvideGenesis()
+	hash := genesis.GetHash().HashString()
+
+	// generate high qc and genesis
+	d.consensusState = &consensus_interface.ConsensusState{
+		LastVoteRound:  0,
+		PreferredRound: 0,
+		HighQC: &consensus_interface.QC{
+			VoteData: consensus_interface.VoteInfo{
+				Id:               hash,
+				Round:            0,
+				ParentId:         "",
+				ParentRound:      0,
+				GrandParentId:    "",
+				GrandParentRound: 0,
+				ExecStateId:      "",
+			},
+			JointSignature: nil,
+		},
+	}
+	return
+}
+func (d *IntArrayLedger) SaveConsensusState(consensusState *consensus_interface.ConsensusState) {
+	logrus.WithField("state", consensusState).Trace("saving consensus state")
+	bytes, err := json.MarshalIndent(consensusState, "", "    ")
+	if err != nil {
+		logrus.WithError(err).Fatal("dump consensus state")
+	}
+
+	err = ioutil.WriteFile(path.Join(d.DataPath, ConsensusStateFile), bytes, 0644)
+	if err != nil {
+		logrus.WithError(err).Fatal("save consensus state")
+	}
+}
+
+func (d *IntArrayLedger) LoadConsensusState() (err error) {
+	byteContent, err := ioutil.ReadFile(path.Join(d.DataPath, ConsensusStateFile))
+
+	if err != nil {
+		logrus.WithError(err).Debug("error on loading consensus state")
+		return
+	}
+	cs := &consensus_interface.ConsensusState{}
+	err = json.Unmarshal(byteContent, cs)
+	if err != nil {
+		logrus.WithError(err).Fatal("unmarshal consensus state")
+		return
+	}
+	d.consensusState = cs
 	return
 }
 
@@ -360,9 +461,38 @@ func (d *IntArrayLedger) CurrentCommittee() *consensus_interface.Committee {
 	return d.genesis.FirstCommittee
 }
 
+func (d *IntArrayLedger) applyGenesisStore(gs *og_interface.GenesisStore) {
+	peers := []*consensus_interface.CommitteeMember{}
+	//unmarshaller := crypto.PubKeyUnmarshallers[pb.KeyType_Secp256k1]
+
+	for _, v := range gs.FirstCommittee.Peers {
+		//pubKeyBytes, err := hexutil.FromHex(v.PublicKey)
+		//utilfuncs.PanicIfError(err, "pubkey")
+		//pubKey, err := unmarshaller(pubKeyBytes)
+		//utilfuncs.PanicIfError(err, "pubkey")
+
+		peers = append(peers, &consensus_interface.CommitteeMember{
+			PeerIndex:        v.PeerIndex,
+			MemberId:         v.MemberId,
+			TransportPeerId:  v.TransportPeerId,
+			ConsensusAccount: nil,
+		})
+	}
+	g := &og_interface.Genesis{
+		//RootSequencerHash: hash,
+		FirstCommittee: &consensus_interface.Committee{
+			Peers:   peers,
+			Version: gs.FirstCommittee.Version,
+		},
+	}
+	d.genesis = g
+}
+
 type IntArrayProposalGenerator struct {
-	Ledger *IntArrayLedger
-	rander *rand.Rand
+	Ledger    *IntArrayLedger
+	rander    *rand.Rand
+	BlockTime time.Duration
+	MyId      int
 }
 
 func (i *IntArrayProposalGenerator) InitDefault() {
@@ -370,12 +500,28 @@ func (i *IntArrayProposalGenerator) InitDefault() {
 }
 
 func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface.ProposalContext) *consensus_interface.ContentProposal {
-	previousBlock := i.Ledger.blockContents[context.CurrentRound-1].(*IntArrayBlockContent)
+	if _, ok := i.Ledger.allBlockContents[context.HighQC.VoteData.Id]; !ok {
+		fmt.Println(context.HighQC.VoteData.Id)
+		fmt.Println(i.Ledger.allBlockContents)
+		panic("f")
+	}
+	previousBlock := i.Ledger.allBlockContents[context.HighQC.VoteData.Id].(*IntArrayBlockContent)
+
+	//previousBlock2 := i.Ledger.confirmedBlockContents[i.Ledger.height].(*IntArrayBlockContent)
+
+	//if *previousBlock != *previousBlock2{
+	//	fmt.Println(previousBlock)
+	//	fmt.Println(previousBlock2)
+	//	panic("not aligned")
+	//}
+
 	v := i.rander.Intn(100)
 	newBlock := &IntArrayBlockContent{
+		Height:      previousBlock.Height + 1,
 		Step:        v,
 		PreviousSum: previousBlock.MySum,
 		MySum:       previousBlock.MySum + v,
+		Submitter:   i.MyId,
 	}
 	proposal := &consensus_interface.ContentProposal{
 		Proposal: consensus_interface.Block{
@@ -386,9 +532,15 @@ func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface
 		},
 		TC: context.TC,
 	}
+	time.Sleep(i.BlockTime)
 	return proposal
 }
 
-func (i IntArrayProposalGenerator) GenerateProposalAsync(context *consensus_interface.ProposalContext) {
-	panic("implement me")
+func (i *IntArrayProposalGenerator) GenerateProposalAsync(context *consensus_interface.ProposalContext, callback func(*consensus_interface.ContentProposal)) {
+	go func(context *consensus_interface.ProposalContext, callback func(*consensus_interface.ContentProposal)) {
+		logrus.WithField("context", context).Info("start generating proposal")
+		proposal := i.GenerateProposal(context)
+		logrus.WithField("proposal", proposal).Info("proposal generated")
+		callback(proposal)
+	}(context, callback)
 }

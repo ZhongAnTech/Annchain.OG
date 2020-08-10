@@ -3,7 +3,6 @@ package rpc
 import (
 	"context"
 	"fmt"
-	"github.com/annchain/OG/common/goroutine"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
@@ -29,12 +28,12 @@ func (srv *RpcServer) InitDefault() {
 
 func (srv *RpcServer) Start() {
 	logrus.Infof("listening Http on %d", srv.Port)
-	goroutine.New(func() {
+	go func() {
 		// service connections
 		if err := srv.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logrus.WithError(err).Fatalf("error in Http server")
 		}
-	})
+	}()
 }
 
 func (srv *RpcServer) Stop() {

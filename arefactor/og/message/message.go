@@ -21,8 +21,8 @@ const (
 	OgMessageTypePong
 	OgMessageTypeHeightRequest
 	OgMessageTypeHeightResponse
-	OgMessageTypeHeightSyncRequest
-	OgMessageTypeHeightSyncResponse
+	OgMessageTypeResourceRequest
+	OgMessageTypeResourceResponse
 	OgMessageTypeSyncResponse
 	MessageTypeFetchByHashRequest
 	MessageTypeFetchByHashResponse
@@ -94,10 +94,10 @@ func (o OgMessageType) String() string {
 		return "OgMessageTypeHeightRequest"
 	case OgMessageTypeHeightResponse:
 		return "OgMessageTypeHeightResponse"
-	case OgMessageTypeHeightSyncRequest:
-		return "OgMessageTypeHeightSyncRequest"
-	case OgMessageTypeHeightSyncResponse:
-		return "OgMessageTypeHeightSyncResponse"
+	case OgMessageTypeResourceRequest:
+		return "OgMessageTypeResourceRequest"
+	case OgMessageTypeResourceResponse:
+		return "OgMessageTypeResourceResponse"
 	default:
 		return "Unknown Message " + strconv.Itoa(int(o))
 	}
@@ -245,23 +245,22 @@ func (z *OgMessageHeightResponse) FromBytes(bts []byte) error {
 	return nil
 }
 
-//msgp OgMessageHeightSyncRequest
-type OgMessageHeightSyncRequest struct {
-	Height      int64
-	Offset      int // sync starts from (paging)
-	BloomFilter []byte
+//msgp OgMessageResourceRequest
+type OgMessageResourceRequest struct {
+	ResourceType   int
+	RequestContent []byte
 }
 
-func (z *OgMessageHeightSyncRequest) GetType() OgMessageType {
-	return OgMessageTypeHeightSyncRequest
+func (z *OgMessageResourceRequest) GetType() OgMessageType {
+	return OgMessageTypeResourceRequest
 
 }
 
-func (z *OgMessageHeightSyncRequest) GetTypeValue() int {
+func (z *OgMessageResourceRequest) GetTypeValue() int {
 	return int(z.GetType())
 }
 
-func (z *OgMessageHeightSyncRequest) ToBytes() []byte {
+func (z *OgMessageResourceRequest) ToBytes() []byte {
 	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -269,7 +268,7 @@ func (z *OgMessageHeightSyncRequest) ToBytes() []byte {
 	return b
 }
 
-func (z *OgMessageHeightSyncRequest) FromBytes(bts []byte) error {
+func (z *OgMessageResourceRequest) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err
@@ -277,27 +276,25 @@ func (z *OgMessageHeightSyncRequest) FromBytes(bts []byte) error {
 	return nil
 }
 
-func (z *OgMessageHeightSyncRequest) String() string {
-	return fmt.Sprintf("OgMessageHeightSyncRequest: [height=%d]", z.Height)
+func (z *OgMessageResourceRequest) String() string {
+	return fmt.Sprintf("OgMessageResourceRequest: [type=%d, len=%d]", z.ResourceType, len(z.RequestContent))
 }
 
 //msgp OgMessageHeightSyncResponse
-type OgMessageHeightSyncResponse struct {
-	Height      int64
-	Offset      int  // sync starts from (paging)
-	HasNextPage bool // whether there are still some tx to be synced due to paging
-	Resources   []MessageContentResource
+type OgMessageResourceResponse struct {
+	ResourceType    int
+	ResponseContent []byte
 }
 
-func (z *OgMessageHeightSyncResponse) GetType() OgMessageType {
-	return OgMessageTypeHeightSyncResponse
+func (z *OgMessageResourceResponse) GetType() OgMessageType {
+	return OgMessageTypeResourceResponse
 }
 
-func (z *OgMessageHeightSyncResponse) GetTypeValue() int {
+func (z *OgMessageResourceResponse) GetTypeValue() int {
 	return int(z.GetType())
 }
 
-func (z *OgMessageHeightSyncResponse) ToBytes() []byte {
+func (z *OgMessageResourceResponse) ToBytes() []byte {
 	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -305,7 +302,7 @@ func (z *OgMessageHeightSyncResponse) ToBytes() []byte {
 	return b
 }
 
-func (z *OgMessageHeightSyncResponse) FromBytes(bts []byte) error {
+func (z *OgMessageResourceResponse) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err
@@ -313,8 +310,8 @@ func (z *OgMessageHeightSyncResponse) FromBytes(bts []byte) error {
 	return nil
 }
 
-func (z *OgMessageHeightSyncResponse) String() string {
-	return fmt.Sprintf("OgMessageHeightSyncResponse: [height=%d, len=%d]", z.Height, len(z.Resources))
+func (z *OgMessageResourceResponse) String() string {
+	return fmt.Sprintf("OgMessageResourceResponse: [type=%d, len=%d]", z.ResourceType, len(z.ResponseContent))
 }
 
 ////msgp OgMessageBatchSyncRequest

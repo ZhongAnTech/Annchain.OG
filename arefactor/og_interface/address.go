@@ -2,8 +2,9 @@ package og_interface
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/hexutil"
+
 	"github.com/annchain/OG/arefactor/utils/marshaller"
+	"github.com/annchain/commongo/hexutil"
 )
 
 const (

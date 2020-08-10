@@ -1,11 +1,8 @@
-package message
-
-import (
-	"fmt"
-	"github.com/annchain/OG/arefactor/common/hexutil"
-)
+package ogsyncer_interface
 
 type ResourceType uint8
+
+//go:generate msgp
 
 const (
 	ResourceTypeTx ResourceType = iota
@@ -19,18 +16,6 @@ var ResourceTypeStrings = map[ResourceType]string{
 	ResourceTypeTx:        "RTx",
 	ResourceTypeSequencer: "RTs",
 	ResourceTypeInt:       "RTi",
-}
-
-//go:generate msgp
-
-//msgp MessageContentResource
-type MessageContentResource struct {
-	ResourceType    ResourceType
-	ResourceContent []byte
-}
-
-func (z *MessageContentResource) String() string {
-	return fmt.Sprintf("%s %d %s", ResourceTypeStrings[z.ResourceType], len(z.ResourceContent), hexutil.ToHex(z.ResourceContent))
 }
 
 //msgp MessageContentTx
@@ -95,9 +80,11 @@ func (z *MessageContentSequencer) FromBytes(bts []byte) error {
 
 //msgp MessageContentInt
 type MessageContentInt struct {
+	Height      int64
 	Step        int
 	PreviousSum int
 	MySum       int
+	Submitter   int
 }
 
 func (z *MessageContentInt) ToBytes() []byte {

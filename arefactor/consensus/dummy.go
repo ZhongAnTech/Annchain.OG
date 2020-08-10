@@ -9,13 +9,14 @@ import "github.com/annchain/OG/arefactor/consensus_interface"
 type DefaultProposalContextProvider struct {
 	PaceMaker        *PaceMaker
 	PendingBlockTree *PendingBlockTree
-	Ledger           consensus_interface.Ledger
+	Safety           *Safety
 }
 
 func (d DefaultProposalContextProvider) GetProposalContext() *consensus_interface.ProposalContext {
+	consensusState := d.Safety.ConsensusState()
 	return &consensus_interface.ProposalContext{
 		CurrentRound: d.PaceMaker.CurrentRound,
-		HighQC:       d.Ledger.GetHighQC(),
-		TC:           d.PaceMaker.lastTC,
+		HighQC:       consensusState.HighQC,
+		TC:           consensusState.LastTC,
 	}
 }

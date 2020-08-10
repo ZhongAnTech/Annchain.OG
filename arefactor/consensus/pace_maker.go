@@ -1,8 +1,8 @@
 package consensus
 
 import (
-	"time"
-
+	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/annchain/OG/arefactor/consensus_interface"
@@ -20,14 +20,14 @@ type PaceMaker struct {
 	Partner         *Partner
 	ConsensusSigner consensus_interface.ConsensusSigner
 	AccountProvider consensus_interface.ConsensusAccountProvider
-	Ledger          consensus_interface.Ledger
+	//Ledger          consensus_interface.Ledger
 
 	CommitteeProvider consensus_interface.CommitteeProvider
 	Reporter          *soccerdash.Reporter
+	BlockTime         time.Duration
 
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 
-	lastTC     *consensus_interface.TC
 	pendingTCs map[int64]consensus_interface.SignatureCollector // round : sender list:true
 
 	timer *time.Timer
@@ -37,7 +37,7 @@ type PaceMaker struct {
 func (m *PaceMaker) InitDefault() {
 	m.quit = make(chan bool)
 	m.pendingTCs = make(map[int64]consensus_interface.SignatureCollector)
-	m.timer = time.NewTimer(time.Second * 2)
+	m.timer = time.NewTimer(time.Second * 15)
 	m.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 
 }
@@ -49,6 +49,7 @@ func (m *PaceMaker) AddSubscriberNewOutgoingMessageEvent(sub transport_interface
 
 func (m *PaceMaker) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
 	for _, subscriber := range m.newOutgoingMessageSubscribers {
+		logrus.WithField("to", subscriber.Name()).WithField("type", event.String()).Info("notifyNewOutgoingmessage")
 		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing hotstuff pacemaker"+subscriber.Name()).C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
@@ -62,14 +63,14 @@ func (m *PaceMaker) ProcessRemoteTimeoutMessage(msg *consensus_interface.HotStuf
 		return
 	}
 
-	m.ProcessRemoteTimeout(p, msg.Signature, msg.SenderId)
+	m.ProcessRemoteTimeout(p, msg.Signature, msg.SenderMemberId)
 }
 
-func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, signature consensus_interface.Signature, fromId string) {
-	id, err := m.CommitteeProvider.GetPeerIndex(fromId)
+func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, signature consensus_interface.Signature, fromMemberId string) {
+	id, err := m.CommitteeProvider.GetPeerIndex(fromMemberId)
 	if err != nil {
-		logrus.WithError(err).WithField("peerId", fromId).
-			Debug("error in finding peer in committee")
+		logrus.WithError(err).WithField("peerId", fromMemberId).
+			Fatal("error in finding peer in committee")
 		return
 	}
 
@@ -77,12 +78,14 @@ func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, 
 
 	collector := m.ensureTCCollector(p.Round)
 	collector.Collect(signature, id)
+	m.Reporter.Report("tcsig", fmt.Sprintf("R%d %d J %s", p.Round, collector.GetCurrentCount(), string(collector.GetJointSignature())), false)
 
 	m.Logger.WithFields(logrus.Fields{
-		"from":  fromId,
-		"round": p.Round,
-		"tcs":   collector.GetCurrentCount(),
-	}).Debug("T got")
+		"memberIndex": id,
+		"round":       p.Round,
+		"tcs":         collector.GetCurrentCount(),
+		"rand":        rand.Int31(),
+	}).Warn("T got")
 
 	if collector.Collected() {
 		m.Logger.WithField("round", p.Round).Info("TC got")
@@ -94,10 +97,11 @@ func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, 
 }
 
 func (m *PaceMaker) LocalTimeoutRound() {
-	collector := m.ensureTCCollector(m.CurrentRound)
+
+	logrus.WithField("rand", rand.Int31()).WithField("round", m.CurrentRound).Warn("local timeout")
+	_ = m.ensureTCCollector(m.CurrentRound)
 
 	m.Safety.IncreaseLastVoteRound(m.CurrentRound)
-	m.Ledger.SaveConsensusState(m.Safety.ConsensusState())
 
 	timeoutMsg := m.MakeTimeoutMessage()
 	bytes := timeoutMsg.ToBytes()
@@ -110,10 +114,11 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	outMsg := &consensus_interface.HotStuffSignedMessage{
 		HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeTimeout),
 		ContentBytes:        bytes,
-		SenderId:            m.CommitteeProvider.GetMyPeerId(),
+		SenderMemberId:      m.CommitteeProvider.GetMyPeerId(),
 		Signature:           signature,
 	}
 	letter := &transport_interface.OutgoingLetter{
+		ExceptMyself:   false, // send to me also to collect signature.
 		Msg:            outMsg,
 		SendType:       transport_interface.SendTypeMulticast,
 		CloseAfterSent: false,
@@ -121,8 +126,8 @@ func (m *PaceMaker) LocalTimeoutRound() {
 	}
 	m.notifyNewOutgoingMessage(letter)
 
-	collector.Collect(signature, m.CommitteeProvider.GetMyPeerIndex())
-	logrus.Info("reset timer")
+	//collector.Collect(signature, m.CommitteeProvider.GetMyPeerIndex())
+	logrus.Info("paceMaker reset timer")
 	m.timer.Reset(m.GetRoundTimer(m.CurrentRound))
 }
 
@@ -132,12 +137,14 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 	latestRound := int64(0)
 	if qc != nil && latestRound < qc.VoteData.Round {
 		latestRound = qc.VoteData.Round
+		m.Safety.SetHighQC(qc)
 	}
 	if tc != nil && latestRound < tc.Round {
 		latestRound = tc.Round
+		m.Safety.SetLastTC(tc)
 	}
 	if latestRound < m.CurrentRound {
-		m.Logger.WithField("cround", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Trace("qc round is less than current round so do not advance")
+		m.Logger.WithField("cround", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Debug("qc/tc round is less than current round so do not advance")
 		return
 	}
 	m.StopLocalTimer(latestRound)
@@ -145,8 +152,7 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 
 	m.Reporter.Report("CurrentRound", m.CurrentRound, false)
 
-	m.lastTC = tc
-	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Warn("round advanced")
+	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Info("round advanced")
 	if !m.CommitteeProvider.AmILeader(m.CurrentRound) {
 
 		// prepare vote message
@@ -164,10 +170,11 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 		outMsg := &consensus_interface.HotStuffSignedMessage{
 			HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeVote),
 			ContentBytes:        bytes,
-			SenderId:            m.CommitteeProvider.GetMyPeerId(),
+			SenderMemberId:      m.CommitteeProvider.GetMyPeerId(),
 			Signature:           signature,
 		}
 		letter := &transport_interface.OutgoingLetter{
+			ExceptMyself:   true,
 			Msg:            outMsg,
 			SendType:       transport_interface.SendTypeUnicast,
 			CloseAfterSent: false,
@@ -180,30 +187,31 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 }
 
 func (m *PaceMaker) MakeTimeoutMessage() *consensus_interface.ContentTimeout {
+	consensusState := m.Safety.ConsensusState()
 	return &consensus_interface.ContentTimeout{
 		Round:  m.CurrentRound,
-		HighQC: m.Ledger.GetHighQC(),
-		TC:     m.lastTC,
+		HighQC: consensusState.HighQC,
+		TC:     consensusState.LastTC,
 	}
 }
 
 func (m *PaceMaker) StopLocalTimer(r int64) {
 	if !m.timer.Stop() {
-		logrus.Warn("timer stopped ahead")
+		logrus.Trace("timer stopped ahead")
 		select {
 		case <-m.timer.C: // TRY to drain the channel
 		default:
 		}
 	}
-	logrus.Warn("timer stopped and cleared")
+	logrus.Trace("timer stopped and cleared")
 }
 
 func (m *PaceMaker) GetRoundTimer(round int64) time.Duration {
-	return time.Second * 10
+	return m.BlockTime + time.Second*5
 }
 
 func (m *PaceMaker) StartLocalTimer(round int64, duration time.Duration) {
-	logrus.Warn("Starting local timer")
+	logrus.Trace("Starting local timer")
 	m.timer.Reset(duration)
 }
 
@@ -211,9 +219,11 @@ func (m *PaceMaker) ensureTCCollector(round int64) consensus_interface.Signature
 	if _, ok := m.pendingTCs[round]; !ok {
 		collector := &BlsSignatureCollector{
 			CommitteeProvider: m.CommitteeProvider,
+			Round:             round,
 		}
 		collector.InitDefault()
 		m.pendingTCs[round] = collector
+		logrus.WithField("round", round).Trace("tc collector established")
 	}
 	collector := m.pendingTCs[round]
 	return collector

@@ -2,6 +2,7 @@ package og_interface
 
 import (
 	"fmt"
+
 	"github.com/annchain/OG/arefactor/utils/marshaller"
 )
 

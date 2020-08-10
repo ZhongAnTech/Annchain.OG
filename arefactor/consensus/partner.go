@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
+	"math/rand"
+	"strconv"
+	"time"
+
 	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
@@ -42,18 +46,12 @@ type Partner struct {
 	myNewIncomingMessageEventChan chan *transport_interface.IncomingLetter
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 
-	quit chan bool
+	quit      chan bool
+	BlockTime time.Duration
 }
 
 func (n *Partner) InitDefault() {
 	n.quit = make(chan bool)
-	// for each hash, init a SignatureCollector
-	n.pendingBlockTree = &PendingBlockTree{
-		Logger: n.Logger,
-		Ledger: n.Ledger,
-	}
-	n.pendingBlockTree.InitDefault()
-
 	n.safety = &Safety{
 		Ledger:   n.Ledger,
 		Reporter: n.Reporter,
@@ -61,15 +59,26 @@ func (n *Partner) InitDefault() {
 		Hasher:   n.Hasher,
 	}
 	n.safety.InitDefault()
+
+	// for each hash, init a SignatureCollector
+	n.pendingBlockTree = &PendingBlockTree{
+		Logger: n.Logger,
+		cache:  nil,
+		Ledger: n.Ledger,
+		Safety: n.safety,
+	}
+	n.pendingBlockTree.InitDefault()
+
 	n.paceMaker = &PaceMaker{
-		CurrentRound:      0,
+		Logger:            n.Logger,
+		CurrentRound:      n.Ledger.GetConsensusState().LastVoteRound,
 		Safety:            n.safety,
+		Partner:           n,
 		ConsensusSigner:   n.ConsensusSigner,
 		AccountProvider:   n.ConsensusAccountProvider,
-		Ledger:            n.Ledger,
 		CommitteeProvider: n.CommitteeProvider,
-		Partner:           n,
-		Logger:            n.Logger,
+		Reporter:          n.Reporter,
+		BlockTime:         n.BlockTime,
 	}
 	n.paceMaker.InitDefault()
 
@@ -77,7 +86,7 @@ func (n *Partner) InitDefault() {
 	n.proposalContextProvider = &DefaultProposalContextProvider{
 		PaceMaker:        n.paceMaker,
 		PendingBlockTree: n.pendingBlockTree,
-		Ledger:           n.Ledger,
+		Safety:           n.safety,
 	}
 	n.pendingQCs = make(map[string]consensus_interface.SignatureCollector)
 	n.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
@@ -100,9 +109,14 @@ func (n *Partner) Start() {
 			//}
 
 		case <-n.paceMaker.timer.C:
-			logrus.WithField("round", n.paceMaker.CurrentRound).Warn("packer timeout")
+			logrus.WithField("round", n.paceMaker.CurrentRound).Warn("paceMaker timeout")
 			n.paceMaker.LocalTimeoutRound()
 		}
+		consensusState := n.safety.ConsensusState()
+		n.Reporter.Report("lastTC", consensusState.LastTC, false)
+		n.Reporter.Report("CurrentRound", n.paceMaker.CurrentRound, false)
+		n.Reporter.Report("HighQC", consensusState.HighQC.VoteData, false)
+
 		logrus.Trace("partner loop round end")
 	}
 }
@@ -120,7 +134,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	p := &consensus_interface.ContentProposal{}
 	err := p.FromBytes(msg.ContentBytes)
 	if err != nil {
-		logrus.WithError(err).Debug("failed to decode ContentProposal")
+		logrus.WithError(err).Warn("failed to decode ContentProposal")
 		return
 	}
 
@@ -129,12 +143,12 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	currentRound := n.paceMaker.CurrentRound
 
 	if p.Proposal.Round != currentRound {
-		n.Logger.WithField("pRound", p.Proposal.Round).WithField("currentRound", currentRound).Warn("current round not match.")
+		n.Logger.WithField("proposalRound", p.Proposal.Round).WithField("currentRound", currentRound).Warn("current round not match.")
 		return
 	}
 
-	if msg.SenderId != n.CommitteeProvider.GetLeader(currentRound).MemberId {
-		n.Logger.WithField("msg.SenderId", msg.SenderId).
+	if msg.SenderMemberId != n.CommitteeProvider.GetLeader(currentRound).MemberId {
+		n.Logger.WithField("msg.SenderMemberId", msg.SenderMemberId).
 			WithField("current leader", n.CommitteeProvider.GetLeader(currentRound).MemberId).
 			Warn("current leader not match.")
 		return
@@ -143,7 +157,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	// TODO: now sync. change to async in the future
 	verifyResult := n.ProposalVerifier.VerifyProposal(p)
 	if !verifyResult.Ok {
-		logrus.Debug("proposal verification failed")
+		logrus.Warn("proposal verification failed")
 		return
 	}
 
@@ -151,7 +165,12 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 	// TODO: execute the block async
 	//n.BlockTree.ExecuteAndInsert(&p.HotStuffMessageTypeProposal)
 	// TODO: who is proposalExecutor?
-	n.proposalExecutor.ExecuteProposal(&p.Proposal)
+	executionResult := n.proposalExecutor.ExecuteProposal(&p.Proposal)
+	if executionResult.Err != nil {
+		// TODO: send clearly reject message instead of not sending messages
+		return
+	}
+	//if executionResult.ExecuteStateId != p.Proposal.Payload
 
 	// vote after execution
 
@@ -168,10 +187,11 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 		outMsg := &consensus_interface.HotStuffSignedMessage{
 			HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeVote),
 			ContentBytes:        bytes,
-			SenderId:            n.CommitteeProvider.GetMyPeerId(),
+			SenderMemberId:      n.CommitteeProvider.GetMyPeerId(),
 			Signature:           signature,
 		}
 		letter := &transport_interface.OutgoingLetter{
+			ExceptMyself:   false, // in case the next proposal generator is me.
 			Msg:            outMsg,
 			SendType:       transport_interface.SendTypeUnicast,
 			CloseAfterSent: false,
@@ -179,7 +199,10 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 		}
 
 		n.notifyNewOutgoingMessage(letter)
+	} else {
+		logrus.WithField("proposal", p.Proposal).Warn("I don't vote this proposal.")
 	}
+
 }
 
 func (n *Partner) ProcessVoteMessage(msg *consensus_interface.HotStuffSignedMessage) {
@@ -190,36 +213,37 @@ func (n *Partner) ProcessVoteMessage(msg *consensus_interface.HotStuffSignedMess
 		return
 	}
 	n.ProcessCertificates(p.QC, p.TC, "Vote")
-	n.ProcessVote(p, msg.Signature, msg.SenderId)
+	n.ProcessVote(p, msg.Signature, msg.SenderMemberId)
 }
 
-func (t *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature consensus_interface.Signature, fromId string) {
-	id, err := t.CommitteeProvider.GetPeerIndex(fromId)
+func (n *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature consensus_interface.Signature, fromId string) {
+	id, err := n.CommitteeProvider.GetPeerIndex(fromId)
 	if err != nil {
 		logrus.WithError(err).WithField("peerId", fromId).
-			Debug("error in finding peer in committee")
+			Fatal("error in finding peer in committee")
 	}
 
-	voteIndex := t.Hasher.Hash(vote.LedgerCommitInfo.GetHashContent())
+	voteIndex := n.Hasher.Hash(vote.LedgerCommitInfo.GetHashContent())
 
-	collector := t.ensureQCCollector(voteIndex)
+	collector := n.ensureQCCollector(voteIndex)
 	collector.Collect(signature, id)
 
 	logrus.WithField("sigs", collector.GetCurrentCount()).
 		WithField("sig", signature).Debug("signature got one")
+	n.Reporter.Report("qcsig", fmt.Sprintf("B %s %d J %s", voteIndex, collector.GetCurrentCount(), collector.GetJointSignature()), false)
 
 	if collector.Collected() {
-		t.Logger.WithField("vote", vote).Info("votes collected")
+		n.Logger.WithField("vote", vote).Info("votes collected")
 		qc := &consensus_interface.QC{
 			VoteData:       vote.VoteInfo, // TODO: check if the voteinfo is aligned
 			JointSignature: collector.GetJointSignature(),
 		}
 
-		t.pendingBlockTree.EnsureHighQC(qc)
-		t.paceMaker.AdvanceRound(qc, nil, "vote qc got")
+		n.pendingBlockTree.EnsureHighQC(qc)
+		n.paceMaker.AdvanceRound(qc, nil, "vote qc got")
 
 	} else {
-		t.Logger.WithField("vote", vote).
+		n.Logger.WithField("vote", vote).
 			WithField("now", collector.GetCurrentCount()).Trace("votes yet collected")
 	}
 }
@@ -234,16 +258,7 @@ func (n *Partner) ProcessCertificates(qc *consensus_interface.QC, tc *consensus_
 	}
 }
 
-func (n *Partner) ProcessNewRoundEvent() {
-	if !n.CommitteeProvider.AmILeader(n.paceMaker.CurrentRound) {
-		// not the leader
-		n.Logger.Trace("I'm not the leader so just return")
-		return
-	}
-	//proposal := n.BlockTree.GenerateProposal(n.paceMaker.CurrentRound, strconv.Itoa(RandInt()))
-	proposalContext := n.proposalContextProvider.GetProposalContext()
-
-	proposal := n.ProposalGenerator.GenerateProposal(proposalContext)
+func (n *Partner) ProposalGeneratedEventHandler(proposal *consensus_interface.ContentProposal) {
 	n.Logger.WithField("proposal", proposal).Warn("I'm the current leader")
 	n.Reporter.Report("leader", proposal.Proposal.Round, false)
 
@@ -257,16 +272,28 @@ func (n *Partner) ProcessNewRoundEvent() {
 	outMsg := &consensus_interface.HotStuffSignedMessage{
 		HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeProposal),
 		ContentBytes:        bytes,
-		SenderId:            n.CommitteeProvider.GetMyPeerId(),
+		SenderMemberId:      n.CommitteeProvider.GetMyPeerId(),
 		Signature:           signature,
 	}
 	letter := &transport_interface.OutgoingLetter{
+		ExceptMyself:   false, // announce to me also so that I can process that proposal.
 		Msg:            outMsg,
 		SendType:       transport_interface.SendTypeMulticast,
 		CloseAfterSent: false,
 		EndReceivers:   n.CommitteeProvider.GetAllMemberTransportIds(),
 	}
 	n.notifyNewOutgoingMessage(letter)
+}
+
+func (n *Partner) ProcessNewRoundEvent() {
+	if !n.CommitteeProvider.AmILeader(n.paceMaker.CurrentRound) {
+		// not the leader
+		n.Logger.Trace("I'm not the leader so just return")
+		return
+	}
+	//proposal := n.BlockTree.GenerateProposal(n.paceMaker.CurrentRound, strconv.Itoa(RandInt()))
+	proposalContext := n.proposalContextProvider.GetProposalContext()
+	n.ProposalGenerator.GenerateProposalAsync(proposalContext, n.ProposalGeneratedEventHandler)
 }
 
 func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter) {
@@ -280,6 +307,7 @@ func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter)
 		logrus.WithError(err).Debug("failed to parse HotStuffSignedMessage message")
 		return
 	}
+
 	// TODO: verify if the sender is in the committee.
 	// TODO: verify signature
 
@@ -291,7 +319,7 @@ func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter)
 		logrus.Info("handling vote")
 		n.ProcessVoteMessage(signedMessage)
 	case consensus_interface.HotStuffMessageTypeTimeout:
-		logrus.Info("handling timeout")
+		logrus.WithField("rand", rand.Int31()).Info("handling timeout")
 		n.paceMaker.ProcessRemoteTimeoutMessage(signedMessage)
 	default:
 		panic("unsupported typev")
@@ -300,18 +328,18 @@ func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter)
 
 // notifications
 
-func (d *Partner) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
-	return d.myNewIncomingMessageEventChan
+func (n *Partner) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
+	return n.myNewIncomingMessageEventChan
 }
 
 // subscribe mine
-func (d *Partner) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
-	d.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
-	d.paceMaker.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
+func (n *Partner) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
+	n.newOutgoingMessageSubscribers = append(n.newOutgoingMessageSubscribers, sub)
+	n.paceMaker.AddSubscriberNewOutgoingMessageEvent(sub)
 }
 
-func (d *Partner) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
-	for _, subscriber := range d.newOutgoingMessageSubscribers {
+func (n *Partner) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
+	for _, subscriber := range n.newOutgoingMessageSubscribers {
 		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing hotstuff partner"+subscriber.Name()).C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}

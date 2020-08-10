@@ -15,9 +15,10 @@ package cmd
 
 import (
 	"github.com/annchain/OG/arefactor/core"
-	//"github.com/annchain/OG/node"
-	log "github.com/sirupsen/logrus"
+	"github.com/annchain/commongo/mylog"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,15 +30,26 @@ var runCmd = &cobra.Command{
 	Short: "Start a full node",
 	Long:  `Start a full node`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ensureFolder()
-		initLogger()
-		// init logs and other facilities before the node starts
-		readConfig()
-		startPerformanceMonitor()
-		writeConfig()
+		folderConfigs := ensureFolders()
+		logrus.WithField("c", folderConfigs).Info("folders")
+		readConfig(folderConfigs.Config)
+		mylog.InitLogger(logrus.StandardLogger(), mylog.LogConfig{
+			MaxSize:    10,
+			MaxBackups: 100,
+			MaxAgeDays: 90,
+			Compress:   true,
+			LogDir:     folderConfigs.Log,
+			OutputFile: "og",
+		})
+		mylog.LogInit(mylog.LogLevel(viper.GetString("log.level")))
+		logrus.WithField("pid", os.Getpid()).Info("OG Starting")
 
-		log.WithField("pid", os.Getpid()).Info("OgNode Starting")
-		node := &core.OgNode{}
+		//startPerformanceMonitor()
+		//writeConfig()
+
+		node := &core.OgNode{
+			FolderConfig: folderConfigs,
+		}
 		node.InitDefault()
 		node.Setup()
 		node.Start()
@@ -50,8 +62,8 @@ var runCmd = &cobra.Command{
 
 		func() {
 			sig := <-gracefulStop
-			log.Warnf("caught sig: %+v", sig)
-			log.Warn("Exiting... Please do no kill me")
+			logrus.Warnf("caught sig: %+v", sig)
+			logrus.Warn("Exiting... Please do no kill me")
 			node.Stop()
 			os.Exit(0)
 		}()

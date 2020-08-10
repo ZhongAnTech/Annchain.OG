@@ -2,11 +2,10 @@ package core
 
 import (
 	"github.com/annchain/OG/arefactor/bouncer"
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
-	"github.com/annchain/OG/common/io"
+	"github.com/annchain/commongo/utilfuncs"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"path"
@@ -14,6 +13,7 @@ import (
 
 // OgNode is the basic entry point for all modules to start.
 type SampleNode struct {
+	FolderConfig           FolderConfig
 	components             []Component
 	transportAccountHolder og.TransportAccountProvider
 	cpTransport            *transport.PhysicalCommunicator
@@ -32,14 +32,14 @@ func (n *SampleNode) Setup() {
 	n.transportAccountHolder = &og.LocalTransportAccountProvider{
 		PrivateGenerator:   &og.CachedPrivateGenerator{},
 		NetworkIdConverter: &og.OgNetworkIdConverter{},
-		BackFilePath:       io.FixPrefixPath(viper.GetString("rootdir"), path.Join(PrivateDir, "transport.key")),
+		BackFilePath:       path.Join(n.FolderConfig.Private, "transport.key"),
 		CryptoType:         transport_interface.CryptoTypeSecp256k1,
 	}
 
 	// low level transport (libp2p)
-	cpTransport := getTransport(n.transportAccountHolder)
+	cpTransport := getTransport(n.transportAccountHolder, nil)
 
-	cpPerformanceMonitor := getPerformanceMonitor()
+	cpPerformanceMonitor := getPerformanceMonitor(nil)
 
 	// bouncer
 
@@ -77,7 +77,8 @@ func (n *SampleNode) Start() {
 }
 func (n *SampleNode) AfterStart() {
 	knownPeersAddress, err := transport_interface.LoadKnownPeers(
-		io.FixPrefixPath(viper.GetString("rootdir"), path.Join(ConfigDir, "peers.lst")))
+		path.Join(n.FolderConfig.Config, "peers.lst"))
+
 	if err != nil {
 		logrus.WithError(err).Fatal("you need provide at least one known address to connect to the address network. Place them in config/peers.lst")
 	}

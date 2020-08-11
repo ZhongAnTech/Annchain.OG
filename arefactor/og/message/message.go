@@ -19,10 +19,6 @@ const (
 	OgMessageTypeStatus OgMessageType = iota + 0
 	OgMessageTypePing
 	OgMessageTypePong
-	OgMessageTypeHeightRequest
-	OgMessageTypeHeightResponse
-	OgMessageTypeResourceRequest
-	OgMessageTypeResourceResponse
 	OgMessageTypeSyncResponse
 	MessageTypeFetchByHashRequest
 	MessageTypeFetchByHashResponse

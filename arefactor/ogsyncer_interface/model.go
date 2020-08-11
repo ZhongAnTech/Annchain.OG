@@ -10,11 +10,11 @@ const (
 	OgSyncMessageTypeLatestHeightRequest OgSyncMessageType = iota + 20
 	OgSyncMessageTypeLatestHeightResponse
 	OgSyncMessageTypeByHashesRequest
-	OgSyncMessageTypeByBlockHeightRequest
-	OgSyncMessageTypeByBlockHashRequest
+	OgSyncMessageTypeBlockByHeightRequest
+	OgSyncMessageTypeBlockByHashRequest
 
 	OgSyncMessageTypeByHashesResponse
-	OgSyncMessageTypeByBlockHeightResponse
+	OgSyncMessageTypeBlockByHeightResponse
 	OgSyncMessageTypeByBlockHashResponse
 )
 
@@ -149,7 +149,8 @@ func (z *OgSyncByHashesResponse) FromBytes(bts []byte) error {
 }
 
 func (z *OgSyncByHashesResponse) String() string {
-	return fmt.Sprintf("OgSyncByHashesResponse seq [%d] txs [%d] Int [%d]", len(z.Sequencers), len(z.Txs), len(z.Ints))
+	return fmt.Sprintf("OgSyncByHashesResponse seq [%d] txs [%d] Int [%d]",
+		len(z.Sequencers), len(z.Txs), len(z.Ints))
 }
 
 //msgp OgSyncBlockByHeightRequest
@@ -159,7 +160,7 @@ type OgSyncBlockByHeightRequest struct {
 }
 
 func (z *OgSyncBlockByHeightRequest) GetType() OgSyncMessageType {
-	return OgSyncMessageTypeByBlockHeightRequest
+	return OgSyncMessageTypeBlockByHeightRequest
 }
 
 func (z *OgSyncBlockByHeightRequest) GetTypeValue() int {
@@ -190,13 +191,13 @@ func (z *OgSyncBlockByHeightRequest) String() string {
 //msgp OgSyncBlockByHeightResponse
 type OgSyncBlockByHeightResponse struct {
 	HasMore    bool
-	Sequencers MessageContentSequencer
-	Int        MessageContentInt
+	Sequencers []MessageContentSequencer
+	Ints       []MessageContentInt
 	Txs        []MessageContentTx
 }
 
 func (z *OgSyncBlockByHeightResponse) GetType() OgSyncMessageType {
-	return OgSyncMessageTypeByBlockHeightResponse
+	return OgSyncMessageTypeBlockByHeightResponse
 }
 
 func (z *OgSyncBlockByHeightResponse) GetTypeValue() int {
@@ -220,7 +221,8 @@ func (z *OgSyncBlockByHeightResponse) FromBytes(bts []byte) error {
 }
 
 func (z *OgSyncBlockByHeightResponse) String() string {
-	return fmt.Sprintf("OgSyncByHashesResponse seq [%s] txs [%d] Int [%d]", z.Sequencers.Hash, len(z.Txs), z.Int.MySum)
+	return fmt.Sprintf("OgSyncByHashesResponse seq [%d] txs [%d] Ints [%d]",
+		len(z.Sequencers), len(z.Txs), len(z.Ints))
 }
 
 //msgp OgSyncBlockByHashRequest
@@ -230,7 +232,7 @@ type OgSyncBlockByHashRequest struct {
 }
 
 func (z *OgSyncBlockByHashRequest) GetType() OgSyncMessageType {
-	return OgSyncMessageTypeByBlockHashRequest
+	return OgSyncMessageTypeBlockByHashRequest
 }
 
 func (z *OgSyncBlockByHashRequest) GetTypeValue() int {
@@ -260,8 +262,8 @@ func (z *OgSyncBlockByHashRequest) String() string {
 //msgp OgSyncBlockByHashResponse
 type OgSyncBlockByHashResponse struct {
 	HasMore    bool
-	Sequencers MessageContentSequencer
-	Int        MessageContentInt
+	Sequencers []MessageContentSequencer
+	Ints       []MessageContentInt
 	Txs        []MessageContentTx
 }
 
@@ -290,5 +292,6 @@ func (z *OgSyncBlockByHashResponse) FromBytes(bts []byte) error {
 }
 
 func (z *OgSyncBlockByHashResponse) String() string {
-	return fmt.Sprintf("OgSyncBlockByHashResponse seq [%s] txs [%d] Int [%d]", z.Sequencers.Hash, len(z.Txs), z.Int.MySum)
+	return fmt.Sprintf("OgSyncBlockByHashResponse seq [%d] txs [%d] Int [%d]",
+		len(z.Sequencers), len(z.Txs), len(z.Ints))
 }

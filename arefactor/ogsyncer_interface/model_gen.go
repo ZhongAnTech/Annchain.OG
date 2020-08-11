@@ -164,10 +164,10 @@ func (z *OgSyncBlockByHashResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Sequencers")
 				return
 			}
-		case "Ints":
+		case "Int":
 			err = z.Ints.DecodeMsg(dc)
 			if err != nil {
-				err = msgp.WrapError(err, "Ints")
+				err = msgp.WrapError(err, "Int")
 				return
 			}
 		case "Txs":
@@ -223,14 +223,14 @@ func (z *OgSyncBlockByHashResponse) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Sequencers")
 		return
 	}
-	// write "Ints"
+	// write "Int"
 	err = en.Append(0xa4, 0x49, 0x6e, 0x74, 0x73)
 	if err != nil {
 		return
 	}
 	err = z.Ints.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "Ints")
+		err = msgp.WrapError(err, "Int")
 		return
 	}
 	// write "Txs"
@@ -267,11 +267,11 @@ func (z *OgSyncBlockByHashResponse) MarshalMsg(b []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "Sequencers")
 		return
 	}
-	// string "Ints"
+	// string "Int"
 	o = append(o, 0xa4, 0x49, 0x6e, 0x74, 0x73)
 	o, err = z.Ints.MarshalMsg(o)
 	if err != nil {
-		err = msgp.WrapError(err, "Ints")
+		err = msgp.WrapError(err, "Int")
 		return
 	}
 	// string "Txs"
@@ -317,10 +317,10 @@ func (z *OgSyncBlockByHashResponse) UnmarshalMsg(bts []byte) (o []byte, err erro
 				err = msgp.WrapError(err, "Sequencers")
 				return
 			}
-		case "Ints":
+		case "Int":
 			bts, err = z.Ints.UnmarshalMsg(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "Ints")
+				err = msgp.WrapError(err, "Int")
 				return
 			}
 		case "Txs":
@@ -521,10 +521,10 @@ func (z *OgSyncBlockByHeightResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Sequencers")
 				return
 			}
-		case "Ints":
-			err = z.Ints.DecodeMsg(dc)
+		case "Int":
+			err = z.Int.DecodeMsg(dc)
 			if err != nil {
-				err = msgp.WrapError(err, "Ints")
+				err = msgp.WrapError(err, "Int")
 				return
 			}
 		case "Txs":
@@ -580,14 +580,14 @@ func (z *OgSyncBlockByHeightResponse) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Sequencers")
 		return
 	}
-	// write "Ints"
+	// write "Int"
 	err = en.Append(0xa4, 0x49, 0x6e, 0x74, 0x73)
 	if err != nil {
 		return
 	}
-	err = z.Ints.EncodeMsg(en)
+	err = z.Int.EncodeMsg(en)
 	if err != nil {
-		err = msgp.WrapError(err, "Ints")
+		err = msgp.WrapError(err, "Int")
 		return
 	}
 	// write "Txs"
@@ -624,11 +624,11 @@ func (z *OgSyncBlockByHeightResponse) MarshalMsg(b []byte) (o []byte, err error)
 		err = msgp.WrapError(err, "Sequencers")
 		return
 	}
-	// string "Ints"
+	// string "Int"
 	o = append(o, 0xa4, 0x49, 0x6e, 0x74, 0x73)
-	o, err = z.Ints.MarshalMsg(o)
+	o, err = z.Int.MarshalMsg(o)
 	if err != nil {
-		err = msgp.WrapError(err, "Ints")
+		err = msgp.WrapError(err, "Int")
 		return
 	}
 	// string "Txs"
@@ -674,10 +674,10 @@ func (z *OgSyncBlockByHeightResponse) UnmarshalMsg(bts []byte) (o []byte, err er
 				err = msgp.WrapError(err, "Sequencers")
 				return
 			}
-		case "Ints":
-			bts, err = z.Ints.UnmarshalMsg(bts)
+		case "Int":
+			bts, err = z.Int.UnmarshalMsg(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "Ints")
+				err = msgp.WrapError(err, "Int")
 				return
 			}
 		case "Txs":
@@ -713,7 +713,7 @@ func (z *OgSyncBlockByHeightResponse) UnmarshalMsg(bts []byte) (o []byte, err er
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *OgSyncBlockByHeightResponse) Msgsize() (s int) {
-	s = 1 + 8 + msgp.BoolSize + 11 + z.Sequencers.Msgsize() + 5 + z.Ints.Msgsize() + 4 + msgp.ArrayHeaderSize
+	s = 1 + 8 + msgp.BoolSize + 11 + z.Sequencers.Msgsize() + 5 + z.Int.Msgsize() + 4 + msgp.ArrayHeaderSize
 	for za0001 := range z.Txs {
 		s += z.Txs[za0001].Msgsize()
 	}
@@ -918,11 +918,11 @@ func (z *OgSyncByHashesResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 					return
 				}
 			}
-		case "Ints":
+		case "Int":
 			var zb0004 uint32
 			zb0004, err = dc.ReadArrayHeader()
 			if err != nil {
-				err = msgp.WrapError(err, "Ints")
+				err = msgp.WrapError(err, "Int")
 				return
 			}
 			if cap(z.Ints) >= int(zb0004) {
@@ -933,7 +933,7 @@ func (z *OgSyncByHashesResponse) DecodeMsg(dc *msgp.Reader) (err error) {
 			for za0003 := range z.Ints {
 				err = z.Ints[za0003].DecodeMsg(dc)
 				if err != nil {
-					err = msgp.WrapError(err, "Ints", za0003)
+					err = msgp.WrapError(err, "Int", za0003)
 					return
 				}
 			}
@@ -985,20 +985,20 @@ func (z *OgSyncByHashesResponse) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	// write "Ints"
+	// write "Int"
 	err = en.Append(0xa4, 0x49, 0x6e, 0x74, 0x73)
 	if err != nil {
 		return
 	}
 	err = en.WriteArrayHeader(uint32(len(z.Ints)))
 	if err != nil {
-		err = msgp.WrapError(err, "Ints")
+		err = msgp.WrapError(err, "Int")
 		return
 	}
 	for za0003 := range z.Ints {
 		err = z.Ints[za0003].EncodeMsg(en)
 		if err != nil {
-			err = msgp.WrapError(err, "Ints", za0003)
+			err = msgp.WrapError(err, "Int", za0003)
 			return
 		}
 	}
@@ -1029,13 +1029,13 @@ func (z *OgSyncByHashesResponse) MarshalMsg(b []byte) (o []byte, err error) {
 			return
 		}
 	}
-	// string "Ints"
+	// string "Int"
 	o = append(o, 0xa4, 0x49, 0x6e, 0x74, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Ints)))
 	for za0003 := range z.Ints {
 		o, err = z.Ints[za0003].MarshalMsg(o)
 		if err != nil {
-			err = msgp.WrapError(err, "Ints", za0003)
+			err = msgp.WrapError(err, "Int", za0003)
 			return
 		}
 	}
@@ -1098,11 +1098,11 @@ func (z *OgSyncByHashesResponse) UnmarshalMsg(bts []byte) (o []byte, err error) 
 					return
 				}
 			}
-		case "Ints":
+		case "Int":
 			var zb0004 uint32
 			zb0004, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "Ints")
+				err = msgp.WrapError(err, "Int")
 				return
 			}
 			if cap(z.Ints) >= int(zb0004) {
@@ -1113,7 +1113,7 @@ func (z *OgSyncByHashesResponse) UnmarshalMsg(bts []byte) (o []byte, err error) 
 			for za0003 := range z.Ints {
 				bts, err = z.Ints[za0003].UnmarshalMsg(bts)
 				if err != nil {
-					err = msgp.WrapError(err, "Ints", za0003)
+					err = msgp.WrapError(err, "Int", za0003)
 					return
 				}
 			}
@@ -1353,7 +1353,7 @@ func (z OgSyncLatestHeightResponse) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *OgSyncType) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *OgSyncMessageType) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
 		var zb0001 int
 		zb0001, err = dc.ReadInt()
@@ -1361,13 +1361,13 @@ func (z *OgSyncType) DecodeMsg(dc *msgp.Reader) (err error) {
 			err = msgp.WrapError(err)
 			return
 		}
-		(*z) = OgSyncType(zb0001)
+		(*z) = OgSyncMessageType(zb0001)
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z OgSyncType) EncodeMsg(en *msgp.Writer) (err error) {
+func (z OgSyncMessageType) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteInt(int(z))
 	if err != nil {
 		err = msgp.WrapError(err)
@@ -1377,14 +1377,14 @@ func (z OgSyncType) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z OgSyncType) MarshalMsg(b []byte) (o []byte, err error) {
+func (z OgSyncMessageType) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendInt(o, int(z))
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *OgSyncType) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *OgSyncMessageType) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
 		var zb0001 int
 		zb0001, bts, err = msgp.ReadIntBytes(bts)
@@ -1392,14 +1392,14 @@ func (z *OgSyncType) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			err = msgp.WrapError(err)
 			return
 		}
-		(*z) = OgSyncType(zb0001)
+		(*z) = OgSyncMessageType(zb0001)
 	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z OgSyncType) Msgsize() (s int) {
+func (z OgSyncMessageType) Msgsize() (s int) {
 	s = msgp.IntSize
 	return
 }

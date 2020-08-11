@@ -95,8 +95,8 @@ func (d *DefaultCommunityManager) AddSubscriberPeerLeftEvent(sub og_interface.Pe
 
 func (d *DefaultCommunityManager) notifyPeerLeft(event *og_interface.PeerLeftEvent) {
 	for _, subscriber := range d.peerLeftEventSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.EventChannelPeerLeft(), event, "peerleft").C
-		//subscriber.EventChannelPeerLeft() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.EventChannelPeerLeftChannel(), event, "peerleft").C
+		//subscriber.EventChannelPeerLeftChannel() <- event
 	}
 }
 

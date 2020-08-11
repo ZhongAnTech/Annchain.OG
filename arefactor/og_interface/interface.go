@@ -17,7 +17,7 @@ type PeerJoinedEventSubscriber interface {
 }
 
 type PeerLeftEventSubscriber interface {
-	EventChannelPeerLeft() chan *PeerLeftEvent
+	EventChannelPeerLeftChannel() chan *PeerLeftEvent
 }
 
 type NodeInfoProvider interface {

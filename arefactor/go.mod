@@ -4,16 +4,14 @@ go 1.13
 
 require (
 	github.com/annchain/OG v0.0.5
-	github.com/annchain/commongo v0.0.0-20200727095347-9981046dc380
+	github.com/annchain/commongo v0.0.0-20200811120243-5663f75c4dbe
 	github.com/gin-gonic/gin v1.5.0
 	github.com/latifrons/goffchan v1.0.0
 	github.com/latifrons/soccerdash v1.1.2
 	github.com/libp2p/go-libp2p v0.9.2
 	github.com/libp2p/go-libp2p-core v0.5.6
 	github.com/libp2p/go-libp2p-swarm v0.2.6
-	github.com/minio/sha256-simd v0.1.1
 	github.com/multiformats/go-multiaddr v0.2.2
-	github.com/prometheus/common v0.4.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0

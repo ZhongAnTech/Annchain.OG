@@ -3,10 +3,10 @@ package og_interface
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/hexutil"
-	"github.com/annchain/OG/arefactor/common/utilfuncs"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
-	"github.com/annchain/OG/common/math"
+	"github.com/annchain/commongo/hexutil"
+	"github.com/annchain/commongo/math"
+	"github.com/annchain/commongo/utilfuncs"
 	"math/big"
 	"math/rand"
 )

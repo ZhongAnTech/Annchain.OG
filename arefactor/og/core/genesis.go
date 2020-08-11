@@ -21,11 +21,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/annchain/OG/arefactor/common/hexutil"
-	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
+	"github.com/annchain/commongo/hexutil"
+	"github.com/annchain/commongo/math"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	pb "github.com/libp2p/go-libp2p-core/crypto/pb"
 )

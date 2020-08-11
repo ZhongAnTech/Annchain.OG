@@ -17,8 +17,6 @@ package types
 import (
 	og_types "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
-	"github.com/annchain/OG/common"
-	"github.com/tinylib/msgp/msgp"
 	"strings"
 )
 
@@ -59,28 +57,28 @@ type Txi interface {
 	marshaller.IMarshaller
 }
 
-type RawTxi interface {
-	GetType() TxBaseType
-	GetHeight() uint64
-	GetWeight() uint64
-	GetTxHash() og_types.Hash
-	GetNonce() uint64
-	Parents() common.Hashes // Parents returns the hash of txs that it directly proves.
-	SetHash(h og_types.Hash)
-	String() string
-	CalcTxHash() og_types.Hash    // TxHash returns a full tx hash (parents sealed by PoW stage 2)
-	CalcMinedHash() og_types.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
-	CalculateWeight(parents Txis) uint64
-
-	Txi() Txi
-
-	// implemented by msgp
-	DecodeMsg(dc *msgp.Reader) (err error)
-	EncodeMsg(en *msgp.Writer) (err error)
-	MarshalMsg(b []byte) (o []byte, err error)
-	UnmarshalMsg(bts []byte) (o []byte, err error)
-	Msgsize() (s int)
-}
+//type RawTxi interface {
+//	GetType() TxBaseType
+//	GetHeight() uint64
+//	GetWeight() uint64
+//	GetTxHash() og_types.Hash
+//	GetNonce() uint64
+//	Parents() common.Hashes // Parents returns the hash of txs that it directly proves.
+//	SetHash(h og_types.Hash)
+//	String() string
+//	CalcTxHash() og_types.Hash    // TxHash returns a full tx hash (parents sealed by PoW stage 2)
+//	CalcMinedHash() og_types.Hash // NonceHash returns the part that needs to be considered in PoW stage 1.
+//	CalculateWeight(parents Txis) uint64
+//
+//	Txi() Txi
+//
+//	// implemented by msgp
+//	DecodeMsg(dc *msgp.Reader) (err error)
+//	EncodeMsg(en *msgp.Writer) (err error)
+//	MarshalMsg(b []byte) (o []byte, err error)
+//	UnmarshalMsg(bts []byte) (o []byte, err error)
+//	Msgsize() (s int)
+//}
 
 type Txis []Txi
 

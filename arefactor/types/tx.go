@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/annchain/OG/arefactor/common/hexutil"
-	"github.com/annchain/OG/arefactor/common/math"
+	"github.com/annchain/commongo/hexutil"
+	"github.com/annchain/commongo/math"
 
 	og_types "github.com/annchain/OG/arefactor/og_interface"
 )

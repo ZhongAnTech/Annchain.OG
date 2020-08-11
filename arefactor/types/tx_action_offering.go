@@ -3,18 +3,18 @@ package types
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
-	"github.com/annchain/OG/common/math"
+	"github.com/annchain/commongo/math"
 )
 
 type InitialOffering struct {
-	Value   *math.BigInt `json:"value"`
-	EnableSPO bool   `json:"enable_spo"` //if enableSPO is false  , no Secondary Public Issues.
-	TokenName string `json:"token_name"`
+	Value     *math.BigInt `json:"value"`
+	EnableSPO bool         `json:"enable_spo"` //if enableSPO is false  , no Secondary Public Issues.
+	TokenName string       `json:"token_name"`
 }
 
 func NewInitialOffering(value *math.BigInt, enableSPO bool, tokenName string) *InitialOffering {
 	return &InitialOffering{
-		Value: value,
+		Value:     value,
 		EnableSPO: enableSPO,
 		TokenName: tokenName,
 	}
@@ -71,7 +71,7 @@ func (p *InitialOffering) MsgSize() int {
 
 /**
 SecondaryOffering
- */
+*/
 
 type SecondaryOffering struct {
 	TokenId int32        `json:"token_id"` //for Secondary Public Issues
@@ -81,7 +81,7 @@ type SecondaryOffering struct {
 func NewSecondaryOffering(tokenId int32, value *math.BigInt) *SecondaryOffering {
 	return &SecondaryOffering{
 		TokenId: tokenId,
-		Value: math.NewBigInt(0),
+		Value:   math.NewBigInt(0),
 	}
 }
 
@@ -129,10 +129,10 @@ func (so *SecondaryOffering) MsgSize() int {
 
 /**
 DestroyOffering
- */
+*/
 
 type DestroyOffering struct {
-	TokenId int32        `json:"token_id"`
+	TokenId int32 `json:"token_id"`
 }
 
 func NewDestroyOffering(tokenId int32) *DestroyOffering {
@@ -174,5 +174,3 @@ func (d *DestroyOffering) UnmarshalMsg(b []byte) ([]byte, error) {
 func (d *DestroyOffering) MsgSize() int {
 	return marshaller.Int32Size
 }
-
-

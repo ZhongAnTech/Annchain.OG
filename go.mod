@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/annchain/bloom v2.0.4+incompatible
+	github.com/annchain/commongo v0.0.0-20200727100046-6b7cd76c21f4 // indirect
 	github.com/annchain/gcache v0.0.2
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/annchain/trie v0.0.0-20200810071945-f021089b234f // indirect
@@ -25,15 +26,15 @@ require (
 	github.com/jessevdk/go-flags v1.4.0 // indirect
 	github.com/latifrons/soccerdash v0.0.0-20200526135519-7df7239ba832
 	github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 // indirect
-	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f
+	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f // indirect
 	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/libp2p/go-libp2p v0.9.2
 	github.com/libp2p/go-libp2p-core v0.5.6
 	github.com/libp2p/go-libp2p-swarm v0.2.5
-	github.com/magiconair/properties v1.8.0
+	github.com/magiconair/properties v1.8.0 // indirect
 	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/prometheus/common v0.4.0
-	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
+	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
@@ -44,8 +45,8 @@ require (
 	github.com/willf/bitset v1.1.10 // indirect
 	go.uber.org/atomic v1.6.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
-	golang.org/x/tools v0.0.0-20191216052735-49a3e744a425
+	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 // indirect
+	golang.org/x/tools v0.0.0-20191216052735-49a3e744a425 // indirect
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

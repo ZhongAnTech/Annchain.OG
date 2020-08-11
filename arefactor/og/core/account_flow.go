@@ -16,10 +16,10 @@ package core
 import (
 	"container/heap"
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/og/core/state"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
+	"github.com/annchain/commongo/math"
 	log "github.com/sirupsen/logrus"
 	"sort"
 	"sync"

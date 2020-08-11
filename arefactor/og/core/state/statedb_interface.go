@@ -1,8 +1,8 @@
 package state
 
 import (
-	"github.com/annchain/OG/arefactor/common/math"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/commongo/math"
 )
 
 // StateDB is an OVM database for full state querying.

@@ -17,8 +17,8 @@
 package state
 
 import (
-	"github.com/annchain/OG/arefactor/common/math"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/commongo/math"
 )
 
 const TokenNotDirtied int32 = -1

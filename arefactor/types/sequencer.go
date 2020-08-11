@@ -21,7 +21,7 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/commongo/hexutil"
 )
 
 //go:generate msgp
@@ -231,9 +231,9 @@ func (s Sequencers) ToHeaders() SequencerHeaders {
 //	return rawSeqs
 //}
 
-func (c *Sequencer) RawTxi() RawTxi {
-	return nil
-}
+//func (c *Sequencer) RawTxi() RawTxi {
+//	return nil
+//}
 
 func (t *Sequencer) SetSender(addr og_types.Address) {
 	t.Issuer = addr

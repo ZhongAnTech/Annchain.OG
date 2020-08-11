@@ -21,9 +21,9 @@ import (
 	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"math/big"
 
-	"github.com/annchain/OG/arefactor/common/math"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	crypto "github.com/annchain/OG/arefactor/ogcrypto"
+	"github.com/annchain/commongo/math"
 	log "github.com/sirupsen/logrus"
 )
 

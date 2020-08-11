@@ -1,9 +1,9 @@
 package core
 
 import (
-	"github.com/annchain/OG/arefactor/common/math"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
+	"github.com/annchain/commongo/math"
 
 	// TODO move out evm package
 	vmtypes "github.com/annchain/OG/vm/types"

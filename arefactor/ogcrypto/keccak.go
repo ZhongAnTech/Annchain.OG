@@ -26,7 +26,7 @@ import (
 	"os"
 
 	"github.com/annchain/OG/arefactor/common"
-	"github.com/annchain/OG/common/math"
+	"github.com/annchain/commongo/math"
 	"github.com/btcsuite/btcd/btcec"
 	"golang.org/x/crypto/sha3"
 )

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
-	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/commongo/hexutil"
 	"math/rand"
 	"strings"
 	"time"
@@ -78,7 +78,7 @@ func RandomActionTx() *ActionTx {
 	return &ActionTx{TxBase: TxBase{
 		Hash:         ogTypes.RandomHash32(),
 		Height:       uint64(rand.Int63n(1000)),
-		ParentsHash:  []ogTypes.Hash{ ogTypes.RandomHash32(), ogTypes.RandomHash32() },
+		ParentsHash:  []ogTypes.Hash{ogTypes.RandomHash32(), ogTypes.RandomHash32()},
 		Type:         TxBaseTypeNormal,
 		AccountNonce: uint64(rand.Int63n(50000)),
 		Weight:       uint64(rand.Int31n(2000)),
@@ -126,13 +126,12 @@ func (t *ActionTx) CheckActionIsValid() bool {
 func (t *ActionTx) SignatureTargets() []byte {
 	// log.WithField("tx", t).Tracef("SignatureTargets: %s", t.Dump())
 
-	w := types.NewBinaryWriter()
+	w := NewBinaryWriter()
 
 	w.Write(t.AccountNonce, t.Action)
-	if !types.CanRecoverPubFromSig {
+	if !CanRecoverPubFromSig {
 		w.Write(t.From.Bytes)
 	}
-	//types.PanicIfError(binary.Write(&buf, binary.BigEndian, t.To.Bytes))
 	bts, _ := t.ActionData.MarshalMsg()
 	w.Write(bts)
 
@@ -208,7 +207,7 @@ func (c *ActionTx) SetSender(addr ogTypes.Address) {
 
 /**
 marshaller part
- */
+*/
 
 func (c *ActionTx) MarshalMsg() ([]byte, error) {
 	b := make([]byte, marshaller.HeaderSize)

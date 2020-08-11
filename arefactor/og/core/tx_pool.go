@@ -21,8 +21,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/annchain/OG/arefactor/common/math"
 	"github.com/annchain/OG/arefactor/types"
+	"github.com/annchain/commongo/math"
 	log "github.com/sirupsen/logrus"
 )
 

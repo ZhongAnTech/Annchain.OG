@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
-	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/commongo/hexutil"
 	"golang.org/x/crypto/sha3"
 
 	og_types "github.com/annchain/OG/arefactor/og_interface"

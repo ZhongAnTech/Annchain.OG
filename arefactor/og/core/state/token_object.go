@@ -2,9 +2,9 @@ package state
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/arefactor/common/math"
 	ogtypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/utils/marshaller"
+	"github.com/annchain/commongo/math"
 	"math/big"
 )
 

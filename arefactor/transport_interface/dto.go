@@ -2,7 +2,7 @@ package transport_interface
 
 import (
 	"fmt"
-	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/commongo/hexutil"
 	"github.com/tinylib/msgp/msgp"
 )
 

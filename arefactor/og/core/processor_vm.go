@@ -2,9 +2,9 @@ package core
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/common/math"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
+	"github.com/annchain/commongo/math"
 
 	// TODO move out evm package
 	evm "github.com/annchain/OG/vm/eth/core/vm"

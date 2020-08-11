@@ -2,7 +2,7 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/commongo/hexutil"
 	"github.com/tinylib/msgp/msgp"
 )
 

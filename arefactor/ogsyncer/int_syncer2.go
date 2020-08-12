@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/commongo/utilfuncs"
 	"github.com/latifrons/goffchan"
+	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"sync"
@@ -24,9 +25,10 @@ const MaxTolerantHeightDiff = 0         // ogsyncer will start syncing if myHeig
 // On peer left: switch peer to sync?
 // handle unknown resource. ask others.
 type IntSyncer2 struct {
+	Reporter       *soccerdash.Reporter
 	Ledger         og_interface.Ledger
 	unknownManager ogsyncer_interface.UnknownManager
-	peerManager    PeerManager
+	peerManager    *PeerManager
 
 	newHeightDetectedEventChan  chan *og_interface.NewHeightDetectedEvent
 	peerJoinedEventChan         chan *og_interface.PeerJoinedEvent
@@ -38,6 +40,14 @@ type IntSyncer2 struct {
 
 	quit chan bool
 	mu   sync.RWMutex
+}
+
+func (b *IntSyncer2) EventChannelPeerJoined() chan *og_interface.PeerJoinedEvent {
+	return b.peerJoinedEventChan
+}
+
+func (b *IntSyncer2) EventChannelPeerLeftChannel() chan *og_interface.PeerLeftEvent {
+	panic("implement me")
 }
 
 func (b *IntSyncer2) NeedToKnow(unknown ogsyncer_interface.Unknown, hint ogsyncer_interface.SourceHint) {
@@ -72,6 +82,9 @@ func (b *IntSyncer2) InitDefault() {
 	unknownManager := &DefaultUnknownManager{}
 	unknownManager.InitDefault()
 	b.unknownManager = unknownManager
+	peerManager := &PeerManager{}
+	peerManager.InitDefault()
+	b.peerManager = peerManager
 	b.newIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
 	b.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEvent)
 	b.peerJoinedEventChan = make(chan *og_interface.PeerJoinedEvent)
@@ -83,6 +96,7 @@ func (b *IntSyncer2) InitDefault() {
 func (b *IntSyncer2) Start() {
 	b.peerManager.myHeight = b.Ledger.CurrentHeight()
 	go b.eventLoop()
+	go b.sync()
 }
 
 func (b *IntSyncer2) Stop() {
@@ -165,44 +179,10 @@ func (b *IntSyncer2) startSyncOnce() {
 		logrus.Debug("no need to sync")
 		return
 	}
-	// send one sync message to random one
-	nextHeight := b.Ledger.CurrentHeight() + 1
-	peerId, err := b.pickUpRandomSourcePeer(nextHeight)
-	if err != nil {
-		logrus.WithError(err).Warn("we known a higher nextHeight but we failed to pick up source peer")
-		return
-	}
-
-	// send sync request to this peer
-	// always start offset from 0.
-	// if there is more, send another request in the response handler function
-	req := &ogsyncer_interface.OgSyncBlockByHeightRequest{
-		Height: nextHeight,
-		Offset: 0,
-	}
-
-	letter := &transport_interface.OutgoingLetter{
-		ExceptMyself:   true,
-		Msg:            req,
-		SendType:       transport_interface.SendTypeUnicast,
-		CloseAfterSent: false,
-		EndReceivers:   []string{peerId},
-	}
-	b.notifyNewOutgoingMessage(letter)
-
-	// query heights
 	peersToUpdate := b.peerManager.findOutdatedPeersToQueryHeight(5)
-	resp := &ogsyncer_interface.OgSyncLatestHeightRequest{
-		MyHeight: b.Ledger.CurrentHeight(),
-	}
-	letterOut := &transport_interface.OutgoingLetter{
-		ExceptMyself:   true,
-		Msg:            resp,
-		SendType:       transport_interface.SendTypeUnicast,
-		CloseAfterSent: false,
-		EndReceivers:   peersToUpdate,
-	}
-	b.notifyNewOutgoingMessage(letterOut)
+	b.queryHeights(peersToUpdate)
+
+	b.syncNextHeight()
 }
 
 func (b *IntSyncer2) handleIncomingMessage(letter *transport_interface.IncomingLetter) {
@@ -224,6 +204,7 @@ func (b *IntSyncer2) handleIncomingMessage(letter *transport_interface.IncomingL
 			CloseAfterSent: false,
 			EndReceivers:   []string{letter.From},
 		}
+		logrus.WithField("reqHeight", req.MyHeight).WithField("respHeight", resp.MyHeight).Debug("OgSyncMessageTypeLatestHeightRequest")
 		b.notifyNewOutgoingMessage(letterOut)
 	case ogsyncer_interface.OgSyncMessageTypeLatestHeightResponse:
 		req := &ogsyncer_interface.OgSyncLatestHeightResponse{}
@@ -231,6 +212,7 @@ func (b *IntSyncer2) handleIncomingMessage(letter *transport_interface.IncomingL
 		if err != nil {
 			logrus.WithError(err).Fatal("height response")
 		}
+		logrus.WithField("reqHeight", req.MyHeight).Debug("OgSyncMessageTypeLatestHeightResponse")
 		b.peerManager.updateKnownPeerHeight(letter.From, req.MyHeight)
 	case ogsyncer_interface.OgSyncMessageTypeBlockByHeightRequest:
 		req := &ogsyncer_interface.OgSyncBlockByHeightRequest{}
@@ -238,6 +220,7 @@ func (b *IntSyncer2) handleIncomingMessage(letter *transport_interface.IncomingL
 		if err != nil {
 			logrus.WithError(err).Fatal("block by height request")
 		}
+		logrus.WithField("req", req).Debug("OgSyncMessageTypeBlockByHeightRequest")
 		b.handleBlockByHeightRequest(req, letter.From)
 	case ogsyncer_interface.OgSyncMessageTypeBlockByHeightResponse:
 		req := &ogsyncer_interface.OgSyncBlockByHeightResponse{}
@@ -245,18 +228,20 @@ func (b *IntSyncer2) handleIncomingMessage(letter *transport_interface.IncomingL
 		if err != nil {
 			logrus.WithError(err).Fatal("block by height response")
 		}
+		logrus.WithField("req", req).Debug("OgSyncMessageTypeBlockByHeightResponse")
 		b.handleBlockByHeightResponse(req, letter.From)
 	//case ogsyncer_interface.OgSyncMessageTypeByHashesRequest:
 	//case ogsyncer_interface.OgSyncMessageTypeBlockByHashRequest:
 	//case ogsyncer_interface.OgSyncMessageTypeByHashesResponse:
 	//case ogsyncer_interface.OgSyncMessageTypeByBlockHashResponse:
 	default:
-		logrus.Debug("unknown message type for syncer")
 	}
 }
 
 func (b *IntSyncer2) handlePeerJoinedEvent(event *og_interface.PeerJoinedEvent) {
 	b.peerManager.updateKnownPeerHeight(event.PeerId, 0)
+	b.queryHeights([]string{event.PeerId})
+	b.Reporter.Report("knownHeight", b.peerManager.knownMaxPeerHeight, false)
 }
 
 func (b *IntSyncer2) handleNewHeightDetectedEvent(event *og_interface.NewHeightDetectedEvent) {
@@ -311,4 +296,49 @@ func (b *IntSyncer2) handleBlockByHeightResponse(req *ogsyncer_interface.OgSyncB
 			Submitter:   v.Submitter,
 		})
 	}
+	b.syncNextHeight()
+}
+
+func (b *IntSyncer2) queryHeights(peerIds []string) {
+	// query heights
+	resp := &ogsyncer_interface.OgSyncLatestHeightRequest{
+		MyHeight: b.Ledger.CurrentHeight(),
+	}
+	letterOut := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
+		Msg:            resp,
+		SendType:       transport_interface.SendTypeUnicast,
+		CloseAfterSent: false,
+		EndReceivers:   peerIds,
+	}
+	b.notifyNewOutgoingMessage(letterOut)
+}
+
+func (b *IntSyncer2) syncNextHeight() {
+
+	// send one sync message to random one
+	nextHeight := b.Ledger.CurrentHeight() + 1
+	peerId, err := b.pickUpRandomSourcePeer(nextHeight)
+	if err != nil {
+		logrus.WithError(err).Warn("we known a higher nextHeight but we failed to pick up source peer")
+		return
+	}
+	logrus.WithField("height", nextHeight).WithField("from", peerId).Info("Start sync")
+
+	// send sync request to this peer
+	// always start offset from 0.
+	// if there is more, send another request in the response handler function
+	req := &ogsyncer_interface.OgSyncBlockByHeightRequest{
+		Height: nextHeight,
+		Offset: 0,
+	}
+
+	letter := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
+		Msg:            req,
+		SendType:       transport_interface.SendTypeUnicast,
+		CloseAfterSent: false,
+		EndReceivers:   []string{peerId},
+	}
+	b.notifyNewOutgoingMessage(letter)
 }

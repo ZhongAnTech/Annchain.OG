@@ -18,6 +18,10 @@ type PeerManager struct {
 	mu                 sync.RWMutex
 }
 
+func (b *PeerManager) InitDefault() {
+	b.peerHeights = make(map[string]HeightInfo)
+}
+
 func (b *PeerManager) updateKnownPeerHeight(peerId string, height int64) (refreshed bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()

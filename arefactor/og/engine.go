@@ -1,7 +1,6 @@
 package og
 
 import (
-	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
@@ -93,15 +92,17 @@ func (o *OgEngine) loop() {
 		select {
 		case <-o.quit:
 			return
-		case incomingLetter := <-o.myNewIncomingMessageEventChan:
-			switch message.OgMessageType(incomingLetter.Msg.MsgType) {
-			case message.OgMessageTypeHeightRequest:
-				o.handleHeightRequest(incomingLetter)
-			case message.OgMessageTypeHeightResponse:
-				o.handleHeightResponse(incomingLetter)
-			}
-		case event := <-o.myPeerJoinedEventChan:
-			o.handlePeerJoined(event)
+		case <-o.myNewIncomingMessageEventChan:
+			continue
+			//switch message.OgMessageType(incomingLetter.Msg.MsgType) {
+			//case message.OgMessageTypeHeightRequest:
+			//	o.handleHeightRequest(incomingLetter)
+			//case message.OgMessageTypeHeightResponse:
+			//	o.handleHeightResponse(incomingLetter)
+			//}
+		case <-o.myPeerJoinedEventChan:
+			continue
+		//	o.handlePeerJoined(event)
 		case <-timer.C:
 			logrus.Trace("routing check in engine")
 		}

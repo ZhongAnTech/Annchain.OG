@@ -123,8 +123,9 @@ func (n *OgNode) Setup() {
 
 	cpRpc.InitDefault()
 
-	cpSyncer := &ogsyncer.IntSyncer{
-		Ledger: ledger,
+	cpSyncer := &ogsyncer.IntSyncer2{
+		Reporter: lowLevelReporter,
+		Ledger:   ledger,
 	}
 	cpSyncer.InitDefault()
 
@@ -184,7 +185,8 @@ func (n *OgNode) Setup() {
 
 	// peer joined and left to the network cluster (protocol verified)
 	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpOgEngine)
-	cpCommunityManager.AddSubscriberPeerLeftEvent(cpSyncer)
+	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpSyncer)
+	//cpCommunityManager.AddSubscriberPeerLeftEvent(cpSyncer)
 
 	// peer height provided
 	cpOgEngine.AddSubscriberNewHeightDetectedEvent(cpSyncer)

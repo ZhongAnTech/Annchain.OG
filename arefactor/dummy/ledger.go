@@ -115,6 +115,7 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 	d.KnowBlock(newBlock)
 
 	logrus.WithField("block", newBlock).Info("speculated new block")
+	d.Reporter.Report("lastSpeculateHeight", newBlock.Height, false)
 
 	return consensus_interface.ExecutionResult{
 		BlockId:        newBlock.GetHash().HashString(),
@@ -159,7 +160,7 @@ func (d *IntArrayLedger) ConfirmBlock(block og_interface.BlockContent) {
 	d.allBlockContents[id] = block
 	d.height = math.BiggerInt64(block.GetHeight(), d.height)
 	d.SaveLedger()
-	d.Reporter.Report("lastCommit", fmt.Sprintf("%s %d", block.GetHash().HashString(), block.GetHeight()), false)
+	d.Reporter.Report("lastCommit", fmt.Sprintf("%d %s", block.GetHeight(), block.GetHash().HashString()), false)
 }
 
 func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {

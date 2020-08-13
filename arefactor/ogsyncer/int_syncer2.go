@@ -296,7 +296,13 @@ func (b *IntSyncer2) handleBlockByHeightResponse(req *ogsyncer_interface.OgSyncB
 			Submitter:   v.Submitter,
 		})
 	}
-	b.syncNextHeight()
+	if b.Ledger.CurrentHeight() < b.peerManager.knownMaxPeerHeight {
+		b.syncNextHeight()
+	} else {
+		// seems we already reach the max height. do double check
+		peersToUpdate := b.peerManager.findOutdatedPeersToQueryHeight(5)
+		b.queryHeights(peersToUpdate)
+	}
 }
 
 func (b *IntSyncer2) queryHeights(peerIds []string) {

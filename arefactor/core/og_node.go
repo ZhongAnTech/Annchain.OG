@@ -29,7 +29,7 @@ func (n *OgNode) InitDefault() {
 }
 
 func (n *OgNode) Setup() {
-	blockTime := time.Second * 3
+	blockTime := time.Second * 1
 	myId := viper.GetInt("id")
 	// reporter
 	lowLevelReporter := getReporter()
@@ -161,6 +161,7 @@ func (n *OgNode) Setup() {
 			Hasher:                   &consensus.SHA256Hasher{},
 			Ledger:                   ledger,
 			BlockTime:                blockTime,
+			TimeoutTime:              blockTime + time.Second*7,
 		}
 		cpConsensusPartner.InitDefault()
 		n.components = append(n.components, cpConsensusPartner)

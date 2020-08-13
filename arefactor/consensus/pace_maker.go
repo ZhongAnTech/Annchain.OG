@@ -25,18 +25,21 @@ type PaceMaker struct {
 	Reporter          *soccerdash.Reporter
 	BlockTime         time.Duration
 
+	// last valid action transition time. Do not use timer.Reset unless you find a way to reset the timer without triggering an event.
+	// valid scenario:
+	// Once a QVote/TVote is sent
+	lastValidTime time.Time
+
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 
 	pendingTCs map[int64]consensus_interface.SignatureCollector // round : sender list:true
 
-	timer *time.Timer
-	quit  chan bool
+	quit chan bool
 }
 
 func (m *PaceMaker) InitDefault() {
 	m.quit = make(chan bool)
 	m.pendingTCs = make(map[int64]consensus_interface.SignatureCollector)
-	m.timer = time.NewTimer(time.Second * 15)
 	m.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 
 }
@@ -124,10 +127,7 @@ func (m *PaceMaker) LocalTimeoutRound() {
 		EndReceivers:   m.CommitteeProvider.GetAllMemberTransportIds(),
 	}
 	m.notifyNewOutgoingMessage(letter)
-
-	//collector.Collect(signature, m.CommitteeProvider.GetMyPeerIndex())
-	logrus.Info("paceMaker reset timer")
-	m.timer.Reset(m.GetRoundTimer(m.CurrentRound))
+	m.RefreshTimeout()
 }
 
 func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_interface.TC, reason string) {
@@ -146,42 +146,39 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 		m.Logger.WithField("cround", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Debug("qc/tc round is less than current round so do not advance")
 		return
 	}
-	m.StopLocalTimer(latestRound)
 	m.CurrentRound = latestRound + 1
 
 	m.Reporter.Report("CurrentRound", m.CurrentRound, false)
 
 	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Info("round advanced")
-	if !m.CommitteeProvider.AmILeader(m.CurrentRound) {
 
-		// prepare vote message
-		vote := &consensus_interface.ContentVote{
-			QC: qc,
-			TC: tc,
-		}
-		bytes := vote.ToBytes()
-		signature, err := m.sign(vote)
-		if err != nil {
-			return
-		}
-
-		// announce it
-		outMsg := &consensus_interface.HotStuffSignedMessage{
-			HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeVote),
-			ContentBytes:        bytes,
-			SenderMemberId:      m.CommitteeProvider.GetMyPeerId(),
-			Signature:           signature,
-		}
-		letter := &transport_interface.OutgoingLetter{
-			ExceptMyself:   true,
-			Msg:            outMsg,
-			SendType:       transport_interface.SendTypeUnicast,
-			CloseAfterSent: false,
-			EndReceivers:   []string{m.CommitteeProvider.GetLeader(m.CurrentRound).TransportPeerId},
-		}
-		m.notifyNewOutgoingMessage(letter)
+	// prepare vote message
+	vote := &consensus_interface.ContentVote{
+		QC: qc,
+		TC: tc,
 	}
-	m.StartLocalTimer(m.CurrentRound, m.GetRoundTimer(m.CurrentRound))
+	bytes := vote.ToBytes()
+	signature, err := m.sign(vote)
+	if err != nil {
+		return
+	}
+
+	// announce it
+	outMsg := &consensus_interface.HotStuffSignedMessage{
+		HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeVote),
+		ContentBytes:        bytes,
+		SenderMemberId:      m.CommitteeProvider.GetMyPeerId(),
+		Signature:           signature,
+	}
+	letter := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
+		Msg:            outMsg,
+		SendType:       transport_interface.SendTypeUnicast,
+		CloseAfterSent: false,
+		EndReceivers:   []string{m.CommitteeProvider.GetLeader(m.CurrentRound).TransportPeerId},
+	}
+	m.notifyNewOutgoingMessage(letter)
+	m.RefreshTimeout()
 	m.Partner.ProcessNewRoundEvent()
 }
 
@@ -194,24 +191,8 @@ func (m *PaceMaker) MakeTimeoutMessage() *consensus_interface.ContentTimeout {
 	}
 }
 
-func (m *PaceMaker) StopLocalTimer(r int64) {
-	if !m.timer.Stop() {
-		logrus.Trace("timer stopped ahead")
-		select {
-		case <-m.timer.C: // TRY to drain the channel
-		default:
-		}
-	}
-	logrus.Trace("timer stopped and cleared")
-}
-
 func (m *PaceMaker) GetRoundTimer(round int64) time.Duration {
 	return m.BlockTime + time.Second*5
-}
-
-func (m *PaceMaker) StartLocalTimer(round int64, duration time.Duration) {
-	logrus.Trace("Starting local timer")
-	m.timer.Reset(duration)
 }
 
 func (m *PaceMaker) ensureTCCollector(round int64) consensus_interface.SignatureCollector {
@@ -237,4 +218,9 @@ func (m *PaceMaker) sign(msg Signable) (signature []byte, err error) {
 
 	signature = m.ConsensusSigner.Sign(msg.SignatureTarget(), account)
 	return
+}
+
+func (m *PaceMaker) RefreshTimeout() {
+	m.lastValidTime = time.Now()
+	m.Reporter.Report("TIMEOUT", m.lastValidTime.String(), false)
 }

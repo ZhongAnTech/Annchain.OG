@@ -43,8 +43,10 @@ type Partner struct {
 	myNewIncomingMessageEventChan chan *transport_interface.IncomingLetter
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 
-	quit      chan bool
-	BlockTime time.Duration
+	quit           chan bool
+	BlockTime      time.Duration
+	TimeoutTime    time.Duration
+	timeoutChecker *time.Ticker
 }
 
 func (n *Partner) InitDefault() {
@@ -90,6 +92,7 @@ func (n *Partner) InitDefault() {
 	n.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 }
 func (n *Partner) Start() {
+	n.timeoutChecker = time.NewTicker(n.TimeoutTime)
 	for {
 		logrus.Trace("partner loop round start")
 		select {
@@ -105,9 +108,14 @@ func (n *Partner) Start() {
 			//	//continue
 			//}
 
-		case <-n.paceMaker.timer.C:
-			logrus.WithField("round", n.paceMaker.CurrentRound).Warn("paceMaker timeout")
-			n.paceMaker.LocalTimeoutRound()
+		case <-n.timeoutChecker.C:
+			// check if the last proposal was received some times ago.
+			if n.paceMaker.lastValidTime.Before(time.Now().Add(-n.TimeoutTime)) {
+				// timeout
+				logrus.WithField("round", n.paceMaker.CurrentRound).Warn("paceMaker timeout")
+				n.paceMaker.LocalTimeoutRound()
+				// update timeout
+			}
 		}
 		consensusState := n.safety.ConsensusState()
 		n.Reporter.Report("lastTC", consensusState.LastTC, false)
@@ -134,6 +142,10 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 		logrus.WithError(err).Warn("failed to decode ContentProposal")
 		return
 	}
+	logrus.WithFields(logrus.Fields{
+		"proposal": msg.String(),
+		"from":     msg.SenderMemberId,
+	}).Debug("received proposal")
 
 	n.ProcessCertificates(p.Proposal.ParentQC, p.TC, "ProposalM")
 
@@ -196,6 +208,7 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 		}
 
 		n.notifyNewOutgoingMessage(letter)
+		n.paceMaker.RefreshTimeout()
 	} else {
 		logrus.WithField("proposal", p.Proposal).Warn("I don't vote this proposal.")
 	}
@@ -221,6 +234,10 @@ func (n *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature c
 	}
 
 	voteIndex := n.Hasher.Hash(vote.LedgerCommitInfo.GetHashContent())
+	logrus.WithFields(logrus.Fields{
+		"from":      fromId,
+		"voteIndex": voteIndex,
+	}).Info("handling vote")
 
 	collector := n.ensureQCCollector(voteIndex)
 	collector.Collect(signature, id)
@@ -256,6 +273,10 @@ func (n *Partner) ProcessCertificates(qc *consensus_interface.QC, tc *consensus_
 }
 
 func (n *Partner) ProposalGeneratedEventHandler(proposal *consensus_interface.ContentProposal) {
+	if proposal == nil {
+		logrus.Warn("No proposal could be made. abandon")
+		return
+	}
 	n.Logger.WithField("proposal", proposal).Warn("I'm the current leader")
 	n.Reporter.Report("leader", proposal.Proposal.Round, false)
 

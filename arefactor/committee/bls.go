@@ -89,7 +89,7 @@ func (b BlsCommitteeProvider) GetPeerIndex(id string) (index int, err error) {
 }
 
 func (b BlsCommitteeProvider) GetThreshold() int {
-	return len(b.memberIds) * 2 / 3
+	return (len(b.memberIds)*2 + 1) / 3
 }
 
 func (b BlsCommitteeProvider) AmILeader(round int64) bool {

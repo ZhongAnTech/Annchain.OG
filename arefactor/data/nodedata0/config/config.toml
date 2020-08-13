@@ -15,4 +15,4 @@ buffer_size = 30
 port = 4440
 
 [features]
-consensus = false
+consensus = true

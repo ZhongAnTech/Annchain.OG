@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -77,6 +78,22 @@ type IntArrayLedger struct {
 	consensusState                *consensus_interface.ConsensusState
 }
 
+func (d *IntArrayLedger) Dump() {
+	values := []*IntArrayBlockContent{}
+	for _, v := range d.allBlockContents {
+		values = append(values, v.(*IntArrayBlockContent))
+	}
+	sort.Slice(values, func(i, j int) bool {
+		return values[i].Height < values[j].Height
+	})
+
+	for _, value := range values {
+		fmt.Printf("%d=%s\n", value.Height, value)
+
+	}
+	fmt.Printf("Total: %d records\n", len(values))
+}
+
 func (d *IntArrayLedger) InitDefault() {
 	d.confirmedBlockIdHeightMapping = make(map[string]int64)
 	d.confirmedBlockContents = make(map[int64]og_interface.BlockContent)
@@ -98,6 +115,7 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 
 	if !ok {
 		logrus.WithField("prevBlockId", prevBlockId).Fatal("prev block not found")
+		// wait until sync is done.
 	}
 
 	newBlock := &IntArrayBlockContent{}
@@ -113,6 +131,7 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 			Fatal("myhash is not aligned with given hash")
 	}
 	d.KnowBlock(newBlock)
+	d.SaveLedger()
 
 	logrus.WithField("block", newBlock).Info("speculated new block")
 	d.Reporter.Report("lastSpeculateHeight", newBlock.Height, false)
@@ -501,12 +520,27 @@ func (i *IntArrayProposalGenerator) InitDefault() {
 }
 
 func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface.ProposalContext) *consensus_interface.ContentProposal {
-	if _, ok := i.Ledger.allBlockContents[context.HighQC.VoteData.Id]; !ok {
-		fmt.Println(context.HighQC.VoteData.Id)
-		fmt.Println(i.Ledger.allBlockContents)
-		panic("f")
+	var b og_interface.BlockContent = nil
+	var ok bool
+	if b, ok = i.Ledger.allBlockContents[context.HighQC.VoteData.Id]; !ok {
+		logrus.WithField("blockId", context.HighQC.VoteData.Id).Warn("prev block not found in ledger. Propose further")
 	}
-	previousBlock := i.Ledger.allBlockContents[context.HighQC.VoteData.Id].(*IntArrayBlockContent)
+	if b == nil {
+		if b, ok = i.Ledger.allBlockContents[context.HighQC.VoteData.ParentId]; !ok {
+			logrus.WithField("blockId", context.HighQC.VoteData.ParentId).Warn("parent block not found in ledger. Propose further")
+		}
+	}
+	if b == nil {
+		if b, ok = i.Ledger.allBlockContents[context.HighQC.VoteData.GrandParentId]; !ok {
+			logrus.WithField("blockId", context.HighQC.VoteData.GrandParentId).Warn("gparent block not found in ledger.")
+		}
+	}
+	if b == nil {
+		i.Ledger.Dump()
+		return nil
+	}
+
+	previousBlock := b.(*IntArrayBlockContent)
 
 	//previousBlock2 := i.Ledger.confirmedBlockContents[i.Ledger.height].(*IntArrayBlockContent)
 

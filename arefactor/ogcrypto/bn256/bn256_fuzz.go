@@ -8,8 +8,8 @@ package bn256
 
 import (
 	"bytes"
-	"github.com/annchain/OG/arefactor/ogcrypto/bn256/cloudflare"
-	"github.com/annchain/OG/arefactor/ogcrypto/bn256/google"
+	"github.com/annchain/OG/ogcrypto/bn256/cloudflare"
+	"github.com/annchain/OG/ogcrypto/bn256/google"
 	"math/big"
 )
 

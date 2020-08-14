@@ -2,8 +2,8 @@ package core
 
 import (
 	"github.com/annchain/OG/arefactor/og/core/state"
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
+	ogTypes "github.com/annchain/OG/og_interface"
 	"github.com/annchain/commongo/math"
 
 	log "github.com/sirupsen/logrus"

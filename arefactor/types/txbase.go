@@ -3,11 +3,11 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/commongo/hexutil"
+	"github.com/annchain/commongo/marshaller"
 	"golang.org/x/crypto/sha3"
 
-	og_types "github.com/annchain/OG/arefactor/og_interface"
+	og_types "github.com/annchain/OG/og_interface"
 )
 
 //go:generate msgp

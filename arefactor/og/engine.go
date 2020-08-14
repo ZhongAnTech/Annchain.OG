@@ -2,8 +2,8 @@ package og
 
 import (
 	"github.com/annchain/OG/arefactor/og/message"
-	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/annchain/OG/og_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"time"

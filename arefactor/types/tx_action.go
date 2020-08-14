@@ -2,10 +2,10 @@ package types
 
 import (
 	"fmt"
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
+	ogTypes "github.com/annchain/OG/og_interface"
 	"github.com/annchain/OG/types"
 	"github.com/annchain/commongo/hexutil"
+	"github.com/annchain/commongo/marshaller"
 	"math/rand"
 	"strings"
 	"time"

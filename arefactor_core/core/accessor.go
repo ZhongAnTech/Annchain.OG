@@ -18,8 +18,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	og_types "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common"
+	"github.com/annchain/commongo/marshaller"
 
 	"github.com/annchain/OG/arefactor/types"
 	"github.com/annchain/OG/common/math"

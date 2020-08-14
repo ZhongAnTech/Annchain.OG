@@ -19,9 +19,9 @@ import (
 	"strconv"
 	"sync"
 
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
+	ogTypes "github.com/annchain/OG/og_interface"
+	"github.com/annchain/commongo/marshaller"
 	"github.com/annchain/commongo/math"
 	"github.com/annchain/ogdb"
 	log "github.com/sirupsen/logrus"

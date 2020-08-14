@@ -18,7 +18,7 @@ package state
 
 import (
 	"fmt"
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
+	ogTypes "github.com/annchain/OG/og_interface"
 	"sync"
 
 	"github.com/annchain/ogdb"

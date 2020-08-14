@@ -3,8 +3,8 @@ package state
 import (
 	"fmt"
 	ogtypes "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
 	"github.com/annchain/OG/common/math"
+	"github.com/annchain/commongo/marshaller"
 	"math/big"
 )
 
@@ -127,7 +127,7 @@ func (t *TokenObject) Decode(b []byte) error {
 
 /**
 Marshaller part
- */
+*/
 
 func (t *TokenObject) MarshalMsg() ([]byte, error) {
 	var err error
@@ -216,11 +216,11 @@ func (t *TokenObject) UnmarshalMsg(b []byte) ([]byte, error) {
 func (t *TokenObject) MsgSize() int {
 	size := 0
 
-	size += marshaller.Int32Size + 								// TokenID
-		marshaller.CalStringSize(t.Name) +						// Name
-		marshaller.CalStringSize(t.Symbol) + 					// Symbol
-		marshaller.CalIMarshallerSize(t.Issuer.MsgSize()) +		// Issuer
-		1														// ReIssuable
+	size += marshaller.Int32Size + // TokenID
+		marshaller.CalStringSize(t.Name) + // Name
+		marshaller.CalStringSize(t.Symbol) + // Symbol
+		marshaller.CalIMarshallerSize(t.Issuer.MsgSize()) + // Issuer
+		1 // ReIssuable
 
 	// issues
 	var sz int

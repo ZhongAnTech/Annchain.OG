@@ -19,8 +19,8 @@ import (
 	"sync"
 
 	"github.com/annchain/OG/arefactor/og/core/state"
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
+	ogTypes "github.com/annchain/OG/og_interface"
 	"github.com/annchain/commongo/math"
 	"github.com/annchain/ogdb"
 

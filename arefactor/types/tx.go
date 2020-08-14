@@ -15,7 +15,7 @@ package types
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
+	"github.com/annchain/commongo/marshaller"
 	"math/rand"
 	"strings"
 	"time"
@@ -23,7 +23,7 @@ import (
 	"github.com/annchain/commongo/hexutil"
 	"github.com/annchain/commongo/math"
 
-	og_types "github.com/annchain/OG/arefactor/og_interface"
+	og_types "github.com/annchain/OG/og_interface"
 )
 
 //go:generate msgp

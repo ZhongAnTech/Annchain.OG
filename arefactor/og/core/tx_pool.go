@@ -15,7 +15,7 @@ package core
 
 import (
 	"fmt"
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
+	ogTypes "github.com/annchain/OG/og_interface"
 	"math/rand"
 	"sort"
 	"sync"

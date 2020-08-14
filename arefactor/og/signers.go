@@ -2,7 +2,7 @@ package og
 
 //import (
 //	"encoding/binary"
-//	"github.com/annchain/OG/arefactor/og_interface"
+//	"github.com/annchain/OG/og_interface"
 //	ogcrypto2 "github.com/annchain/OG/deprecated/ogcrypto"
 //	"github.com/annchain/OG/deprecated/ogcrypto_interface"
 //)

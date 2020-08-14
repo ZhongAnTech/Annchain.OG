@@ -3,8 +3,8 @@ module github.com/annchain/OG/arefactor
 go 1.14
 
 require (
-	github.com/annchain/OG v0.0.5
-	github.com/annchain/commongo v0.0.0-20200727100046-6b7cd76c21f4
+	github.com/annchain/OG v0.0.7
+	github.com/annchain/commongo v0.0.3
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/annchain/trie v0.0.0-20200810071945-f021089b234f
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -23,4 +23,5 @@ require (
 	github.com/tinylib/msgp v1.1.2
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	golang.org/x/sys v0.0.0-20200810151505-1b9f1253b3ed
+	gopkg.in/go-playground/validator.v9 v9.29.1 // indirect
 )

@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/annchain/bloom v2.0.4+incompatible
-	github.com/annchain/commongo v0.0.0-20200727100046-6b7cd76c21f4 // indirect
+	github.com/annchain/commongo v0.0.3
 	github.com/annchain/gcache v0.0.2
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/annchain/trie v0.0.0-20200810071945-f021089b234f // indirect
@@ -24,6 +24,7 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jessevdk/go-flags v1.4.0 // indirect
+	github.com/latifrons/goffchan v1.0.0 // indirect
 	github.com/latifrons/soccerdash v0.0.0-20200526135519-7df7239ba832
 	github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 // indirect
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f // indirect
@@ -41,11 +42,11 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tebeka/strftime v0.1.3 // indirect
-	github.com/tinylib/msgp v1.1.0
+	github.com/tinylib/msgp v1.1.2
 	github.com/willf/bitset v1.1.10 // indirect
 	go.uber.org/atomic v1.6.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 // indirect
+	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
 	golang.org/x/tools v0.0.0-20191216052735-49a3e744a425 // indirect
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/yaml.v2 v2.3.0 // indirect

@@ -3,7 +3,7 @@ package og
 //import (
 //	"bytes"
 //	"github.com/annchain/OG/arefactor/og/types"
-//	"github.com/annchain/OG/arefactor/og_interface"
+//	"github.com/annchain/OG/og_interface"
 //	"github.com/libp2p/go-libp2p-core/crypto"
 //	"golang.org/x/crypto/ripemd160"
 //)

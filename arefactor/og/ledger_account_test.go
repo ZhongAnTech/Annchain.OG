@@ -2,7 +2,7 @@ package og
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/og_interface"
 	"github.com/annchain/commongo/hexutil"
 	"github.com/annchain/commongo/utilfuncs"
 	log "github.com/sirupsen/logrus"

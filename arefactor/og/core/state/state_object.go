@@ -18,11 +18,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
+	"github.com/annchain/commongo/marshaller"
 	"math/big"
 
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
-	crypto "github.com/annchain/OG/arefactor/ogcrypto"
+	ogTypes "github.com/annchain/OG/og_interface"
+	crypto "github.com/annchain/OG/ogcrypto"
 	"github.com/annchain/commongo/math"
 	log "github.com/sirupsen/logrus"
 )

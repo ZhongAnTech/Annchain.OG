@@ -17,7 +17,7 @@
 package state
 
 import (
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
+	ogTypes "github.com/annchain/OG/og_interface"
 	"github.com/annchain/commongo/math"
 )
 

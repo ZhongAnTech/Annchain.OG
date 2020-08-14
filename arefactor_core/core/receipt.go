@@ -16,7 +16,7 @@ package core
 import (
 	"fmt"
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
+	"github.com/annchain/commongo/marshaller"
 )
 
 type ReceiptStatus uint8

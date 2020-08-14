@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/consensus_interface"
-	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/og_interface"
 	"github.com/annchain/commongo/files"
 	"github.com/annchain/commongo/math"
 	"github.com/annchain/commongo/utilfuncs"

@@ -16,7 +16,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	og_types "github.com/annchain/OG/arefactor/og_interface"
+	og_types "github.com/annchain/OG/og_interface"
 	"github.com/annchain/kyber/v3/util/random"
 	"math/rand"
 	"strings"

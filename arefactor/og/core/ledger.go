@@ -2,8 +2,8 @@ package core
 
 import (
 	"fmt"
-	ogTypes "github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/types"
+	ogTypes "github.com/annchain/OG/og_interface"
 )
 
 type OgLedger struct {

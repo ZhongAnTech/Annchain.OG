@@ -2,7 +2,7 @@ package types
 
 import (
 	"fmt"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
+	"github.com/annchain/commongo/marshaller"
 	"github.com/annchain/commongo/math"
 )
 

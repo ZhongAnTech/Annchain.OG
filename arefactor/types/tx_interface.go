@@ -15,8 +15,8 @@
 package types
 
 import (
-	og_types "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
+	og_types "github.com/annchain/OG/og_interface"
+	"github.com/annchain/commongo/marshaller"
 	"strings"
 )
 

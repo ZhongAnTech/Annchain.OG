@@ -2,8 +2,8 @@ package state
 
 import (
 	"fmt"
-	ogtypes "github.com/annchain/OG/arefactor/og_interface"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
+	ogtypes "github.com/annchain/OG/og_interface"
+	"github.com/annchain/commongo/marshaller"
 	"github.com/annchain/commongo/math"
 	"math/big"
 )

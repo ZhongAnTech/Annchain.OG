@@ -18,7 +18,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/arefactor/utils/marshaller"
+	"github.com/annchain/commongo/marshaller"
 	"math/big"
 
 	ogTypes "github.com/annchain/OG/arefactor/og_interface"
@@ -313,7 +313,7 @@ func (s *StateObject) String() string {
 
 /**
 marshalling part
- */
+*/
 
 func (s *StateObject) Encode() ([]byte, error) {
 	return s.data.MarshalMsg()
@@ -423,7 +423,7 @@ func (a *AccountData) MsgSize() int {
 
 /**
 BalanceSet
- */
+*/
 
 type BalanceSet map[int32]*math.BigInt
 
@@ -466,7 +466,7 @@ func (bs *BalanceSet) IsEmpty() bool {
 
 /**
 marshaller part
- */
+*/
 
 func (bs *BalanceSet) MarshalMsg() (b []byte, err error) {
 	b = make([]byte, marshaller.HeaderSize)

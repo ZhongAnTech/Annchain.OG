@@ -15,7 +15,7 @@ package types
 
 import (
 	"fmt"
-	og_types "github.com/annchain/OG/arefactor/og_interface"
+	og_types "github.com/annchain/OG/og_interface"
 	"strings"
 )
 

@@ -25,7 +25,6 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/annchain/OG/arefactor/common"
 	"github.com/annchain/commongo/math"
 	"github.com/btcsuite/btcd/btcec"
 	"golang.org/x/crypto/sha3"
@@ -34,6 +33,16 @@ import (
 var (
 	secp256k1N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 	secp256k1halfN = new(big.Int).Div(secp256k1N, big.NewInt(2))
+)
+
+var (
+	Big1   = big.NewInt(1)
+	Big2   = big.NewInt(2)
+	Big3   = big.NewInt(3)
+	Big0   = big.NewInt(0)
+	Big32  = big.NewInt(32)
+	Big256 = big.NewInt(256)
+	Big257 = big.NewInt(257)
 )
 
 var errInvalidPubkey = errors.New("invalid secp256k1 public key")
@@ -174,7 +183,7 @@ func GenerateKey() (*ecdsa.PrivateKey, error) {
 // ValidateSignatureValues verifies whether the signature values are valid with
 // the given chain rules. The v value is assumed to be either 0 or 1.
 func ValidateSignatureValues(v byte, r, s *big.Int, homestead bool) bool {
-	if r.Cmp(common.Big1) < 0 || s.Cmp(common.Big1) < 0 {
+	if r.Cmp(Big1) < 0 || s.Cmp(Big1) < 0 {
 		return false
 	}
 	// reject upper range of s values (ECDSA malleability)

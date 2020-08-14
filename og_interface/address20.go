@@ -38,6 +38,10 @@ func (a *Address20) Bytes() []byte {
 	return a.b[:]
 }
 
+func (a *Address20) Big() *big.Int {
+	return new(big.Int).SetBytes(a.Bytes())
+}
+
 func (a *Address20) Hex() string {
 	return a.hex
 }

@@ -36,8 +36,10 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYU
 github.com/annchain/OG v0.0.5 h1:GbCE2XMOrCksPe90me4XUHYQCjxwNFLpG1Lh51GXEz8=
 github.com/annchain/OG v0.0.5/go.mod h1:pLMQXS8WyBJL1NbYGSkW/OiYZeROIcjdo/6Im4UAG7w=
 github.com/annchain/bloom v2.0.4+incompatible/go.mod h1:NaO/1aKiTqpS4a8Q4lN4v5OchY2WrX5k0Ll5NmpuFGA=
-github.com/annchain/commongo v0.0.0-20200811120243-5663f75c4dbe h1:Vsql6J7RhqJOhC9VFwscJaNPfDCO4ZRIIgO2+SLAI0A=
-github.com/annchain/commongo v0.0.0-20200811120243-5663f75c4dbe/go.mod h1:YGb5Ij+N5lFJ+0M5a1hYakl+8iIyaUFPeACyLO2fMTY=
+github.com/annchain/commongo v0.0.6 h1:xaQwJs92XSfFxMAFoUVNPphaCXt1ae71XP8YvXdZ6ls=
+github.com/annchain/commongo v0.0.6/go.mod h1:YGb5Ij+N5lFJ+0M5a1hYakl+8iIyaUFPeACyLO2fMTY=
+github.com/annchain/commongo v0.0.7-0.20200814095302-c0ba5e6b2cfb h1:NjK9WuPvncNpNc1vkGvaXxhnIgy1Nd5NvyJRDoZG1mQ=
+github.com/annchain/commongo v0.0.7-0.20200814095302-c0ba5e6b2cfb/go.mod h1:YGb5Ij+N5lFJ+0M5a1hYakl+8iIyaUFPeACyLO2fMTY=
 github.com/annchain/gcache v0.0.2/go.mod h1:2eUoU39YhvRAJGoI7ROAOAdoGt03FxDx2b4qjFGNdd8=
 github.com/annchain/kyber/v3 v3.1.1 h1:Xq4bhZGLz1wXvzkxlvCYbxvgkkYQicNqfNHC06fNWaw=
 github.com/annchain/kyber/v3 v3.1.1/go.mod h1:WhRE3Gn8VmTZsuzTamPekKDwv0kBwFXu0xNsfd86oE8=

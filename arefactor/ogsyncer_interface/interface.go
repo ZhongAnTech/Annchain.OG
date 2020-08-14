@@ -54,14 +54,19 @@ type Unknown interface {
 	GetType() UnknownType
 	GetValue() interface{}
 	GetId() string
+	GetHint() string
 }
 
 type UnknownHeight struct {
-	value int
+	Height int64
+}
+
+func (u UnknownHeight) GetHint() string {
+	panic("implement me")
 }
 
 func (u UnknownHeight) GetId() string {
-	return fmt.Sprintf("HT.%d", u.value)
+	return fmt.Sprintf("HT.%d", u.Height)
 }
 
 func (u UnknownHeight) GetType() UnknownType {
@@ -69,15 +74,19 @@ func (u UnknownHeight) GetType() UnknownType {
 }
 
 func (u UnknownHeight) GetValue() interface{} {
-	return u.value
+	return u.Height
 }
 
 type UnknownHash struct {
-	value og_interface.Hash
+	Hash og_interface.Hash
+}
+
+func (u UnknownHash) GetHint() string {
+	panic("implement me")
 }
 
 func (u UnknownHash) GetId() string {
-	return fmt.Sprintf("HS.%s", u.value)
+	return fmt.Sprintf("HS.%s", u.Hash)
 }
 
 func (u UnknownHash) GetType() UnknownType {
@@ -85,5 +94,10 @@ func (u UnknownHash) GetType() UnknownType {
 }
 
 func (u UnknownHash) GetValue() interface{} {
-	return u.value
+	return u.Hash
+}
+
+type UnknownNeededEventSubscriber interface {
+	Name() string
+	UnknownNeededEventChannel() chan Unknown
 }

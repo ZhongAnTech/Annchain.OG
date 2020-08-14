@@ -124,8 +124,11 @@ func (n *OgNode) Setup() {
 	cpRpc.InitDefault()
 
 	cpSyncer := &ogsyncer.IntSyncer2{
-		Reporter: lowLevelReporter,
-		Ledger:   ledger,
+		ExpireDuration:          time.Minute * 5,
+		MinimumIntervalDuration: time.Second * 5,
+		MaxTryTimes:             10,
+		Reporter:                lowLevelReporter,
+		Ledger:                  ledger,
 	}
 	cpSyncer.InitDefault()
 
@@ -188,6 +191,8 @@ func (n *OgNode) Setup() {
 	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpOgEngine)
 	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpSyncer)
 	//cpCommunityManager.AddSubscriberPeerLeftEvent(cpSyncer)
+
+	ledger.AddSubscriberUnknownNeededEvent(cpSyncer)
 
 	// peer height provided
 	cpOgEngine.AddSubscriberNewHeightDetectedEvent(cpSyncer)

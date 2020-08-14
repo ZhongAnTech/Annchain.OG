@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogsyncer_interface"
 	"github.com/annchain/commongo/files"
+	"github.com/annchain/commongo/format"
 	"github.com/annchain/commongo/math"
 	"github.com/annchain/commongo/utilfuncs"
+	"github.com/latifrons/goffchan"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -30,10 +33,11 @@ var (
 
 type IntArrayBlockContent struct {
 	Height      int64
-	Step        int // Step is the action within current block
-	PreviousSum int // PreviousSum simulates the previous hash
-	MySum       int // MySum simulates the state root which is the ledger execution state.
-	Submitter   int // generator of this block
+	Step        int    // Step is the action within current block
+	PreviousSum int    // PreviousSum simulates the previous hash
+	MySum       int    // MySum simulates the state root which is the ledger execution state.
+	Submitter   int    // generator of this block
+	Ts          string // generate time
 }
 
 func (i *IntArrayBlockContent) FromString(s string) {
@@ -76,6 +80,7 @@ type IntArrayLedger struct {
 	confirmedBlockContents        map[int64]og_interface.BlockContent  // height-content
 	allBlockContents              map[string]og_interface.BlockContent // blockId-content
 	consensusState                *consensus_interface.ConsensusState
+	unknownNeededEventSubscribers []ogsyncer_interface.UnknownNeededEventSubscriber
 }
 
 func (d *IntArrayLedger) Dump() {
@@ -114,7 +119,8 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 	_, ok := d.allBlockContents[prevBlockId]
 
 	if !ok {
-		logrus.WithField("prevBlockId", prevBlockId).Fatal("prev block not found")
+		logrus.WithField("prevBlockId", prevBlockId).Warn("prev block not found")
+		return
 		// wait until sync is done.
 	}
 
@@ -302,7 +308,7 @@ func (d *IntArrayLedger) LoadTempLedger() (err error) {
 	}
 
 	for _, line := range lines {
-		slots := strings.Split(line, " ")
+		slots := strings.SplitN(line, " ", 3)
 		hash := slots[0]
 		blockString := slots[1]
 		block := &IntArrayBlockContent{}
@@ -332,7 +338,7 @@ func (d *IntArrayLedger) LoadLedger() (err error) {
 	}
 
 	for _, line := range lines {
-		slots := strings.Split(line, " ")
+		slots := strings.SplitN(line, " ", 3)
 		height, err := strconv.Atoi(slots[0])
 		utilfuncs.PanicIfError(err, "read line")
 		hash := slots[1]
@@ -508,6 +514,17 @@ func (d *IntArrayLedger) applyGenesisStore(gs *og_interface.GenesisStore) {
 	d.genesis = g
 }
 
+func (d *IntArrayLedger) AddSubscriberUnknownNeededEvent(sub ogsyncer_interface.UnknownNeededEventSubscriber) {
+	d.unknownNeededEventSubscribers = append(d.unknownNeededEventSubscribers, sub)
+}
+
+func (n *IntArrayLedger) notifyUnknownNeededEvent(event ogsyncer_interface.Unknown) {
+	for _, subscriber := range n.unknownNeededEventSubscribers {
+		<-goffchan.NewTimeoutSenderShort(subscriber.UnknownNeededEventChannel(), event, "notifyUnknownNeededEvent"+subscriber.Name()).C
+		//subscriber.NewOutgoingMessageEventChannel() <- event
+	}
+}
+
 type IntArrayProposalGenerator struct {
 	Ledger    *IntArrayLedger
 	rander    *rand.Rand
@@ -557,6 +574,7 @@ func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface
 		PreviousSum: previousBlock.MySum,
 		MySum:       previousBlock.MySum + v,
 		Submitter:   i.MyId,
+		Ts:          format.FormatTimeToStandard(time.Now()),
 	}
 	proposal := &consensus_interface.ContentProposal{
 		Proposal: consensus_interface.Block{

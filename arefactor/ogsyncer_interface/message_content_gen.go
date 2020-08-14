@@ -619,10 +619,10 @@ func (z *MessageContentTx) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "To")
 				return
 			}
-		case "Value":
+		case "Height":
 			z.Value, err = dc.ReadString()
 			if err != nil {
-				err = msgp.WrapError(err, "Value")
+				err = msgp.WrapError(err, "Height")
 				return
 			}
 		case "TokenId":
@@ -730,14 +730,14 @@ func (z *MessageContentTx) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "To")
 		return
 	}
-	// write "Value"
+	// write "Height"
 	err = en.Append(0xa5, 0x56, 0x61, 0x6c, 0x75, 0x65)
 	if err != nil {
 		return
 	}
 	err = en.WriteString(z.Value)
 	if err != nil {
-		err = msgp.WrapError(err, "Value")
+		err = msgp.WrapError(err, "Height")
 		return
 	}
 	// write "TokenId"
@@ -808,7 +808,7 @@ func (z *MessageContentTx) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "To"
 	o = append(o, 0xa2, 0x54, 0x6f)
 	o = msgp.AppendBytes(o, z.To)
-	// string "Value"
+	// string "Height"
 	o = append(o, 0xa5, 0x56, 0x61, 0x6c, 0x75, 0x65)
 	o = msgp.AppendString(o, z.Value)
 	// string "TokenId"
@@ -893,10 +893,10 @@ func (z *MessageContentTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "To")
 				return
 			}
-		case "Value":
+		case "Height":
 			z.Value, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "Value")
+				err = msgp.WrapError(err, "Height")
 				return
 			}
 		case "TokenId":

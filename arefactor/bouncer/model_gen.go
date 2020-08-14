@@ -20,7 +20,7 @@ func (z *BouncerMessage) DecodeMsg(dc *msgp.Reader) (err error) {
 	}
 	z.Value, err = dc.ReadInt()
 	if err != nil {
-		err = msgp.WrapError(err, "Value")
+		err = msgp.WrapError(err, "Height")
 		return
 	}
 	return
@@ -35,7 +35,7 @@ func (z BouncerMessage) EncodeMsg(en *msgp.Writer) (err error) {
 	}
 	err = en.WriteInt(z.Value)
 	if err != nil {
-		err = msgp.WrapError(err, "Value")
+		err = msgp.WrapError(err, "Height")
 		return
 	}
 	return
@@ -64,7 +64,7 @@ func (z *BouncerMessage) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	}
 	z.Value, bts, err = msgp.ReadIntBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "Value")
+		err = msgp.WrapError(err, "Height")
 		return
 	}
 	o = bts

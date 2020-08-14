@@ -7,6 +7,8 @@ import (
 	"github.com/annchain/OG/arefactor/ogsyncer_interface"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/annchain/commongo/math"
+	"github.com/annchain/commongo/todolist"
 	"github.com/annchain/commongo/utilfuncs"
 	"github.com/latifrons/goffchan"
 	"github.com/latifrons/soccerdash"
@@ -16,8 +18,8 @@ import (
 	"time"
 )
 
-const SyncCheckIntervalSeconds int = 10 // max check interval for syncing a height
-const MaxTolerantHeightDiff = 0         // ogsyncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxPeerHeight
+const SyncCheckIntervalSeconds int = 1 // max check interval for syncing a content
+const MaxTolerantHeightDiff = 0        // ogsyncer will start syncing if myHeight + MaxTolerantHeightDiff < knownMaxPeerHeight
 
 // IntSyncer2 listens to multiple event channels to judge what to do.
 // On new height detected: compare to local and see if we need to sync from it
@@ -25,21 +27,29 @@ const MaxTolerantHeightDiff = 0         // ogsyncer will start syncing if myHeig
 // On peer left: switch peer to sync?
 // handle unknown resource. ask others.
 type IntSyncer2 struct {
-	Reporter       *soccerdash.Reporter
-	Ledger         og_interface.Ledger
-	unknownManager ogsyncer_interface.UnknownManager
-	peerManager    *PeerManager
+	ExpireDuration          time.Duration
+	MinimumIntervalDuration time.Duration
+	MaxTryTimes             int
 
-	newHeightDetectedEventChan  chan *og_interface.NewHeightDetectedEvent
-	peerJoinedEventChan         chan *og_interface.PeerJoinedEvent
-	newIncomingMessageEventChan chan *transport_interface.IncomingLetter
+	Reporter *soccerdash.Reporter
+	Ledger   og_interface.Ledger
 
+	peerManager *PeerManager
+	taskList    *todolist.TodoList
+
+	newHeightDetectedEventChan    chan *og_interface.NewHeightDetectedEvent
+	peerJoinedEventChan           chan *og_interface.PeerJoinedEvent
+	newIncomingMessageEventChan   chan *transport_interface.IncomingLetter
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
-
-	syncTriggerChan chan bool
+	syncTriggerChan               chan bool
+	unknownNeededEventChan        chan ogsyncer_interface.Unknown
 
 	quit chan bool
 	mu   sync.RWMutex
+}
+
+func (b *IntSyncer2) UnknownNeededEventChannel() chan ogsyncer_interface.Unknown {
+	return b.unknownNeededEventChan
 }
 
 func (b *IntSyncer2) EventChannelPeerJoined() chan *og_interface.PeerJoinedEvent {
@@ -50,8 +60,8 @@ func (b *IntSyncer2) EventChannelPeerLeftChannel() chan *og_interface.PeerLeftEv
 	panic("implement me")
 }
 
-func (b *IntSyncer2) NeedToKnow(unknown ogsyncer_interface.Unknown, hint ogsyncer_interface.SourceHint) {
-	b.unknownManager.Enqueue(unknown, hint)
+func (b *IntSyncer2) NeedToKnow(unknown ogsyncer_interface.Unknown) {
+	b.taskList.AddTask(unknown)
 }
 
 // notify sending events
@@ -59,8 +69,8 @@ func (b *IntSyncer2) AddSubscriberNewOutgoingMessageEvent(transport *transport.P
 	b.newOutgoingMessageSubscribers = append(b.newOutgoingMessageSubscribers, transport)
 }
 
-func (d *IntSyncer2) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
-	for _, subscriber := range d.newOutgoingMessageSubscribers {
+func (b *IntSyncer2) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
+	for _, subscriber := range b.newOutgoingMessageSubscribers {
 		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing ogsyncer"+subscriber.Name()).C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
@@ -79,15 +89,19 @@ func (b *IntSyncer2) EventChannelPeerJoinedChannel() chan *og_interface.PeerJoin
 }
 
 func (b *IntSyncer2) InitDefault() {
-	unknownManager := &DefaultUnknownManager{}
-	unknownManager.InitDefault()
-	b.unknownManager = unknownManager
 	peerManager := &PeerManager{}
 	peerManager.InitDefault()
 	b.peerManager = peerManager
 	b.newIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
 	b.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEvent)
 	b.peerJoinedEventChan = make(chan *og_interface.PeerJoinedEvent)
+	b.unknownNeededEventChan = make(chan ogsyncer_interface.Unknown)
+	b.taskList = &todolist.TodoList{
+		ExpireDuration:          b.ExpireDuration,
+		MinimumIntervalDuration: b.MinimumIntervalDuration,
+		MaxTryTimes:             b.MaxTryTimes,
+	}
+	b.taskList.InitDefault()
 
 	b.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 	b.quit = make(chan bool)
@@ -121,38 +135,30 @@ func (b *IntSyncer2) eventLoop() {
 			b.handlePeerJoinedEvent(event)
 		case letter := <-b.newIncomingMessageEventChan:
 			b.handleIncomingMessage(letter)
+		case event := <-b.unknownNeededEventChan:
+			b.NeedToKnow(event)
 		}
 	}
 }
 
-func (b *IntSyncer2) needSync() bool {
-	return b.peerManager.knownMaxPeerHeight > b.Ledger.CurrentHeight()+MaxTolerantHeightDiff
-}
-
 func (b *IntSyncer2) sync() {
-	timer := time.NewTimer(time.Second * time.Duration(SyncCheckIntervalSeconds))
+	timer := time.NewTicker(time.Second * time.Duration(SyncCheckIntervalSeconds))
 	for {
-		utilfuncs.DrainTimer(timer)
-		timer.Reset(time.Second * time.Duration(SyncCheckIntervalSeconds))
 		toSync := false
 		select {
 		case <-b.quit:
+			timer.Stop()
+			utilfuncs.DrainTicker(timer)
 			return
 		case <-b.syncTriggerChan:
 			// start sync because we find a higher height or we received a height update
 			toSync = true
 		case <-timer.C:
-			// start sync because of check interval
 			toSync = true
 		}
-
 		if !toSync {
 			continue
 		}
-		logrus.WithFields(logrus.Fields{
-			"myHeight":           b.Ledger.CurrentHeight(),
-			"knownMaxPeerHeight": b.peerManager.knownMaxPeerHeight,
-		}).Debug("start sync")
 		b.startSyncOnce()
 	}
 }
@@ -175,14 +181,28 @@ func (b *IntSyncer2) pickUpRandomSourcePeer(height int64) (peerId string, err er
 }
 
 func (b *IntSyncer2) startSyncOnce() {
-	if !b.needSync() {
-		logrus.Debug("no need to sync")
-		return
+	// arrange height tasks
+	if b.peerManager.knownMaxPeerHeight > b.Ledger.CurrentHeight()+MaxTolerantHeightDiff {
+		batchEnd := math.SmallerInt64(b.peerManager.knownMaxPeerHeight, b.Ledger.CurrentHeight()+10)
+		for i := b.Ledger.CurrentHeight() + 1; i <= batchEnd; i++ {
+			b.NeedToKnow(&ogsyncer_interface.UnknownHeight{
+				Height: i,
+			})
+		}
 	}
+	// keep consume tasks until there is nothing left.
+	for {
+		// handle tasks
+		task := b.taskList.GetTask()
+		if task == nil {
+			break
+		}
+		b.handleSyncTask(task)
+	}
+
 	peersToUpdate := b.peerManager.findOutdatedPeersToQueryHeight(5)
 	b.queryHeights(peersToUpdate)
 
-	b.syncNextHeight()
 }
 
 func (b *IntSyncer2) handleIncomingMessage(letter *transport_interface.IncomingLetter) {
@@ -288,20 +308,25 @@ func (b *IntSyncer2) handleBlockByHeightResponse(req *ogsyncer_interface.OgSyncB
 	// do ints
 	ints := req.Ints
 	for _, v := range ints {
-		b.Ledger.ConfirmBlock(&dummy.IntArrayBlockContent{
+		block := &dummy.IntArrayBlockContent{
 			Height:      v.Height,
 			Step:        v.Step,
 			PreviousSum: v.PreviousSum,
 			MySum:       v.MySum,
 			Submitter:   v.Submitter,
+		}
+		b.Ledger.ConfirmBlock(block)
+		b.taskList.RemoveTask(&ogsyncer_interface.UnknownHeight{
+			Height: v.Height,
 		})
-	}
-	if b.Ledger.CurrentHeight() < b.peerManager.knownMaxPeerHeight {
-		b.syncNextHeight()
-	} else {
-		// seems we already reach the max height. do double check
-		peersToUpdate := b.peerManager.findOutdatedPeersToQueryHeight(5)
-		b.queryHeights(peersToUpdate)
+		b.taskList.RemoveTask(&ogsyncer_interface.UnknownHash{
+			Hash: block.GetHash(),
+		})
+		logrus.WithFields(logrus.Fields{
+			"from":   from,
+			"height": block.Height,
+			"hash":   block.GetHash().HashString(),
+		}).Trace("got block")
 	}
 }
 
@@ -320,22 +345,33 @@ func (b *IntSyncer2) queryHeights(peerIds []string) {
 	b.notifyNewOutgoingMessage(letterOut)
 }
 
-func (b *IntSyncer2) syncNextHeight() {
+func (b *IntSyncer2) handleSyncTask(task todolist.Traceable) {
+	switch task.(ogsyncer_interface.Unknown).GetType() {
+	case ogsyncer_interface.UnknownTypeHeight:
+		taskv := task.(*ogsyncer_interface.UnknownHeight)
+		if b.handleSyncHeightTask(taskv) {
+			return
+		}
+	case ogsyncer_interface.UnknownTypeHash:
+		taskv := task.(*ogsyncer_interface.UnknownHash)
+		if b.handleSyncHashTask(taskv) {
+			return
+		}
+	}
+}
 
-	// send one sync message to random one
-	nextHeight := b.Ledger.CurrentHeight() + 1
-	peerId, err := b.pickUpRandomSourcePeer(nextHeight)
+func (b *IntSyncer2) handleSyncHeightTask(taskv *ogsyncer_interface.UnknownHeight) bool {
+	peerId, err := b.pickUpRandomSourcePeer(taskv.Height)
 	if err != nil {
 		logrus.WithError(err).Warn("we known a higher nextHeight but we failed to pick up source peer")
-		return
+		return true
 	}
-	logrus.WithField("height", nextHeight).WithField("from", peerId).Info("Start sync")
-
+	logrus.WithField("height", taskv.Height).WithField("from", peerId).Info("ask for height")
 	// send sync request to this peer
 	// always start offset from 0.
 	// if there is more, send another request in the response handler function
 	req := &ogsyncer_interface.OgSyncBlockByHeightRequest{
-		Height: nextHeight,
+		Height: taskv.Height,
 		Offset: 0,
 	}
 
@@ -347,4 +383,29 @@ func (b *IntSyncer2) syncNextHeight() {
 		EndReceivers:   []string{peerId},
 	}
 	b.notifyNewOutgoingMessage(letter)
+	return false
+}
+
+func (b *IntSyncer2) handleSyncHashTask(taskv *ogsyncer_interface.UnknownHash) bool {
+	peerId, err := b.pickUpRandomSourcePeer(b.Ledger.CurrentHeight())
+	if err != nil {
+		logrus.WithError(err).Warn("we failed to pick up source peer")
+		return true
+	}
+	logrus.WithField("hash", taskv.Hash.HashString()).WithField("from", peerId).Info("ask for hash")
+	req := &ogsyncer_interface.OgSyncByHashesRequest{
+		Hashes: [][]byte{
+			taskv.Hash.Bytes(),
+		},
+	}
+
+	letter := &transport_interface.OutgoingLetter{
+		ExceptMyself:   true,
+		Msg:            req,
+		SendType:       transport_interface.SendTypeUnicast,
+		CloseAfterSent: false,
+		EndReceivers:   []string{peerId},
+	}
+	b.notifyNewOutgoingMessage(letter)
+	return false
 }

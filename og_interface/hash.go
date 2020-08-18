@@ -12,6 +12,10 @@ const (
 	FlagHash32
 )
 
+var (
+	EmptyHash = &Hash32{}
+)
+
 func MarshalHash(hash Hash) ([]byte, error) {
 	return hash.MarshalMsg()
 }

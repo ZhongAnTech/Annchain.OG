@@ -1,0 +1,5 @@
+// List some notifications of refactor.
+
+// Packages used by other projects (should not be deleted):
+og_interface
+ogcrypto

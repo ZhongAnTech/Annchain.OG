@@ -14,6 +14,7 @@
 package core_test
 
 import (
+	"github.com/annchain/OG/og/core/ogdb"
 	"testing"
 
 	"github.com/annchain/OG/core/state"
@@ -27,8 +28,8 @@ import (
 
 func newTestAccountFlowTx(nonce uint64, value *math.BigInt) *tx_types.Tx {
 	txCreator := &og.TxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
-	addr := newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(ogdb.testPkSecp0)
+	addr := ogdb.newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, value, nonce, pk, 0)
 	tx.SetHash(tx.CalcTxHash())

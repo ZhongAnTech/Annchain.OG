@@ -15,6 +15,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/annchain/OG/og/core/ogdb"
 	"sort"
 	"sync"
 
@@ -22,8 +23,6 @@ import (
 	"github.com/annchain/OG/arefactor/types"
 	ogTypes "github.com/annchain/OG/og_interface"
 	"github.com/annchain/commongo/math"
-	"github.com/annchain/ogdb"
-
 	// TODO move out evm package
 	evm "github.com/annchain/OG/vm/eth/core/vm"
 	"github.com/annchain/OG/vm/ovm"

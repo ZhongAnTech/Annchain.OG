@@ -36,6 +36,7 @@ github.com/annchain/OG v0.0.7 h1:sRxnuQQqzhfCH8khMT0qjvela3NRjsQBvuZ88z7zOJM=
 github.com/annchain/OG v0.0.7/go.mod h1:dxfw3v5p7ZtG54SrlwEwxDXZtdjN3y1aPT01Hs+A+uI=
 github.com/annchain/OG v0.0.8 h1:Fpbmo1uhAZ3bqFwPg0rKn76qTty3a2BVNrRvNHDtcgQ=
 github.com/annchain/OG v0.0.8/go.mod h1:ZUtlbk0Ysmz6up/SwDhh+sjNkIPgk6L7AlVCcbDKoiY=
+github.com/annchain/OG v0.0.9/go.mod h1:ZUtlbk0Ysmz6up/SwDhh+sjNkIPgk6L7AlVCcbDKoiY=
 github.com/annchain/bloom v2.0.4+incompatible h1:u4wL4BoOeIq1czbzoZytfhDIfinhz73R0fV+vVUQN8I=
 github.com/annchain/bloom v2.0.4+incompatible/go.mod h1:NaO/1aKiTqpS4a8Q4lN4v5OchY2WrX5k0Ll5NmpuFGA=
 github.com/annchain/commongo v0.0.0-20200727100046-6b7cd76c21f4 h1:4U/aHHCPfP/MUEsCCEEG2JdJ/mHGspXBVzp7CxSfWMA=
@@ -49,6 +50,7 @@ github.com/annchain/gcache v0.0.2/go.mod h1:2eUoU39YhvRAJGoI7ROAOAdoGt03FxDx2b4q
 github.com/annchain/kyber/v3 v3.1.1 h1:Xq4bhZGLz1wXvzkxlvCYbxvgkkYQicNqfNHC06fNWaw=
 github.com/annchain/kyber/v3 v3.1.1/go.mod h1:WhRE3Gn8VmTZsuzTamPekKDwv0kBwFXu0xNsfd86oE8=
 github.com/annchain/ogdb v0.0.0-20200810103232-31fa52e6b4c5 h1:UDmGfDyXvi0iQJTT7LjTgBrwDr0Ih4g7lfIzhjqniiY=
+github.com/annchain/ogdb v0.0.0-20200810103232-31fa52e6b4c5/go.mod h1:zGVzuNgie4S8/+jk1531lvJXPX7JMIm/uKBuKuVsJ70=
 github.com/annchain/trie v0.0.0-20200810071945-f021089b234f h1:4sgkmqCmWcr36QCWq6bxD9V8yuXdSXgyUPWYjxibq0I=
 github.com/annchain/trie v0.0.0-20200810071945-f021089b234f/go.mod h1:pje5Uwcx22HWARLRvX2n+etI35hFbUu0axIoYkhQeq4=
 github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e h1:4chHjskWkpUzEg3l+PoFxXVVRU8uSGY6DSGnXH65OwE=

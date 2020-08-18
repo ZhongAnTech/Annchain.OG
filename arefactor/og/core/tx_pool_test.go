@@ -15,6 +15,7 @@ package core_test
 
 import (
 	"github.com/annchain/OG/common"
+	ogdb2 "github.com/annchain/OG/og/core/ogdb"
 	"github.com/annchain/OG/types/tx_types"
 	"testing"
 
@@ -59,8 +60,8 @@ func newTestTxPool(t *testing.T) (*core.TxPool, *core.Dag, *tx_types.Sequencer, 
 
 func newTestPoolTx(nonce uint64) *tx_types.Tx {
 	txCreator := &og.TxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
-	addr := newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(ogdb2.testPkSecp0)
+	addr := ogdb2.newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk, 0)
 	tx.SetHash(tx.CalcTxHash())
@@ -70,8 +71,8 @@ func newTestPoolTx(nonce uint64) *tx_types.Tx {
 
 func newTestPoolBadTx() *tx_types.Tx {
 	txCreator := &og.TxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(testPkSecp2)
-	addr := newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(ogdb2.testPkSecp2)
+	addr := ogdb2.newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(100), 0, pk, 0)
 	tx.SetHash(tx.CalcTxHash())
@@ -207,7 +208,7 @@ func TestPoolConfirm(t *testing.T) {
 	tx1.ParentsHash = common.Hashes{genesis.GetTxHash()}
 	pool.AddLocalTx(tx1, true)
 
-	seq := newTestSeq(1)
+	seq := ogdb2.newTestSeq(1)
 	seq.ParentsHash = common.Hashes{
 		tx0.GetTxHash(),
 		tx1.GetTxHash(),

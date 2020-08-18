@@ -16,6 +16,8 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"github.com/annchain/OG/ogdb"
+	"math/big"
 	"strconv"
 	"sync"
 
@@ -23,7 +25,6 @@ import (
 	ogTypes "github.com/annchain/OG/og_interface"
 	"github.com/annchain/commongo/marshaller"
 	"github.com/annchain/commongo/math"
-	"github.com/annchain/ogdb"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -385,7 +386,7 @@ func (da *Accessor) HasAddrLatestNonce(addr ogTypes.Address) (bool, error) {
 
 // WriteReceipts write a receipt map into db.
 func (da *Accessor) WriteReceipts(putter *Putter, seqID uint64, receipts ReceiptSet) error {
-	data, err := receipts.MarshalMsg(nil)
+	data, err := receipts.MarshalMsg()
 	if err != nil {
 		return fmt.Errorf("marshal seq%d's receipts err: %v", seqID, err)
 	}
@@ -402,12 +403,12 @@ func (da *Accessor) ReadReceipt(seqID uint64, hash ogTypes.Hash) *Receipt {
 	if len(bundleBytes) == 0 {
 		return nil
 	}
-	var receipts ReceiptSet
+	receipts := make(ReceiptSet)
 	_, err := receipts.UnmarshalMsg(bundleBytes)
 	if err != nil {
 		return nil
 	}
-	receipt, ok := receipts[hash.Hex()]
+	receipt, ok := receipts[hash.HashKey()]
 	if !ok {
 		return nil
 	}
@@ -463,12 +464,7 @@ func (da *Accessor) ReadBalance(addr ogTypes.Address) *math.BigInt {
 	if len(data) == 0 {
 		return math.NewBigInt(0)
 	}
-	var bigint math.BigInt
-	_, err := bigint.UnmarshalMsg(data)
-	if err != nil {
-		return nil
-	}
-	return &bigint
+	return math.NewBigIntFromBigInt(big.NewInt(0).SetBytes(data))
 }
 
 // SetBalance write the balance of an address into ogdb.
@@ -477,10 +473,7 @@ func (da *Accessor) SetBalance(putter *Putter, addr ogTypes.Address, value *math
 	if value.Value.Abs(value.Value).Cmp(value.Value) != 0 {
 		return fmt.Errorf("the value of the balance must be positive!")
 	}
-	data, err := value.MarshalMsg(nil)
-	if err != nil {
-		return err
-	}
+	data := value.Value.Bytes()
 	key := addressBalanceKey(addr)
 	return da.put(putter, key, data)
 }

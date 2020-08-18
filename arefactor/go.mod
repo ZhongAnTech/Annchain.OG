@@ -3,7 +3,8 @@ module github.com/annchain/OG/arefactor
 go 1.14
 
 require (
-	github.com/annchain/OG v0.0.8
+	github.com/annchain/OG v0.0.9
+	github.com/annchain/ogdb v0.0.0-20200810103232-31fa52e6b4c5
 	github.com/annchain/commongo v0.0.3
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/annchain/trie v0.0.0-20200810071945-f021089b234f

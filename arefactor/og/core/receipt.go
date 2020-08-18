@@ -123,3 +123,42 @@ func (r *Receipt) MsgSize() int {
 
 //msgp:tuple ReceiptSet
 type ReceiptSet map[ogTypes.HashKey]*Receipt
+
+func (r *ReceiptSet) MarshalMsg() ([]byte, error) {
+	var err error
+
+	b := make([]byte, marshaller.HeaderSize)
+	for hashKey, receipt := range *r {
+		b = marshaller.AppendString(b, string(hashKey))
+		b, err = marshaller.AppendIMarshaller(b, receipt)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	marshaller.FillHeaderDataNum(b, len(*r))
+	return b, nil
+}
+
+func (r *ReceiptSet) UnmarshalMsg(b []byte) ([]byte, error) {
+	b, sz, err := marshaller.DecodeHeader(b)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < sz; i++ {
+		key, b, err := marshaller.ReadString(b)
+		if err != nil {
+			return nil, err
+		}
+		var receipt Receipt
+		b, err = receipt.UnmarshalMsg(b)
+		if err != nil {
+			return nil, err
+		}
+
+		(*r)[ogTypes.HashKey(key)] = &receipt
+	}
+
+	return b, nil
+}

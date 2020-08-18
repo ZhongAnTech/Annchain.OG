@@ -14,6 +14,7 @@
 package core_test
 
 import (
+	"github.com/annchain/OG/og/core/ogdb"
 	"testing"
 
 	"github.com/annchain/OG/common"
@@ -36,7 +37,7 @@ var (
 
 func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *tx_types.Sequencer, func()) {
 	conf := core.DagConfig{}
-	db, remove := newTestLDB(dbDirPrefix)
+	db, remove := ogdb.newTestLDB(dbDirPrefix)
 	stdbconf := state.DefaultStateDBConfig()
 	dag, errnew := core.NewDag(conf, stdbconf, db, nil)
 	if errnew != nil {
@@ -58,8 +59,8 @@ func newTestDag(t *testing.T, dbDirPrefix string) (*core.Dag, *tx_types.Sequence
 
 func newTestDagTx(nonce uint64) *tx_types.Tx {
 	txCreator := &og.TxCreator{}
-	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
-	addr := newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(ogdb.testPkSecp0)
+	addr := ogdb.newTestAddress(pk)
 
 	tx := txCreator.NewSignedTx(addr, addr, math.NewBigInt(0), nonce, pk, 0)
 	tx.SetHash(tx.CalcTxHash())
@@ -96,7 +97,7 @@ func TestDagLoadGenesis(t *testing.T) {
 	t.Parallel()
 
 	conf := core.DagConfig{}
-	db, remove := newTestLDB("TestDagLoadGenesis")
+	db, remove := ogdb.newTestLDB("TestDagLoadGenesis")
 	defer remove()
 	dag, errnew := core.NewDag(conf, state.DefaultStateDBConfig(), db, nil)
 	if errnew != nil {
@@ -152,7 +153,7 @@ func TestDagPush(t *testing.T) {
 	batch := map[common.Address]*core.batchDetail{}
 	batch[tx1.Sender()] = bd
 
-	seq := newTestSeq(1)
+	seq := ogdb.newTestSeq(1)
 	seq.ParentsHash = common.Hashes{
 		tx1.GetTxHash(),
 		tx2.GetTxHash(),
@@ -214,8 +215,8 @@ func TestDagProcess(t *testing.T) {
 	stdb := dag.StateDatabase()
 	defer finish()
 
-	pk, _ := crypto.PrivateKeyFromString(testPkSecp0)
-	addr := newTestAddress(pk)
+	pk, _ := crypto.PrivateKeyFromString(ogdb.testPkSecp0)
+	addr := ogdb.newTestAddress(pk)
 
 	// evm contract bytecode, for source code detail please check:
 	// github.com/annchain/OG/vm/vm_test/contracts/setter.sol

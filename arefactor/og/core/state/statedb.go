@@ -49,8 +49,8 @@ type StateDB struct {
 	// trie stores account's basic data, every node of the trie
 	// represents a StateObject.Account.
 	// db is for trie accessing.
-	db   Database
-	trie Trie
+	db   trie.Database
+	trie trie.TrieI
 	root ogTypes.Hash
 
 	refund uint64

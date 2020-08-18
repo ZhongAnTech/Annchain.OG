@@ -43,3 +43,22 @@ func BigToHash(b *big.Int, hashFlag byte) Hash {
 		return BigToHash32(b)
 	}
 }
+
+func HashKeyToHash(hashKey HashKey) Hash {
+	b := hashKey.Bytes()
+	switch len(b) {
+	case Hash32Length:
+		return BytesToHash32(b)
+	default:
+		return BytesToHash32(b)
+	}
+}
+
+func BytesToHash(b []byte) Hash {
+	switch {
+	case len(b) <= Hash32Length:
+		return BytesToHash32(b)
+	default:
+		return BytesToHash32(b)
+	}
+}

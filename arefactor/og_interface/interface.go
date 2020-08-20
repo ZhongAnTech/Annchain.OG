@@ -13,11 +13,15 @@ type PeerLeftEvent struct {
 }
 
 type PeerJoinedEventSubscriber interface {
-	EventChannelPeerJoined() chan *PeerJoinedEvent
+	PeerJoinedChannel() chan *PeerJoinedEvent
 }
 
 type PeerLeftEventSubscriber interface {
-	EventChannelPeerLeftChannel() chan *PeerLeftEvent
+	PeerLeftChannel() chan *PeerLeftEvent
+}
+
+type NewLocalHeightUpdatedEventSubscriber interface {
+	NewLocalHeightUpdatedChannel() chan *NewLocalHeightUpdatedEvent
 }
 
 type NodeInfoProvider interface {
@@ -28,6 +32,10 @@ type NodeInfoProvider interface {
 type NewHeightDetectedEvent struct {
 	Height int64
 	PeerId string
+}
+
+type NewLocalHeightUpdatedEvent struct {
+	Height int64
 }
 
 type AccountHolder interface {

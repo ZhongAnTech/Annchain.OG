@@ -22,7 +22,6 @@ type OgEngine struct {
 
 	// publish events
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
-	newHeightDetectedSubscribers  []og_interface.NewHeightDetectedEventSubscriber         // a message need to be sent
 
 }
 
@@ -33,7 +32,7 @@ func (o *OgEngine) InitDefault() {
 	o.quit = make(chan bool)
 }
 
-func (o *OgEngine) EventChannelPeerJoined() chan *og_interface.PeerJoinedEvent {
+func (o *OgEngine) PeerJoinedChannel() chan *og_interface.PeerJoinedEvent {
 	return o.myPeerJoinedEventChan
 }
 
@@ -49,17 +48,6 @@ func (o *OgEngine) notifyNewOutgoingMessage(event *transport_interface.OutgoingL
 	for _, subscriber := range o.newOutgoingMessageSubscribers {
 		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing engine"+subscriber.Name()).C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
-	}
-}
-
-func (o *OgEngine) AddSubscriberNewHeightDetectedEvent(sub og_interface.NewHeightDetectedEventSubscriber) {
-	o.newHeightDetectedSubscribers = append(o.newHeightDetectedSubscribers, sub)
-}
-
-func (o *OgEngine) notifyNewHeightDetected(event *og_interface.NewHeightDetectedEvent) {
-	for _, subscriber := range o.newHeightDetectedSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewHeightDetectedEventChannel(), event, "heightdetected"+subscriber.Name()).C
-		//subscriber.NewHeightDetectedEventChannel() <- event
 	}
 }
 

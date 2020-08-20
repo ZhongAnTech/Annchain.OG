@@ -85,6 +85,7 @@ type MessageContentInt struct {
 	PreviousSum int
 	MySum       int
 	Submitter   int
+	Ts          string
 }
 
 func (z *MessageContentInt) ToBytes() []byte {

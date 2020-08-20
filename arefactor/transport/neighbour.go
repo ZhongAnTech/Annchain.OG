@@ -60,7 +60,7 @@ func (c *Neighbour) loopRead() {
 			From: c.PrettyId,
 		}
 
-		<-goffchan.NewTimeoutSenderShort(c.IncomingChannel, incoming, "read").C
+		<-goffchan.NewTimeoutSenderShort(c.IncomingChannel, incoming, "NeighbourSendToIncoming").C
 		//c.IncomingChannel <- message
 	}
 	logrus.Trace("peer read end")

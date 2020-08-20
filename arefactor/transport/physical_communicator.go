@@ -382,10 +382,14 @@ func (c *PhysicalCommunicator) loopbackMessage(msg transport_interface.OutgoingM
 	go func() {
 		i := rand.Int31()
 		logrus.WithField("rand", i).Debug("non-blocking inner send start")
-		c.incomingChannel <- &transport_interface.IncomingLetter{
+		<-goffchan.NewTimeoutSenderShort(c.incomingChannel, &transport_interface.IncomingLetter{
 			Msg:  wireMessage,
 			From: c.node.ID().String(),
-		}
+		}, "loopbackMsg").C
+		//c.incomingChannel <- &transport_interface.IncomingLetter{
+		//	Msg:  wireMessage,
+		//	From: c.node.ID().String(),
+		//}
 		logrus.WithField("rand", i).Debug("non-blocking inner send end")
 	}()
 }

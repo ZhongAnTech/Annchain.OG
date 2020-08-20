@@ -1324,12 +1324,6 @@ func (z *OgSyncLatestHeightRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "MyHeight":
-			z.MyHeight, err = dc.ReadInt64()
-			if err != nil {
-				err = msgp.WrapError(err, "MyHeight")
-				return
-			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -1343,15 +1337,9 @@ func (z *OgSyncLatestHeightRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z OgSyncLatestHeightRequest) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
-	// write "MyHeight"
-	err = en.Append(0x81, 0xa8, 0x4d, 0x79, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
+	// map header, size 0
+	err = en.Append(0x80)
 	if err != nil {
-		return
-	}
-	err = en.WriteInt64(z.MyHeight)
-	if err != nil {
-		err = msgp.WrapError(err, "MyHeight")
 		return
 	}
 	return
@@ -1360,10 +1348,8 @@ func (z OgSyncLatestHeightRequest) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z OgSyncLatestHeightRequest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
-	// string "MyHeight"
-	o = append(o, 0x81, 0xa8, 0x4d, 0x79, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
-	o = msgp.AppendInt64(o, z.MyHeight)
+	// map header, size 0
+	o = append(o, 0x80)
 	return
 }
 
@@ -1385,12 +1371,6 @@ func (z *OgSyncLatestHeightRequest) UnmarshalMsg(bts []byte) (o []byte, err erro
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "MyHeight":
-			z.MyHeight, bts, err = msgp.ReadInt64Bytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "MyHeight")
-				return
-			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -1405,7 +1385,7 @@ func (z *OgSyncLatestHeightRequest) UnmarshalMsg(bts []byte) (o []byte, err erro
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z OgSyncLatestHeightRequest) Msgsize() (s int) {
-	s = 1 + 9 + msgp.Int64Size
+	s = 1
 	return
 }
 

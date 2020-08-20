@@ -147,6 +147,8 @@ func (n *Partner) ProcessProposalMessage(msg *consensus_interface.HotStuffSigned
 		"from":     msg.SenderMemberId,
 	}).Debug("received proposal")
 
+	n.Reporter.Report("proposalparentQc", p.Proposal.ParentQC, false)
+	n.Reporter.Report("proposalTC", p.TC, false)
 	n.ProcessCertificates(p.Proposal.ParentQC, p.TC, "ProposalM")
 
 	currentRound := n.paceMaker.CurrentRound

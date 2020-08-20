@@ -54,6 +54,12 @@ func (z *MessageContentInt) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Submitter")
 				return
 			}
+		case "Ts":
+			z.Ts, err = dc.ReadString()
+			if err != nil {
+				err = msgp.WrapError(err, "Ts")
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -67,9 +73,9 @@ func (z *MessageContentInt) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *MessageContentInt) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 5
+	// map header, size 6
 	// write "Height"
-	err = en.Append(0x85, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
+	err = en.Append(0x86, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
 	if err != nil {
 		return
 	}
@@ -118,15 +124,25 @@ func (z *MessageContentInt) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Submitter")
 		return
 	}
+	// write "Ts"
+	err = en.Append(0xa2, 0x54, 0x73)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.Ts)
+	if err != nil {
+		err = msgp.WrapError(err, "Ts")
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *MessageContentInt) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 5
+	// map header, size 6
 	// string "Height"
-	o = append(o, 0x85, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
+	o = append(o, 0x86, 0xa6, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74)
 	o = msgp.AppendInt64(o, z.Height)
 	// string "Step"
 	o = append(o, 0xa4, 0x53, 0x74, 0x65, 0x70)
@@ -140,6 +156,9 @@ func (z *MessageContentInt) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "Submitter"
 	o = append(o, 0xa9, 0x53, 0x75, 0x62, 0x6d, 0x69, 0x74, 0x74, 0x65, 0x72)
 	o = msgp.AppendInt(o, z.Submitter)
+	// string "Ts"
+	o = append(o, 0xa2, 0x54, 0x73)
+	o = msgp.AppendString(o, z.Ts)
 	return
 }
 
@@ -191,6 +210,12 @@ func (z *MessageContentInt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "Submitter")
 				return
 			}
+		case "Ts":
+			z.Ts, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Ts")
+				return
+			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -205,7 +230,7 @@ func (z *MessageContentInt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *MessageContentInt) Msgsize() (s int) {
-	s = 1 + 7 + msgp.Int64Size + 5 + msgp.IntSize + 12 + msgp.IntSize + 6 + msgp.IntSize + 10 + msgp.IntSize
+	s = 1 + 7 + msgp.Int64Size + 5 + msgp.IntSize + 12 + msgp.IntSize + 6 + msgp.IntSize + 10 + msgp.IntSize + 3 + msgp.StringPrefixSize + len(z.Ts)
 	return
 }
 
@@ -619,10 +644,10 @@ func (z *MessageContentTx) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "To")
 				return
 			}
-		case "Height":
+		case "Value":
 			z.Value, err = dc.ReadString()
 			if err != nil {
-				err = msgp.WrapError(err, "Height")
+				err = msgp.WrapError(err, "Value")
 				return
 			}
 		case "TokenId":
@@ -730,14 +755,14 @@ func (z *MessageContentTx) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "To")
 		return
 	}
-	// write "Height"
+	// write "Value"
 	err = en.Append(0xa5, 0x56, 0x61, 0x6c, 0x75, 0x65)
 	if err != nil {
 		return
 	}
 	err = en.WriteString(z.Value)
 	if err != nil {
-		err = msgp.WrapError(err, "Height")
+		err = msgp.WrapError(err, "Value")
 		return
 	}
 	// write "TokenId"
@@ -808,7 +833,7 @@ func (z *MessageContentTx) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "To"
 	o = append(o, 0xa2, 0x54, 0x6f)
 	o = msgp.AppendBytes(o, z.To)
-	// string "Height"
+	// string "Value"
 	o = append(o, 0xa5, 0x56, 0x61, 0x6c, 0x75, 0x65)
 	o = msgp.AppendString(o, z.Value)
 	// string "TokenId"
@@ -893,10 +918,10 @@ func (z *MessageContentTx) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "To")
 				return
 			}
-		case "Height":
+		case "Value":
 			z.Value, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "Height")
+				err = msgp.WrapError(err, "Value")
 				return
 			}
 		case "TokenId":

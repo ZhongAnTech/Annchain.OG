@@ -123,14 +123,19 @@ func (n *OgNode) Setup() {
 
 	cpRpc.InitDefault()
 
-	cpSyncer := &ogsyncer.IntSyncer2{
+	cpContentFetcher := &ogsyncer.RandomPickerContentFetcher{
 		ExpireDuration:          time.Minute * 5,
 		MinimumIntervalDuration: time.Second * 5,
 		MaxTryTimes:             10,
 		Reporter:                lowLevelReporter,
-		Ledger:                  ledger,
 	}
-	cpSyncer.InitDefault()
+
+	cpContentFetcher.InitDefault()
+
+	cpIntLedgerSyncer := &ogsyncer.IntLedgerSyncer{
+		Ledger:         ledger,
+		ContentFetcher: cpContentFetcher,
+	}
 
 	// OG engine
 	cpOgEngine := &og.OgEngine{
@@ -147,7 +152,8 @@ func (n *OgNode) Setup() {
 	n.components = append(n.components, cpCommunityManager)
 	n.components = append(n.components, cpOgEngine)
 	n.components = append(n.components, cpRpc)
-	n.components = append(n.components, cpSyncer)
+	n.components = append(n.components, cpContentFetcher)
+	n.components = append(n.components, cpIntLedgerSyncer)
 
 	if viper.GetBool("features.consensus") {
 		// consensus. Current all peers are Partner
@@ -164,7 +170,7 @@ func (n *OgNode) Setup() {
 			Hasher:                   &consensus.SHA256Hasher{},
 			Ledger:                   ledger,
 			BlockTime:                blockTime,
-			TimeoutTime:              blockTime + time.Second*7,
+			TimeoutTime:              blockTime + time.Second*3,
 		}
 		cpConsensusPartner.InitDefault()
 		n.components = append(n.components, cpConsensusPartner)
@@ -177,25 +183,25 @@ func (n *OgNode) Setup() {
 	// message senders
 	cpOgEngine.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpCommunityManager.AddSubscriberNewOutgoingMessageEvent(cpTransport)
-	cpSyncer.AddSubscriberNewOutgoingMessageEvent(cpTransport)
+	cpIntLedgerSyncer.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 
 	// message receivers
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpOgEngine)
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpCommunityManager)
-	cpTransport.AddSubscriberNewIncomingMessageEvent(cpSyncer)
+	cpTransport.AddSubscriberNewIncomingMessageEvent(cpIntLedgerSyncer)
 
 	// peer connected
 	cpTransport.AddSubscriberPeerConnectedEvent(cpCommunityManager)
 
 	// peer joined and left to the network cluster (protocol verified)
 	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpOgEngine)
-	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpSyncer)
+	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpContentFetcher)
 	//cpCommunityManager.AddSubscriberPeerLeftEvent(cpSyncer)
 
-	ledger.AddSubscriberUnknownNeededEvent(cpSyncer)
+	ledger.AddSubscriberUnknownNeededEvent(cpIntLedgerSyncer)
 
 	// peer height provided
-	cpOgEngine.AddSubscriberNewHeightDetectedEvent(cpSyncer)
+	cpIntLedgerSyncer.AddSubscriberNewHeightDetectedEvent(cpContentFetcher)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpOgEngine)

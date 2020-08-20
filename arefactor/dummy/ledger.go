@@ -74,13 +74,14 @@ type IntArrayLedger struct {
 	ConfigPath string
 	Reporter   *soccerdash.Reporter
 
-	height                        int64
-	genesis                       *og_interface.Genesis
-	confirmedBlockIdHeightMapping map[string]int64
-	confirmedBlockContents        map[int64]og_interface.BlockContent  // height-content
-	allBlockContents              map[string]og_interface.BlockContent // blockId-content
-	consensusState                *consensus_interface.ConsensusState
-	unknownNeededEventSubscribers []ogsyncer_interface.UnknownNeededEventSubscriber
+	height                                int64
+	genesis                               *og_interface.Genesis
+	confirmedBlockIdHeightMapping         map[string]int64
+	confirmedBlockContents                map[int64]og_interface.BlockContent  // height-content
+	allBlockContents                      map[string]og_interface.BlockContent // blockId-content
+	consensusState                        *consensus_interface.ConsensusState
+	unknownNeededEventSubscribers         []ogsyncer_interface.UnknownNeededEventSubscriber
+	newLocalHeightUpdatedEventSubscribers []og_interface.NewLocalHeightUpdatedEventSubscriber
 }
 
 func (d *IntArrayLedger) Dump() {
@@ -183,9 +184,30 @@ func (d *IntArrayLedger) ConfirmBlock(block og_interface.BlockContent) {
 	d.confirmedBlockContents[block.GetHeight()] = block
 	d.confirmedBlockIdHeightMapping[id] = block.GetHeight()
 	d.allBlockContents[id] = block
-	d.height = math.BiggerInt64(block.GetHeight(), d.height)
+	// update height
+	d.updateHeight(block)
 	d.SaveLedger()
 	d.Reporter.Report("lastCommit", fmt.Sprintf("%d %s", block.GetHeight(), block.GetHash().HashString()), false)
+	logrus.WithField("block", block.GetHeight()).Warn("confirmed block")
+}
+
+func (d *IntArrayLedger) updateHeight(block og_interface.BlockContent) {
+	// only update if block height = height + 1 so that we won't jump height
+	// check if the block is in the cache. if the block exists, update height
+	for {
+		if d.height+1 == block.GetHeight() {
+			d.height = math.BiggerInt64(block.GetHeight(), d.height)
+			break
+		} else {
+			if _, ok := d.confirmedBlockContents[d.height+1]; ok {
+				d.height = d.height + 1
+				continue // there may be more to resolve
+			} else {
+				// no more to resolve, break
+				break
+			}
+		}
+	}
 }
 
 func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {
@@ -200,6 +222,8 @@ func (d *IntArrayLedger) AddRandomBlock(height int64) {
 		Step:        step,
 		PreviousSum: previousBlock.MySum,
 		MySum:       step + previousBlock.MySum,
+		Submitter:   0,
+		Ts:          format.FormatTimeToStandard(time.Now()),
 	})
 }
 
@@ -261,6 +285,7 @@ func (d *IntArrayLedger) ProvideGenesis() *IntArrayBlockContent {
 		PreviousSum: 0,
 		MySum:       0,
 		Submitter:   0,
+		Ts:          "2019-02-02 14:29:00", // birth time of latifrons's little cute son
 	}
 }
 
@@ -358,6 +383,10 @@ func (d *IntArrayLedger) LoadLedger() (err error) {
 				"height": d.height,
 				"hash":   block.GetHash().HashString(),
 			}).Debug("loaded ledger")
+	}
+	// in case empty ledger
+	if d.height == 0 {
+		d.InitLedgerGenesis()
 	}
 	return
 }
@@ -525,6 +554,17 @@ func (n *IntArrayLedger) notifyUnknownNeededEvent(event ogsyncer_interface.Unkno
 	}
 }
 
+func (d *IntArrayLedger) AddSubscriberNewLocalHeightUpdatedEventSubscriber(sub og_interface.NewLocalHeightUpdatedEventSubscriber) {
+	d.newLocalHeightUpdatedEventSubscribers = append(d.newLocalHeightUpdatedEventSubscribers, sub)
+}
+
+func (n *IntArrayLedger) notifyNewLocalHeightUpdatedEvent(event ogsyncer_interface.Unknown) {
+	for _, subscriber := range n.newLocalHeightUpdatedEventSubscribers {
+		<-goffchan.NewTimeoutSenderShort(subscriber.NewLocalHeightUpdatedChannel(), event, "notifyNewLocalHeightUpdatedEvent").C
+		//subscriber.NewOutgoingMessageEventChannel() <- event
+	}
+}
+
 type IntArrayProposalGenerator struct {
 	Ledger    *IntArrayLedger
 	rander    *rand.Rand
@@ -553,6 +593,7 @@ func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface
 		}
 	}
 	if b == nil {
+		logrus.Warn("i cannot propose since the previous blocks is still missing.")
 		i.Ledger.Dump()
 		return nil
 	}
@@ -586,6 +627,7 @@ func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface
 		TC: context.TC,
 	}
 	time.Sleep(i.BlockTime)
+	i.Ledger.Reporter.Report("myProposal", proposal.String(), false)
 	return proposal
 }
 

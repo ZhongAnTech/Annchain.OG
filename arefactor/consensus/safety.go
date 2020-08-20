@@ -44,12 +44,14 @@ func (s *Safety) UpdatePreferredRound(qc *consensus_interface.QC) {
 func (s *Safety) MakeVote(blockId string, blockRound int64, parentQC *consensus_interface.QC) *consensus_interface.ContentVote {
 	// This function exercises both the voting and the commit rules
 	if blockRound < s.consensusState.LastVoteRound || parentQC.VoteData.Round < s.consensusState.PreferredRound {
-		logrus.WithFields(logrus.Fields{
+		c := logrus.Fields{
 			"blockId":        blockId,
 			"blockRound":     blockRound,
 			"parentQc":       parentQC,
 			"consensusState": s.consensusState,
-		}).Warn("I don't vote this proposal.")
+		}
+		logrus.WithFields(c).Warn("I don't vote this proposal.")
+		s.Reporter.Report("deny", c, false)
 		return nil
 	}
 	s.IncreaseLastVoteRound(blockRound)
@@ -112,7 +114,7 @@ func (s *Safety) SetLastVoteRound(round int64) {
 func (s *Safety) SetHighQC(qc *consensus_interface.QC) {
 	s.consensusStateMu.Lock()
 	defer s.consensusStateMu.Unlock()
-	logrus.WithField("from", s.consensusState.HighQC).WithField("to", qc).Trace("update highQC")
+	logrus.WithField("from", s.consensusState.HighQC).WithField("to", qc).Trace("update HighQC")
 	s.consensusState.HighQC = qc
 	s.Ledger.SaveConsensusState(s.consensusState)
 
@@ -122,7 +124,7 @@ func (s *Safety) SetHighQC(qc *consensus_interface.QC) {
 func (s *Safety) SetLastTC(tc *consensus_interface.TC) {
 	s.consensusStateMu.Lock()
 	defer s.consensusStateMu.Unlock()
-	logrus.WithField("from", s.consensusState.LastTC).WithField("to", tc).Trace("update lastTC")
+	logrus.WithField("from", s.consensusState.LastTC).WithField("to", tc).Trace("update LastTC")
 	s.consensusState.LastTC = tc
 	s.Ledger.SaveConsensusState(s.consensusState)
 
@@ -132,7 +134,7 @@ func (s *Safety) SetLastTC(tc *consensus_interface.TC) {
 func (s *Safety) SetPreferredRound(round int64) {
 	s.consensusStateMu.Lock()
 	defer s.consensusStateMu.Unlock()
-	logrus.WithField("from", s.consensusState.PreferredRound).WithField("to", round).Trace("update lastTC")
+	logrus.WithField("from", s.consensusState.PreferredRound).WithField("to", round).Trace("update PreferredRound")
 	s.consensusState.PreferredRound = round
 	s.Ledger.SaveConsensusState(s.consensusState)
 

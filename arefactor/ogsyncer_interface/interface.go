@@ -54,15 +54,16 @@ type Unknown interface {
 	GetType() UnknownType
 	GetValue() interface{}
 	GetId() string
-	GetHint() string
+	GetHintPeerId() string
 }
 
 type UnknownHeight struct {
-	Height int64
+	Height     int64
+	HintPeerId string
 }
 
-func (u UnknownHeight) GetHint() string {
-	panic("implement me")
+func (u UnknownHeight) GetHintPeerId() string {
+	return u.HintPeerId
 }
 
 func (u UnknownHeight) GetId() string {
@@ -78,11 +79,12 @@ func (u UnknownHeight) GetValue() interface{} {
 }
 
 type UnknownHash struct {
-	Hash og_interface.Hash
+	Hash       og_interface.Hash
+	HintPeerId string
 }
 
-func (u UnknownHash) GetHint() string {
-	panic("implement me")
+func (u UnknownHash) GetHintPeerId() string {
+	return u.HintPeerId
 }
 
 func (u UnknownHash) GetId() string {

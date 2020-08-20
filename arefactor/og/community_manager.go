@@ -84,8 +84,8 @@ func (d *DefaultCommunityManager) AddSubscriberPeerJoinedEvent(sub og_interface.
 
 func (d *DefaultCommunityManager) notifyPeerJoined(event *og_interface.PeerJoinedEvent) {
 	for _, subscriber := range d.peerJoinedEventSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.EventChannelPeerJoined(), event, "peerjoined").C
-		//subscriber.EventChannelPeerJoined() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.PeerJoinedChannel(), event, "peerjoined").C
+		//subscriber.PeerJoinedChannel() <- event
 	}
 }
 
@@ -95,8 +95,8 @@ func (d *DefaultCommunityManager) AddSubscriberPeerLeftEvent(sub og_interface.Pe
 
 func (d *DefaultCommunityManager) notifyPeerLeft(event *og_interface.PeerLeftEvent) {
 	for _, subscriber := range d.peerLeftEventSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.EventChannelPeerLeftChannel(), event, "peerleft").C
-		//subscriber.EventChannelPeerLeftChannel() <- event
+		<-goffchan.NewTimeoutSenderShort(subscriber.PeerLeftChannel(), event, "peerleft").C
+		//subscriber.PeerLeftChannel() <- event
 	}
 }
 
@@ -222,10 +222,6 @@ func (d *DefaultCommunityManager) handleMsgPong(letter *transport_interface.Inco
 		logrus.WithField("peer", letter.From).Debug("closing neighbour because the target is closing")
 		d.PhysicalCommunicator.ClosePeer(letter.From)
 	}
-	peerJoinedEvent := &og_interface.PeerJoinedEvent{
-		PeerId: letter.From,
-	}
-	d.notifyPeerJoined(peerJoinedEvent)
 }
 
 func (d *DefaultCommunityManager) protocolMatch(mine string, theirs string) bool {
@@ -247,6 +243,10 @@ func (d *DefaultCommunityManager) handlePeerConnected(event *transport_interface
 		EndReceivers:   []string{event.PeerId},
 	}
 	d.notifyNewOutgoingMessage(oreq)
+	peerJoinedEvent := &og_interface.PeerJoinedEvent{
+		PeerId: event.PeerId,
+	}
+	d.notifyPeerJoined(peerJoinedEvent)
 }
 
 func (d *DefaultCommunityManager) handlePeerDisconnected(event *transport_interface.PeerEvent) {

@@ -136,20 +136,26 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 	latestRound := int64(0)
 	if qc != nil && latestRound < qc.VoteData.Round {
 		latestRound = qc.VoteData.Round
-		m.Safety.SetHighQC(qc)
+
 	}
 	if tc != nil && latestRound < tc.Round {
 		latestRound = tc.Round
-		m.Safety.SetLastTC(tc)
+
 	}
 	if latestRound < m.CurrentRound {
 		m.Logger.WithField("cround", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Debug("qc/tc round is less than current round so do not advance")
 		return
 	}
+	if qc != nil {
+		m.Safety.SetHighQC(qc)
+	}
+	if tc != nil {
+		m.Safety.SetLastTC(tc)
+	}
+
 	m.CurrentRound = latestRound + 1
 
 	m.Reporter.Report("CurrentRound", m.CurrentRound, false)
-
 	m.Logger.WithField("latestRound", latestRound).WithField("currentRound", m.CurrentRound).WithField("reason", reason).Info("round advanced")
 
 	// prepare vote message

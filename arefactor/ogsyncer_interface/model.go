@@ -20,7 +20,6 @@ const (
 
 //msgp OgSyncLatestHeightRequest
 type OgSyncLatestHeightRequest struct {
-	MyHeight int64
 }
 
 func (z *OgSyncLatestHeightRequest) ToBytes() []byte {

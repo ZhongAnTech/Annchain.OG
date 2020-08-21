@@ -34,6 +34,7 @@ type RandomPickerContentFetcher struct {
 
 	peerJoinedEventChan           chan *og_interface.PeerJoinedEvent
 	newHeightDetectedEventChan    chan *og_interface.NewHeightDetectedEvent
+	newHeightBlockSyncedEventChan chan *og_interface.NewHeightBlockSyncedEvent
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 	syncTriggerChan               chan string
 
@@ -42,7 +43,9 @@ type RandomPickerContentFetcher struct {
 }
 
 func (b *RandomPickerContentFetcher) InitDefault() {
-	peerManager := &PeerManager{}
+	peerManager := &PeerManager{
+		Reporter: b.Reporter,
+	}
 	peerManager.InitDefault()
 	b.peerManager = peerManager
 
@@ -55,6 +58,7 @@ func (b *RandomPickerContentFetcher) InitDefault() {
 
 	b.peerJoinedEventChan = make(chan *og_interface.PeerJoinedEvent)
 	b.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEvent)
+	b.newHeightBlockSyncedEventChan = make(chan *og_interface.NewHeightBlockSyncedEvent)
 	b.syncTriggerChan = make(chan string)
 	b.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 
@@ -69,8 +73,13 @@ func (b *RandomPickerContentFetcher) NewHeightDetectedEventChannel() chan *og_in
 	return b.newHeightDetectedEventChan
 }
 
+func (b *RandomPickerContentFetcher) NewHeightBlockSyncedChannel() chan *og_interface.NewHeightBlockSyncedEvent {
+	return b.newHeightBlockSyncedEventChan
+}
+
 func (b *RandomPickerContentFetcher) NeedToKnow(unknown ogsyncer_interface.Unknown) {
 	b.taskList.AddTask(unknown)
+	b.triggerSync("NeedToKnow")
 }
 
 func (b *RandomPickerContentFetcher) Resolve(unknown ogsyncer_interface.Unknown) {
@@ -96,7 +105,7 @@ func (b *RandomPickerContentFetcher) PeerJoinedChannel() chan *og_interface.Peer
 func (b *RandomPickerContentFetcher) Start() {
 	go b.eventLoop()
 	go b.sync()
-	go b.updateHeights()
+	go b.keepUpdateHeights()
 }
 
 func (b *RandomPickerContentFetcher) Stop() {
@@ -117,7 +126,12 @@ func (b *RandomPickerContentFetcher) eventLoop() {
 		case event := <-b.peerJoinedEventChan:
 			// send height request
 			b.handlePeerJoinedEvent(event)
+		case event := <-b.newHeightDetectedEventChan:
+			b.peerManager.updateKnownPeerHeight(event.PeerId, event.Height)
+		case event := <-b.newHeightBlockSyncedEventChan:
+			b.handleNewHeightBlockSyncedEvent(event)
 		}
+		b.Reporter.Report("knownHeight", b.peerManager.knownMaxPeerHeight, false)
 	}
 }
 
@@ -142,6 +156,14 @@ func (b *RandomPickerContentFetcher) sync() {
 		}
 		b.startSyncOnce(s)
 	}
+}
+
+func (b *RandomPickerContentFetcher) triggerSync(reason string) {
+	select {
+	case b.syncTriggerChan <- reason:
+	default:
+	}
+
 }
 
 func (b *RandomPickerContentFetcher) pickUpRandomSourcePeer(height int64) (peerId string, err error) {
@@ -170,6 +192,7 @@ func (b *RandomPickerContentFetcher) startSyncOnce(reason string) {
 }
 
 func (b *RandomPickerContentFetcher) doOneTask(reason string) {
+	// taskList will keep this task in the queue until a resolve command is fired.
 	task := b.taskList.GetTask()
 	if task == nil {
 		return
@@ -182,7 +205,6 @@ func (b *RandomPickerContentFetcher) handlePeerJoinedEvent(event *og_interface.P
 	logrus.WithField("peer", event.PeerId).Warn("peer joined")
 	b.peerManager.updateKnownPeerHeight(event.PeerId, 0)
 	b.queryHeights([]string{event.PeerId})
-	b.Reporter.Report("knownHeight", b.peerManager.knownMaxPeerHeight, false)
 }
 
 func (b *RandomPickerContentFetcher) queryHeights(peerIds []string) {
@@ -263,18 +285,28 @@ func (b *RandomPickerContentFetcher) handleSyncHashTask(taskv *ogsyncer_interfac
 	return false
 }
 
-func (b *RandomPickerContentFetcher) updateHeights() {
+func (b *RandomPickerContentFetcher) keepUpdateHeights() {
 	ticker := time.NewTicker(time.Second * 10)
 	for {
 		select {
 		case <-b.quit:
 			return
 		case <-ticker.C:
-			peersToUpdate := b.peerManager.findOutdatedPeersToQueryHeight(5)
-			if len(peersToUpdate) != 0 {
-				b.queryHeights(peersToUpdate)
-			}
+			b.updateHeightOnce()
 		}
 	}
+}
 
+func (b *RandomPickerContentFetcher) updateHeightOnce() {
+	peersToUpdate := b.peerManager.findOutdatedPeersToQueryHeight(5)
+	if len(peersToUpdate) != 0 {
+		b.queryHeights(peersToUpdate)
+	}
+}
+
+func (b *RandomPickerContentFetcher) handleNewHeightBlockSyncedEvent(event *og_interface.NewHeightBlockSyncedEvent) {
+	if event.Height == b.peerManager.knownMaxPeerHeight {
+		// trigger another query
+		b.updateHeightOnce()
+	}
 }

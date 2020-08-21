@@ -47,7 +47,7 @@ func (z *OgSyncLatestHeightRequest) GetTypeValue() int {
 }
 
 func (z *OgSyncLatestHeightRequest) String() string {
-	return fmt.Sprintf("OgSyncLatestHeightRequest [%d]", z.MyHeight)
+	return fmt.Sprintf("OgSyncLatestHeightRequest")
 }
 
 //msgp OgSyncLatestHeightResponse

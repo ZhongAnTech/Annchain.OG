@@ -1,7 +1,10 @@
 package ogsyncer
 
 import (
+	"fmt"
+	"github.com/annchain/commongo/format"
 	"github.com/annchain/commongo/math"
+	"github.com/latifrons/soccerdash"
 	"sync"
 	"time"
 )
@@ -12,6 +15,7 @@ type HeightInfo struct {
 }
 
 type PeerManager struct {
+	Reporter           *soccerdash.Reporter
 	peerHeights        map[string]HeightInfo
 	knownMaxPeerHeight int64
 	myHeight           int64
@@ -32,6 +36,7 @@ func (b *PeerManager) updateKnownPeerHeight(peerId string, height int64) (refres
 		Height:      height,
 		UpdatedTime: time.Now(),
 	}
+	b.reportHeights()
 	return
 }
 
@@ -62,7 +67,7 @@ func (b *PeerManager) findOutdatedPeersToQueryHeight(limit int) []string {
 	oldTime := time.Now().Add(time.Minute * -1) // query height for every 1 minute
 
 	for peerId, heightInfo := range b.peerHeights {
-		if heightInfo.UpdatedTime.Before(oldTime) {
+		if heightInfo.Height == 0 || heightInfo.UpdatedTime.Before(oldTime) {
 			needUpdatePeers = append(needUpdatePeers, peerId)
 			if len(needUpdatePeers) >= limit {
 				break
@@ -70,4 +75,13 @@ func (b *PeerManager) findOutdatedPeersToQueryHeight(limit int) []string {
 		}
 	}
 	return needUpdatePeers
+}
+
+func (b *PeerManager) reportHeights() {
+	vs := []string{}
+	for k, v := range b.peerHeights {
+		vs = append(vs, fmt.Sprintf("%s %d %s", k[0:10], v.Height, format.FormatTimeToStandard(v.UpdatedTime)))
+	}
+
+	b.Reporter.Report("heights", vs, false)
 }

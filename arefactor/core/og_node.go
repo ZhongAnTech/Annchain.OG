@@ -136,6 +136,7 @@ func (n *OgNode) Setup() {
 		Ledger:         ledger,
 		ContentFetcher: cpContentFetcher,
 	}
+	cpIntLedgerSyncer.InitDefault()
 
 	// OG engine
 	cpOgEngine := &og.OgEngine{
@@ -184,6 +185,7 @@ func (n *OgNode) Setup() {
 	cpOgEngine.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpCommunityManager.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 	cpIntLedgerSyncer.AddSubscriberNewOutgoingMessageEvent(cpTransport)
+	cpContentFetcher.AddSubscriberNewOutgoingMessageEvent(cpTransport)
 
 	// message receivers
 	cpTransport.AddSubscriberNewIncomingMessageEvent(cpOgEngine)
@@ -202,6 +204,7 @@ func (n *OgNode) Setup() {
 
 	// peer height provided
 	cpIntLedgerSyncer.AddSubscriberNewHeightDetectedEvent(cpContentFetcher)
+	cpIntLedgerSyncer.AddSubscriberNewHeightBlockSyncedEvent(cpContentFetcher)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpOgEngine)

@@ -24,6 +24,10 @@ type NewLocalHeightUpdatedEventSubscriber interface {
 	NewLocalHeightUpdatedChannel() chan *NewLocalHeightUpdatedEvent
 }
 
+type NewHeightBlockSyncedEventSubscriber interface {
+	NewHeightBlockSyncedChannel() chan *NewHeightBlockSyncedEvent
+}
+
 type NodeInfoProvider interface {
 	CurrentHeight() int64
 	GetNetworkId() string
@@ -35,6 +39,9 @@ type NewHeightDetectedEvent struct {
 }
 
 type NewLocalHeightUpdatedEvent struct {
+	Height int64
+}
+type NewHeightBlockSyncedEvent struct {
 	Height int64
 }
 

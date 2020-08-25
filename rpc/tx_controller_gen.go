@@ -53,6 +53,11 @@ func (z *NewTxRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
+	// 存证哈希
+	z.OpHash, err = dc.ReadString()
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -99,6 +104,11 @@ func (z *NewTxRequest) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
+	// 存证哈希
+	err = en.WriteString(z.OpHash)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -116,6 +126,8 @@ func (z *NewTxRequest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendString(o, z.Signature)
 	o = msgp.AppendString(o, z.Pubkey)
 	o = msgp.AppendInt32(o, z.TokenId)
+	// 存证哈希
+	o = msgp.AppendString(o, z.OpHash)
 	return
 }
 
@@ -166,13 +178,18 @@ func (z *NewTxRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
+	// 存证哈希
+	z.OpHash, bts, err = msgp.ReadStringBytes(bts)
+	if err != nil {
+		return
+	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *NewTxRequest) Msgsize() (s int) {
-	s = 1 + msgp.Uint64Size + msgp.StringPrefixSize + len(z.From) + msgp.StringPrefixSize + len(z.To) + msgp.StringPrefixSize + len(z.Value) + msgp.StringPrefixSize + len(z.Data) + msgp.StringPrefixSize + len(z.CryptoType) + msgp.StringPrefixSize + len(z.Signature) + msgp.StringPrefixSize + len(z.Pubkey) + msgp.Int32Size
+	s = 1 + msgp.Uint64Size + msgp.StringPrefixSize + len(z.From) + msgp.StringPrefixSize + len(z.To) + msgp.StringPrefixSize + len(z.Value) + msgp.StringPrefixSize + len(z.Data) + msgp.StringPrefixSize + len(z.CryptoType) + msgp.StringPrefixSize + len(z.Signature) + msgp.StringPrefixSize + len(z.Pubkey) + msgp.Int32Size /* 存证哈希 */ + msgp.StringPrefixSize + len(z.OpHash)
 	return
 }
 

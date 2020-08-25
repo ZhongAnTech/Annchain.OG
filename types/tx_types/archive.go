@@ -14,13 +14,18 @@
 package tx_types
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/annchain/OG/common"
-	"github.com/annchain/OG/types"
-	"golang.org/x/crypto/sha3"
 	"math/rand"
 	"strings"
+
+	"github.com/annchain/OG/common"
+	"github.com/annchain/OG/common/crypto"
+	"github.com/annchain/OG/common/hexutil"
+	"github.com/annchain/OG/types"
+	"golang.org/x/crypto/sha3"
 )
 
 //go:generate msgp
@@ -160,6 +165,62 @@ func (t *Archive) SetSender(address common.Address) {
 	return
 }
 
+// OpStrAndSign 存证字符串跟签名合并
+type OpStrAndSign struct {
+	OpStr     []byte `json:"op_str"`    /* 存证字符串 */
+	Signature string `json:"signature"` /* 签名，十六进制字符串格式 */
+}
+
+// NewOpStrAndSign 构造OpStrAndSign
+func NewOpStrAndSign(opStr []byte, sign crypto.Signature) *OpStrAndSign {
+	return &OpStrAndSign{
+		OpStr:     opStr,
+		Signature: hexutil.Encode(sign.Bytes),
+	}
+}
+
+// VerifyOpHash 验证存证哈希
+func (t *Archive) VerifyOpHash() bool {
+	// 对Data签名
+	signer := &crypto.SignerSecp256k1{}
+	kr, err := crypto.PrivateKeyFromString(string(t.PublicKey)) /* 相同账户公钥的相同动作对应相同存证哈希 */
+	if err != nil {
+		fmt.Println(err)
+	}
+	signature := signer.Sign(kr, t.Data)
+	dataAndSign := *NewOpStrAndSign(t.Data, signature)
+	// 把Data和签名JSON排序和合并
+	dataAndSignBytes, err := json.Marshal(dataAndSign)
+	if err != nil {
+		fmt.Println(err)
+	}
+	// sort(dataAndSignStr) /* JSON排序，尚未实现 */
+	// 把合并结果求SHA256，验证存证哈希
+	h := sha256.New()
+	_, err = h.Write(dataAndSignBytes)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return bytes.Equal(h.Sum(nil), t.OpHash.ToBytes())
+}
+
+// 存证：type=4
+// "data"
+//     "type"
+//     "transaction"
+//     "sequencer"
+//     "archive"
+//         "type"
+//         "hash"
+//         "parents"
+//         "account_nonce"
+//         "mind_nonce"
+//         "weight"
+// --------"height"
+//         "data"
+// ++++++++"public_key"
+// ++++++++"signature"
+// "err"
 type ArchiveMsg struct {
 	Type         int      `json:"type"`
 	Hash         string   `json:"hash"`
@@ -169,7 +230,9 @@ type ArchiveMsg struct {
 	Weight       uint64   `json:"weight"`
 	Height       uint64   `json:"height"`
 	Data         []byte   `json:"data"`
-	Sign         string   `json:"sign"`
+	PublicKey    string   `json:"public_key"` /* 公钥 */
+	Sign         string   `json:"signature"`  /* 签名 */
+	OpHash       string   `json:"op_hash"`    /* 存证哈希 */
 }
 
 func (t *Archive) ToJsonMsg() ArchiveMsg {
@@ -181,11 +244,13 @@ func (t *Archive) ToJsonMsg() ArchiveMsg {
 	txMsg.MindNonce = t.MineNonce
 	txMsg.Weight = t.GetWeight()
 	txMsg.Height = t.Height
-	txMsg.Sign = t.Signature.String()
+	txMsg.Sign = t.Signature.String() /* 填入TxBase的签名 */
 	txMsg.Parents = make([]string, 0)
 	for _, p := range t.ParentsHash {
 		txMsg.Parents = append(txMsg.Parents, p.Hex())
 	}
 	txMsg.Data = t.Data
+	txMsg.PublicKey = string(t.PublicKey) /* 填入TxBase的公钥 */
+	txMsg.OpHash = t.GetOpHash().Hex()    /* 填入TxBase的存证哈希 */
 	return txMsg
 }

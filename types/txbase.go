@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/annchain/OG/common"
 	"github.com/annchain/OG/common/hexutil"
 	"golang.org/x/crypto/sha3"
@@ -73,6 +74,7 @@ type TxBase struct {
 	inValid      bool
 	Version      byte
 	verified     verifiedType
+	OpHash       common.Hash /* 存证哈希 */
 }
 
 //msgp:tuple TxBaseJson
@@ -89,6 +91,7 @@ type TxBaseJson struct {
 	inValid      bool          `json:"in_valid"`
 	Version      byte          `json:"version"`
 	verified     verifiedType  `json:"-"`
+	OpHash       common.Hash   `json:"op_hash"` /* 存证哈希 */
 }
 
 func (t *TxBase) ToSmallCase() *TxBaseJson {
@@ -106,6 +109,7 @@ func (t *TxBase) ToSmallCase() *TxBaseJson {
 		MineNonce:    t.MineNonce,
 		Weight:       t.Weight,
 		inValid:      t.inValid,
+		OpHash:       t.OpHash,
 	}
 	return &b
 }
@@ -149,6 +153,11 @@ func (t *TxBase) GetTxHash() common.Hash {
 
 func (t *TxBase) GetNonce() uint64 {
 	return t.AccountNonce
+}
+
+// 获得存证哈希
+func (t *TxBase) GetOpHash() common.Hash {
+	return t.OpHash
 }
 
 func (t *TxBase) Parents() common.Hashes {

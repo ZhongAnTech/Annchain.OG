@@ -61,6 +61,11 @@ func (z *TxBase) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
+	// 存证哈希
+	err = z.OpHash.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -111,6 +116,11 @@ func (z *TxBase) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
+	// 存证哈希
+	err = z.OpHash.EncodeMsg(en)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -141,6 +151,11 @@ func (z *TxBase) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendUint64(o, z.MineNonce)
 	o = msgp.AppendUint64(o, z.Weight)
 	o = msgp.AppendByte(o, z.Version)
+	// 存证哈希
+	o, err = z.OpHash.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -199,13 +214,18 @@ func (z *TxBase) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
+	// 存证哈希
+	bts, err = z.OpHash.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *TxBase) Msgsize() (s int) {
-	s = 1 + msgp.Uint16Size + z.Hash.Msgsize() + z.ParentsHash.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + z.PublicKey.Msgsize() + z.Signature.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + msgp.ByteSize
+	s = 1 + msgp.Uint16Size + z.Hash.Msgsize() + z.ParentsHash.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + z.PublicKey.Msgsize() + z.Signature.Msgsize() + msgp.Uint64Size + msgp.Uint64Size + msgp.ByteSize + /* 存证哈希 */ z.OpHash.Msgsize()
 	return
 }
 

@@ -144,6 +144,7 @@ type NewTxRequest struct {
 	Signature  string `json:"signature"`
 	Pubkey     string `json:"pubkey"`
 	TokenId    int32  `json:"token_id"`
+	OpHash     string `json:"op_hash"` /* 存证哈希 */
 }
 
 //msgp:tuple NewTxsRequests

@@ -122,6 +122,10 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		Response(c, http.StatusOK, nil, txResp)
 		return
 	case *tx_types.Archive:
+		// 验证存证哈希
+		if !tx.VerifyOpHash() {
+			return
+		}
 		seqMsg := tx.ToJsonMsg()
 		txResp.Archive = &seqMsg
 		Response(c, http.StatusOK, nil, txResp)

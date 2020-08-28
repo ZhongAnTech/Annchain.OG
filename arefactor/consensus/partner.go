@@ -270,6 +270,7 @@ func (n *Partner) ProcessCertificates(qc *consensus_interface.QC, tc *consensus_
 		n.safety.UpdatePreferredRound(qc)
 		if qc.VoteData.ExecStateId != "" {
 			n.pendingBlockTree.Commit(qc.VoteData.Id)
+			n. // broadcast this block.
 		}
 	}
 }

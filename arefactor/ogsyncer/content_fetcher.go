@@ -34,7 +34,7 @@ type RandomPickerContentFetcher struct {
 
 	peerJoinedEventChan           chan *og_interface.PeerJoinedEvent
 	newHeightDetectedEventChan    chan *og_interface.NewHeightDetectedEvent
-	newHeightBlockSyncedEventChan chan *og_interface.NewHeightBlockSyncedEvent
+	newHeightBlockSyncedEventChan chan *og_interface.ResourceGotEvent
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 	syncTriggerChan               chan string
 
@@ -58,7 +58,7 @@ func (b *RandomPickerContentFetcher) InitDefault() {
 
 	b.peerJoinedEventChan = make(chan *og_interface.PeerJoinedEvent)
 	b.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEvent)
-	b.newHeightBlockSyncedEventChan = make(chan *og_interface.NewHeightBlockSyncedEvent)
+	b.newHeightBlockSyncedEventChan = make(chan *og_interface.ResourceGotEvent)
 	b.syncTriggerChan = make(chan string)
 	b.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 
@@ -73,7 +73,7 @@ func (b *RandomPickerContentFetcher) NewHeightDetectedEventChannel() chan *og_in
 	return b.newHeightDetectedEventChan
 }
 
-func (b *RandomPickerContentFetcher) NewHeightBlockSyncedChannel() chan *og_interface.NewHeightBlockSyncedEvent {
+func (b *RandomPickerContentFetcher) ResourceGotEventChannel() chan *og_interface.ResourceGotEvent {
 	return b.newHeightBlockSyncedEventChan
 }
 
@@ -304,7 +304,7 @@ func (b *RandomPickerContentFetcher) updateHeightOnce() {
 	}
 }
 
-func (b *RandomPickerContentFetcher) handleNewHeightBlockSyncedEvent(event *og_interface.NewHeightBlockSyncedEvent) {
+func (b *RandomPickerContentFetcher) handleNewHeightBlockSyncedEvent(event *og_interface.ResourceGotEvent) {
 	if event.Height == b.peerManager.knownMaxPeerHeight {
 		// trigger another query
 		b.updateHeightOnce()

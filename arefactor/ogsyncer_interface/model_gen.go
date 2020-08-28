@@ -7,6 +7,113 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
+func (z *OgAnnouncementNewBlock) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Content":
+			err = z.Content.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "Content")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *OgAnnouncementNewBlock) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 1
+	// write "Content"
+	err = en.Append(0x81, 0xa7, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74)
+	if err != nil {
+		return
+	}
+	err = z.Content.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Content")
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *OgAnnouncementNewBlock) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 1
+	// string "Content"
+	o = append(o, 0x81, 0xa7, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74)
+	o, err = z.Content.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "Content")
+		return
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *OgAnnouncementNewBlock) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Content":
+			bts, err = z.Content.UnmarshalMsg(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Content")
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *OgAnnouncementNewBlock) Msgsize() (s int) {
+	s = 1 + 8 + z.Content.Msgsize()
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
 func (z *OgSyncBlockByHashRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field

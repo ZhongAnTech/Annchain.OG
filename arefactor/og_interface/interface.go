@@ -24,8 +24,8 @@ type NewLocalHeightUpdatedEventSubscriber interface {
 	NewLocalHeightUpdatedChannel() chan *NewLocalHeightUpdatedEvent
 }
 
-type NewHeightBlockSyncedEventSubscriber interface {
-	NewHeightBlockSyncedChannel() chan *NewHeightBlockSyncedEvent
+type ResourceGotEventSubscriber interface {
+	ResourceGotEventChannel() chan *ResourceGotEvent
 }
 
 type NodeInfoProvider interface {
@@ -41,8 +41,10 @@ type NewHeightDetectedEvent struct {
 type NewLocalHeightUpdatedEvent struct {
 	Height int64
 }
-type NewHeightBlockSyncedEvent struct {
-	Height int64
+type ResourceGotEvent struct {
+	ResourceType int
+	Resource     interface{}
+	From         string
 }
 
 type AccountHolder interface {

@@ -28,7 +28,7 @@ type IntLedgerSyncer struct {
 
 	newOutgoingMessageSubscribers        []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 	newHeightDetectedEventSubscribers    []og_interface.NewHeightDetectedEventSubscriber
-	newHeightBlockSyncedEventSubscribers []og_interface.NewHeightBlockSyncedEventSubscriber
+	newHeightBlockSyncedEventSubscribers []og_interface.ResourceGotEventSubscriber
 
 	knownMaxPeerHeight int64
 
@@ -98,13 +98,13 @@ func (n *IntLedgerSyncer) notifyNewHeightDetectedEvent(event *og_interface.NewHe
 }
 
 // notify sending events
-func (b *IntLedgerSyncer) AddSubscriberNewHeightBlockSyncedEvent(sub og_interface.NewHeightBlockSyncedEventSubscriber) {
+func (b *IntLedgerSyncer) AddSubscriberNewHeightBlockSyncedEvent(sub og_interface.ResourceGotEventSubscriber) {
 	b.newHeightBlockSyncedEventSubscribers = append(b.newHeightBlockSyncedEventSubscribers, sub)
 }
 
-func (b *IntLedgerSyncer) notifyNewHeightBlockSynced(event *og_interface.NewHeightBlockSyncedEvent) {
+func (b *IntLedgerSyncer) notifyNewHeightBlockSynced(event *og_interface.ResourceGotEvent) {
 	for _, subscriber := range b.newHeightBlockSyncedEventSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewHeightBlockSyncedChannel(), event, "notifyNewOutgoingMessage").C
+		<-goffchan.NewTimeoutSenderShort(subscriber.ResourceGotEventChannel(), event, "notifyNewOutgoingMessage").C
 		//subscriber.NewOutgoingMessageEventChannel() <- event
 	}
 }
@@ -153,9 +153,7 @@ func (b *IntLedgerSyncer) messageLoop() {
 
 			//c1 := make(chan bool)
 			go func() {
-				logrus.Info("444")
 				b.handleIncomingMessage(letter)
-				logrus.Info("444OK")
 				//c1 <- true
 			}()
 
@@ -307,8 +305,7 @@ func (b *IntLedgerSyncer) handleBlockByHeightRequest(req *ogsyncer_interface.OgS
 
 func (b *IntLedgerSyncer) handleBlockByHeightResponse(req *ogsyncer_interface.OgSyncBlockByHeightResponse, from string) {
 	// do ints
-	ints := req.Ints
-	for _, v := range ints {
+	for _, v := range req.Ints {
 		block := &dummy.IntArrayBlockContent{
 			Height:      v.Height,
 			Step:        v.Step,
@@ -317,23 +314,31 @@ func (b *IntLedgerSyncer) handleBlockByHeightResponse(req *ogsyncer_interface.Og
 			Submitter:   v.Submitter,
 			Ts:          v.Ts,
 		}
-		b.Ledger.ConfirmBlock(block)
-
-		// clear all related tasks
-		b.resolveHashTask(block.GetHash())
-		b.resolveHeightTask(block.GetHeight())
-
-		// in the block-tx env, enrich the txs so that we will continue sync the parents.
-		logrus.WithFields(logrus.Fields{
-			"from":   from,
-			"height": block.Height,
-			"hash":   block.GetHash().HashString(),
-		}).Trace("got block")
-		//b.Reporter.Report("tasks", b.taskList)
-		b.notifyNewHeightBlockSynced(&og_interface.NewHeightBlockSyncedEvent{
-			Height: block.Height,
-		})
+		b.resolveBlock(block)
 	}
+	b.trySyncNextHeight()
+}
+
+func (b *IntLedgerSyncer) resolveBlock(block *dummy.IntArrayBlockContent, from string) {
+	b.Ledger.ConfirmBlock(block)
+
+	// clear all related tasks
+	b.resolveHashTask(block.GetHash())
+	b.resolveHeightTask(block.GetHeight())
+
+	// in the block-tx env, enrich the txs so that we will continue sync the parents.
+	logrus.WithFields(logrus.Fields{
+		"from":   from,
+		"height": block.Height,
+		"hash":   block.GetHash().HashString(),
+	}).Trace("got block")
+	//b.Reporter.Report("tasks", b.taskList)
+	b.notifyNewHeightBlockSynced(&og_interface.ResourceGotEvent{
+		Height: block.Height,
+	})
+}
+
+func (b *IntLedgerSyncer) trySyncNextHeight() {
 	// immediately trigger a sync to continuously empty the task queue.
 	if b.Ledger.CurrentHeight() < b.knownMaxPeerHeight {
 		b.enqueueHeightTask(b.Ledger.CurrentHeight()+int64(1), "handleBlockByHeightResponse")

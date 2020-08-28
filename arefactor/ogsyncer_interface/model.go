@@ -16,6 +16,8 @@ const (
 	OgSyncMessageTypeByHashesResponse
 	OgSyncMessageTypeBlockByHeightResponse
 	OgSyncMessageTypeByBlockHashResponse
+
+	OgAnnouncementTypeNewBlock
 )
 
 //msgp OgSyncLatestHeightRequest
@@ -293,4 +295,37 @@ func (z *OgSyncBlockByHashResponse) FromBytes(bts []byte) error {
 func (z *OgSyncBlockByHashResponse) String() string {
 	return fmt.Sprintf("OgSyncBlockByHashResponse seq [%d] txs [%d] Int [%d]",
 		len(z.Sequencers), len(z.Txs), len(z.Ints))
+}
+
+//msgp OgAnnouncementNewBlock
+type OgAnnouncementNewBlock struct {
+	Content MessageContentInt
+}
+
+func (z *OgAnnouncementNewBlock) GetType() OgSyncMessageType {
+	return OgAnnouncementTypeNewBlock
+}
+
+func (z *OgAnnouncementNewBlock) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgAnnouncementNewBlock) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *OgAnnouncementNewBlock) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (z *OgAnnouncementNewBlock) String() string {
+	return fmt.Sprintf("OgAnnouncementNewBlock Int Height=[%d]", z.Content.Height)
 }

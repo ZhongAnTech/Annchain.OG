@@ -169,7 +169,7 @@ func (m *PaceMaker) AdvanceRound(qc *consensus_interface.QC, tc *consensus_inter
 		return
 	}
 
-	// announce it
+	// announce vote to the leader
 	outMsg := &consensus_interface.HotStuffSignedMessage{
 		HotStuffMessageType: int(consensus_interface.HotStuffMessageTypeVote),
 		ContentBytes:        bytes,

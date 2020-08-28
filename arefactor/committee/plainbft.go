@@ -95,8 +95,8 @@ func (b PlainBftCommitteeProvider) GetPeerIndex(memberId string) (index int, err
 
 func (b PlainBftCommitteeProvider) GetThreshold() int {
 	// TODO: change back: Hack: change to 2 for better debugging
-	//return 2
-	return (len(b.memberIds)*2 + 1) / 3
+	return 2
+	//return (len(b.memberIds)*2 + 1) / 3
 }
 
 func (b PlainBftCommitteeProvider) AmILeader(round int64) bool {

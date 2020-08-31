@@ -48,9 +48,6 @@ type PhysicalCommunicator struct {
 	outgoingChannel chan *transport_interface.OutgoingLetter // universal outgoing channel to collect send requests
 	ioEventChannel  chan *IoEvent                            // receive discard when peer disconnects
 
-	peerConnectedSubscribers      []transport_interface.PeerConnectedEventSubscriber
-	newIncomingMessageSubscribers []transport_interface.NewIncomingMessageEventSubscriber
-
 	initWait sync.WaitGroup
 	quit     chan bool
 	mu       sync.RWMutex
@@ -85,8 +82,6 @@ func (c *PhysicalCommunicator) InitDefault() {
 	c.incomingChannel = make(chan *transport_interface.IncomingLetter)
 	c.ioEventChannel = make(chan *IoEvent)
 	c.initWait.Add(1)
-	c.peerConnectedSubscribers = []transport_interface.PeerConnectedEventSubscriber{}
-	c.newIncomingMessageSubscribers = []transport_interface.NewIncomingMessageEventSubscriber{}
 	c.quit = make(chan bool)
 }
 

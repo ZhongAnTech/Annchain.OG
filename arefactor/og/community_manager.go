@@ -36,9 +36,6 @@ type DefaultCommunityManager struct {
 	myNewIncomingMessageEventChannel chan *transport_interface.IncomingLetter // handle incoming messages
 	myPeerConnectedEventChannel      chan *transport_interface.PeerEvent
 	myPeerDisconnectedEventChannel   chan *transport_interface.PeerEvent
-	newOutgoingMessageSubscribers    []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
-	peerJoinedEventSubscribers       []og_interface.PeerJoinedEventSubscriber                // a peer is connected after protocol verification
-	peerLeftEventSubscribers         []og_interface.PeerLeftEventSubscriber                  // a peer is left due to disconnection
 
 	quit chan bool
 }
@@ -64,9 +61,6 @@ func (d *DefaultCommunityManager) InitDefault() {
 	d.myPeerConnectedEventChannel = make(chan *transport_interface.PeerEvent)
 	d.myPeerDisconnectedEventChannel = make(chan *transport_interface.PeerEvent)
 	d.myNewIncomingMessageEventChannel = make(chan *transport_interface.IncomingLetter)
-	d.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
-	d.peerJoinedEventSubscribers = []og_interface.PeerJoinedEventSubscriber{}
-	d.peerLeftEventSubscribers = []og_interface.PeerLeftEventSubscriber{}
 }
 
 // event handlers begin

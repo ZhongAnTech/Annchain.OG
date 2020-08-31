@@ -76,14 +76,12 @@ type IntArrayLedger struct {
 	ConfigPath string
 	Reporter   *soccerdash.Reporter
 
-	height                                int64
-	genesis                               *og_interface.Genesis
-	confirmedBlockIdHeightMapping         map[string]int64
-	confirmedBlockContents                map[int64]og_interface.BlockContent  // height-content
-	allBlockContents                      map[string]og_interface.BlockContent // blockId-content
-	consensusState                        *consensus_interface.ConsensusState
-	unknownNeededEventSubscribers         []ogsyncer_interface.UnknownNeededEventSubscriber
-	newLocalHeightUpdatedEventSubscribers []og_interface.NewLocalHeightUpdatedEventSubscriber
+	height                        int64
+	genesis                       *og_interface.Genesis
+	confirmedBlockIdHeightMapping map[string]int64
+	confirmedBlockContents        map[int64]og_interface.BlockContent  // height-content
+	allBlockContents              map[string]og_interface.BlockContent // blockId-content
+	consensusState                *consensus_interface.ConsensusState
 }
 
 func (d *IntArrayLedger) Dump() {

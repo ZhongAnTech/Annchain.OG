@@ -36,7 +36,6 @@ type RandomPickerContentFetcher struct {
 	peerJoinedEventChan           chan *og_interface.PeerJoinedEvent
 	newHeightDetectedEventChan    chan *og_interface.NewHeightDetectedEvent
 	newHeightBlockSyncedEventChan chan *og_interface.ResourceGotEvent
-	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 	syncTriggerChan               chan string
 
 	quit chan bool
@@ -75,7 +74,6 @@ func (b *RandomPickerContentFetcher) InitDefault() {
 	b.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEvent)
 	b.newHeightBlockSyncedEventChan = make(chan *og_interface.ResourceGotEvent)
 	b.syncTriggerChan = make(chan string)
-	b.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 
 	b.quit = make(chan bool)
 }

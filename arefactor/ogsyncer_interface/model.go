@@ -1,6 +1,9 @@
 package ogsyncer_interface
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/annchain/commongo/hexutil"
+)
 
 //go:generate msgp
 
@@ -14,10 +17,13 @@ const (
 	OgSyncMessageTypeBlockByHashRequest
 
 	OgSyncMessageTypeByHashesResponse
-	OgSyncMessageTypeBlockByHeightResponse
-	OgSyncMessageTypeByBlockHashResponse
+	//OgSyncMessageTypeBlockByHeightResponse
+	//OgSyncMessageTypeByBlockHashResponse
 
-	OgAnnouncementTypeNewBlock
+	OgAnnouncementTypeNewSequencer
+	OgAnnouncementTypeNewTx
+	OgAnnouncementTypeNewTxs
+	OgAnnouncementTypeNewInt
 )
 
 //msgp OgSyncLatestHeightRequest
@@ -297,20 +303,20 @@ func (z *OgSyncBlockByHashResponse) String() string {
 		len(z.Sequencers), len(z.Txs), len(z.Ints))
 }
 
-//msgp OgAnnouncementNewBlock
-type OgAnnouncementNewBlock struct {
-	Content MessageContentInt
+//msgp OgAnnouncementNewSequencer
+type OgAnnouncementNewSequencer struct {
+	Sequencer MessageContentSequencer
 }
 
-func (z *OgAnnouncementNewBlock) GetType() OgSyncMessageType {
-	return OgAnnouncementTypeNewBlock
+func (z *OgAnnouncementNewSequencer) GetType() OgSyncMessageType {
+	return OgAnnouncementTypeNewSequencer
 }
 
-func (z *OgAnnouncementNewBlock) GetTypeValue() int {
+func (z *OgAnnouncementNewSequencer) GetTypeValue() int {
 	return int(z.GetType())
 }
 
-func (z *OgAnnouncementNewBlock) ToBytes() []byte {
+func (z *OgAnnouncementNewSequencer) ToBytes() []byte {
 	b, err := z.MarshalMsg(nil)
 	if err != nil {
 		panic(err)
@@ -318,7 +324,7 @@ func (z *OgAnnouncementNewBlock) ToBytes() []byte {
 	return b
 }
 
-func (z *OgAnnouncementNewBlock) FromBytes(bts []byte) error {
+func (z *OgAnnouncementNewSequencer) FromBytes(bts []byte) error {
 	_, err := z.UnmarshalMsg(bts)
 	if err != nil {
 		return err
@@ -326,6 +332,72 @@ func (z *OgAnnouncementNewBlock) FromBytes(bts []byte) error {
 	return nil
 }
 
-func (z *OgAnnouncementNewBlock) String() string {
-	return fmt.Sprintf("OgAnnouncementNewBlock Int Height=[%d]", z.Content.Height)
+func (z *OgAnnouncementNewSequencer) String() string {
+	return fmt.Sprintf("Seq_%d", z.Sequencer.Height)
+}
+
+//msgp OgAnnouncementNewTx
+type OgAnnouncementNewTx struct {
+	Tx MessageContentTx
+}
+
+func (z *OgAnnouncementNewTx) GetType() OgSyncMessageType {
+	return OgAnnouncementTypeNewTx
+}
+
+func (z *OgAnnouncementNewTx) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgAnnouncementNewTx) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *OgAnnouncementNewTx) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (z *OgAnnouncementNewTx) String() string {
+	return fmt.Sprintf("Tx_%s", hexutil.Encode(z.Tx.Hash))
+}
+
+//msgp OgAnnouncementNewInt
+type OgAnnouncementNewInt struct {
+	Ints MessageContentInt
+}
+
+func (z *OgAnnouncementNewInt) GetType() OgSyncMessageType {
+	return OgAnnouncementTypeNewInt
+}
+
+func (z *OgAnnouncementNewInt) GetTypeValue() int {
+	return int(z.GetType())
+}
+
+func (z *OgAnnouncementNewInt) ToBytes() []byte {
+	b, err := z.MarshalMsg(nil)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (z *OgAnnouncementNewInt) FromBytes(bts []byte) error {
+	_, err := z.UnmarshalMsg(bts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (z *OgAnnouncementNewInt) String() string {
+	return fmt.Sprintf("Ints_%d", z.Ints.Height)
 }

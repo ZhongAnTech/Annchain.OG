@@ -149,10 +149,17 @@ func (n *OgNode) Setup() {
 	cpContentFetcher.InitDefault()
 
 	cpIntLedgerSyncer := &ogsyncer.IntLedgerSyncer{
+		EventBus:       ebus,
 		Ledger:         ledger,
 		ContentFetcher: cpContentFetcher,
 	}
 	cpIntLedgerSyncer.InitDefault()
+
+	cpOgReceiver := &ogsyncer.OgReceiver{
+		EventBus: ebus,
+	}
+
+	cpOgReceiver.InitDefault()
 
 	// OG engine
 	cpOgEngine := &og.OgEngine{
@@ -205,6 +212,7 @@ func (n *OgNode) Setup() {
 	ebus.Subscribe(int(consts.NewIncomingMessageEvent), cpOgEngine)
 	ebus.Subscribe(int(consts.NewIncomingMessageEvent), cpCommunityManager)
 	ebus.Subscribe(int(consts.NewIncomingMessageEvent), cpIntLedgerSyncer)
+	ebus.Subscribe(int(consts.NewIncomingMessageEvent), cpOgReceiver)
 
 	// peer connected
 	ebus.Subscribe(int(consts.PeerConnectedEvent), cpCommunityManager)
@@ -219,6 +227,9 @@ func (n *OgNode) Setup() {
 	ebus.Subscribe(int(consts.NewHeightDetectedEvent), cpContentFetcher)
 	ebus.Subscribe(int(consts.NewHeightDetectedEvent), cpIntLedgerSyncer)
 	ebus.Subscribe(int(consts.NewHeightBlockSyncedEvent), cpContentFetcher)
+
+	// block received
+	ebus.Subscribe(int(consts.IntsReceivedEvent), cpIntLedgerSyncer)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpOgEngine)

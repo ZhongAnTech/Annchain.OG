@@ -2,6 +2,7 @@ package og_interface
 
 import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/ogsyncer_interface"
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
@@ -12,20 +13,15 @@ type PeerLeftEvent struct {
 	PeerId string
 }
 
-type PeerJoinedEventSubscriber interface {
-	PeerJoinedChannel() chan *PeerJoinedEvent
+type SequencerReceivedEvent struct {
 }
 
-type PeerLeftEventSubscriber interface {
-	PeerLeftChannel() chan *PeerLeftEvent
+type TxReceivedEvent struct {
 }
 
-type NewLocalHeightUpdatedEventSubscriber interface {
-	NewLocalHeightUpdatedChannel() chan *NewLocalHeightUpdatedEvent
-}
-
-type ResourceGotEventSubscriber interface {
-	ResourceGotEventChannel() chan *ResourceGotEvent
+type IntsReceivedEvent struct {
+	Ints ogsyncer_interface.MessageContentInt
+	From string
 }
 
 type NodeInfoProvider interface {
@@ -52,11 +48,6 @@ type AccountHolder interface {
 }
 type LedgerSigner interface {
 	Sign(msg []byte, account OgLedgerAccount) []byte
-}
-
-type NewHeightDetectedEventSubscriber interface {
-	Name() string
-	NewHeightDetectedEventChannel() chan *NewHeightDetectedEvent
 }
 
 type LedgerAccountProvider interface {

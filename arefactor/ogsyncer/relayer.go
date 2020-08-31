@@ -14,9 +14,8 @@ import (
 // It tries to dedup the messages so that duplicate messages won't be sent twice.
 // OgRelayer will listen to broadcast messages and new block qced event
 type OgRelayer struct {
-	EventBus                      *eventbus.EventBus
-	notificationCache             gcache.Cache
-	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
+	EventBus          *eventbus.EventBus
+	notificationCache gcache.Cache
 
 	newBlockToldChan chan *og_interface.NewBlockToldEvent
 	quit             chan bool
@@ -26,11 +25,6 @@ func (o *OgRelayer) InitDefault() {
 	o.notificationCache = gcache.New(100).LRU().Expiration(time.Minute).Build()
 	o.newBlockToldChan = make(chan *og_interface.NewBlockToldEvent)
 	o.quit = make(chan bool)
-}
-
-// subscribe mine
-func (n *OgRelayer) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
-	n.newOutgoingMessageSubscribers = append(n.newOutgoingMessageSubscribers, sub)
 }
 
 func (n *OgRelayer) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {

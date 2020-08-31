@@ -43,7 +43,6 @@ type Partner struct {
 
 	// event handlers
 	myNewIncomingMessageEventChan chan *transport_interface.IncomingLetter
-	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 
 	quit           chan bool
 	BlockTime      time.Duration
@@ -102,7 +101,6 @@ func (n *Partner) InitDefault() {
 	}
 	n.pendingQCs = make(map[string]consensus_interface.SignatureCollector)
 	n.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
-	n.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 }
 func (n *Partner) Start() {
 	n.timeoutChecker = time.NewTicker(n.TimeoutTime)

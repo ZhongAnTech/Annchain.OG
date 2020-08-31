@@ -32,8 +32,6 @@ type PaceMaker struct {
 	// Once a QVote/TVote is sent
 	lastValidTime time.Time
 
-	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
-
 	pendingTCs map[int64]consensus_interface.SignatureCollector // round : sender list:true
 
 	quit chan bool
@@ -42,7 +40,6 @@ type PaceMaker struct {
 func (m *PaceMaker) InitDefault() {
 	m.quit = make(chan bool)
 	m.pendingTCs = make(map[int64]consensus_interface.SignatureCollector)
-	m.newOutgoingMessageSubscribers = []transport_interface.NewOutgoingMessageEventSubscriber{}
 
 }
 

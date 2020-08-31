@@ -25,11 +25,9 @@ type IntLedgerSyncer struct {
 	newHeightDetectedEventChan     chan *og_interface.NewHeightDetectedEvent
 	newLocalHeightUpdatedEventChan chan *og_interface.NewLocalHeightUpdatedEvent
 	unknownNeededEventChan         chan ogsyncer_interface.Unknown
-	newIncomingMessageEventChan    chan *transport_interface.IncomingLetter
+	intsReceivedEventChan          chan *og_interface.IntsReceivedEvent
 
-	newOutgoingMessageSubscribers        []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
-	newHeightDetectedEventSubscribers    []og_interface.NewHeightDetectedEventSubscriber
-	newHeightBlockSyncedEventSubscribers []og_interface.ResourceGotEventSubscriber
+	newIncomingMessageEventChan chan *transport_interface.IncomingLetter
 
 	knownMaxPeerHeight int64
 
@@ -42,6 +40,8 @@ func (s *IntLedgerSyncer) Receive(topic int, msg interface{}) error {
 		s.newIncomingMessageEventChan <- msg.(*transport_interface.IncomingLetter)
 	case consts.UnknownNeededEvent:
 		s.unknownNeededEventChan <- msg.(ogsyncer_interface.Unknown)
+	case consts.IntsReceivedEvent:
+		s.intsReceivedEventChan <- msg.(*og_interface.IntsReceivedEvent)
 	default:
 		return eventbus.ErrNotSupported
 	}
@@ -51,6 +51,8 @@ func (s *IntLedgerSyncer) Receive(topic int, msg interface{}) error {
 func (s *IntLedgerSyncer) InitDefault() {
 	s.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEvent)
 	s.newLocalHeightUpdatedEventChan = make(chan *og_interface.NewLocalHeightUpdatedEvent)
+	s.intsReceivedEventChan = make(chan *og_interface.IntsReceivedEvent)
+
 	s.unknownNeededEventChan = make(chan ogsyncer_interface.Unknown)
 	s.newIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
 
@@ -92,28 +94,20 @@ func (s *IntLedgerSyncer) eventLoop() {
 			utilfuncs.DrainTicker(timer)
 			return
 		case event := <-s.newHeightDetectedEventChan:
-			logrus.WithField("event", event).Info("handleNewHeightDetectedEvent")
-			logrus.Info("111")
 			s.handleNewHeightDetectedEvent(event)
-			logrus.Info("111OK")
 		case event := <-s.newLocalHeightUpdatedEventChan:
-			logrus.WithField("event", event).Info("handleNewLocalHeightUpdatedEvent")
-			logrus.Info("222")
 			s.handleNewLocalHeightUpdatedEvent(event)
-			logrus.Info("222OK")
 		case event := <-s.unknownNeededEventChan:
-			logrus.Info("333")
-			logrus.WithField("event", event).Info("unknownNeededEventChan")
 			switch event.GetType() {
 			case ogsyncer_interface.UnknownTypeHash:
-				logrus.Fatal("under construction")
 				s.enqueueHashTask(event.(*ogsyncer_interface.UnknownHash).Hash, "")
 			case ogsyncer_interface.UnknownTypeHeight:
 				s.enqueueHeightTask(event.(*ogsyncer_interface.UnknownHeight).Height, "")
 			default:
 				logrus.Warn("Unexpected unknown type")
 			}
-			logrus.Info("333OK")
+		case event := <-s.intsReceivedEventChan:
+			s.handleIntsReceivedEvent(event)
 		}
 	}
 }
@@ -123,19 +117,7 @@ func (s *IntLedgerSyncer) messageLoop() {
 	for {
 		select {
 		case letter := <-s.newIncomingMessageEventChan:
-
-			//c1 := make(chan bool)
-			go func() {
-				s.handleIncomingMessage(letter)
-				//c1 <- true
-			}()
-
-			//select {
-			//case <-c1:
-			//	break
-			//case <-time.After(6 * time.Second):
-			//	logrus.Fatal("timeout " + letter.String())
-			//}
+			s.handleIncomingMessage(letter)
 		case <-s.quit:
 			return
 		}
@@ -231,14 +213,14 @@ func (s *IntLedgerSyncer) handleIncomingMessage(letter *transport_interface.Inco
 		logrus.WithField("req", req).Debug("OgSyncMessageTypeBlockByHeightRequest")
 
 		s.handleBlockByHeightRequest(req, letter.From)
-	case ogsyncer_interface.OgSyncMessageTypeBlockByHeightResponse:
-		req := &ogsyncer_interface.OgSyncBlockByHeightResponse{}
-		err := req.FromBytes(letter.Msg.ContentBytes)
-		if err != nil {
-			logrus.WithError(err).Fatal("block by height response")
-		}
-		logrus.WithField("req", req).Debug("OgSyncMessageTypeBlockByHeightResponse")
-		s.handleBlockByHeightResponse(req, letter.From)
+	//case ogsyncer_interface.OgSyncMessageTypeBlockByHeightResponse:
+	//	req := &ogsyncer_interface.OgSyncBlockByHeightResponse{}
+	//	err := req.FromBytes(letter.Msg.ContentBytes)
+	//	if err != nil {
+	//		logrus.WithError(err).Fatal("block by height response")
+	//	}
+	//	logrus.WithField("req", req).Debug("OgSyncMessageTypeBlockByHeightResponse")
+	//	s.handleBlockByHeightResponse(req, letter.From)
 	//case ogsyncer_interface.OgSyncMessageTypeByHashesRequest:
 	//case ogsyncer_interface.OgSyncMessageTypeBlockByHashRequest:
 	//case ogsyncer_interface.OgSyncMessageTypeByHashesResponse:
@@ -276,22 +258,6 @@ func (s *IntLedgerSyncer) handleBlockByHeightRequest(req *ogsyncer_interface.OgS
 	s.notifyNewOutgoingMessage(letterOut)
 }
 
-func (s *IntLedgerSyncer) handleBlockByHeightResponse(req *ogsyncer_interface.OgSyncBlockByHeightResponse, from string) {
-	// do ints
-	for _, v := range req.Ints {
-		block := &dummy.IntArrayBlockContent{
-			Height:      v.Height,
-			Step:        v.Step,
-			PreviousSum: v.PreviousSum,
-			MySum:       v.MySum,
-			Submitter:   v.Submitter,
-			Ts:          v.Ts,
-		}
-		s.resolveBlock(block)
-	}
-	s.trySyncNextHeight()
-}
-
 func (s *IntLedgerSyncer) resolveBlock(block *dummy.IntArrayBlockContent, from string) {
 	s.Ledger.ConfirmBlock(block)
 
@@ -305,10 +271,11 @@ func (s *IntLedgerSyncer) resolveBlock(block *dummy.IntArrayBlockContent, from s
 		"height": block.Height,
 		"hash":   block.GetHash().HashString(),
 	}).Trace("got block")
+	s.trySyncNextHeight()
 	//b.Reporter.Report("tasks", b.taskList)
-	s.notifyNewHeightBlockSynced(&og_interface.ResourceGotEvent{
-		Height: block.Height,
-	})
+	//s.notifyNewHeightBlockSynced(&og_interface.ResourceGotEvent{
+	//	Height: block.Height,
+	//})
 }
 
 func (s *IntLedgerSyncer) trySyncNextHeight() {
@@ -316,4 +283,21 @@ func (s *IntLedgerSyncer) trySyncNextHeight() {
 	if s.Ledger.CurrentHeight() < s.knownMaxPeerHeight {
 		s.enqueueHeightTask(s.Ledger.CurrentHeight()+int64(1), "handleBlockByHeightResponse")
 	}
+}
+
+func (s *IntLedgerSyncer) handleIntsReceivedEvent(event *og_interface.IntsReceivedEvent) {
+	// resolve this
+	s.resolveBlock(s.convertBlock(event.Ints), event.From)
+}
+
+func (s *IntLedgerSyncer) convertBlock(v ogsyncer_interface.MessageContentInt) *dummy.IntArrayBlockContent {
+	block := &dummy.IntArrayBlockContent{
+		Height:      v.Height,
+		Step:        v.Step,
+		PreviousSum: v.PreviousSum,
+		MySum:       v.MySum,
+		Submitter:   v.Submitter,
+		Ts:          v.Ts,
+	}
+	return block
 }

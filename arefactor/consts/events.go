@@ -12,6 +12,13 @@ const (
 	NewHeightDetectedEvent
 	NewHeightBlockSyncedEvent
 	LocalHeightUpdatedEvent
+
+	SequencerReceivedEvent
+	TxReceivedEvent
+	IntsReceivedEvent
+	SequencerFulfilledEvent
+	TxFulfilledEvent
+	IntsFulfilledEvent
 )
 
 var EventCodeTextMap = map[EventType]string{

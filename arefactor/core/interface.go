@@ -6,3 +6,7 @@ type Component interface {
 	// Get the component name
 	Name() string
 }
+
+type EventInfoProvider interface {
+	GetEventMap() map[int]string
+}

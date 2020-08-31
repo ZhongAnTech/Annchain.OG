@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/annchain/OG/arefactor/consensus"
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/og_interface"
@@ -9,6 +10,7 @@ import (
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/latifrons/go-eventbus"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"path"
@@ -31,6 +33,16 @@ func (n *OgNode) InitDefault() {
 func (n *OgNode) Setup() {
 	blockTime := time.Second * 1
 	myId := viper.GetInt("id")
+
+	ebus := &eventbus.EventBus{
+		TimeoutControl: true, // for debugging
+		Timeout:        time.Second * 5,
+	}
+	// reg events
+	for eventCode, eventValue := range consts.EventCodeTextMap {
+		ebus.RegisterEventType(int(eventCode), eventValue)
+	}
+
 	// reporter
 	lowLevelReporter := getReporter()
 
@@ -73,6 +85,7 @@ func (n *OgNode) Setup() {
 
 	// ledger implementation
 	ledger := &dummy.IntArrayLedger{
+		EventBus:   ebus,
 		DataPath:   n.FolderConfig.Data,
 		ConfigPath: n.FolderConfig.Config,
 		Reporter:   lowLevelReporter,
@@ -97,6 +110,8 @@ func (n *OgNode) Setup() {
 
 	// peer relationship management
 	cpCommunityManager := &og.DefaultCommunityManager{
+		EventBus:              ebus,
+		NodeInfoProvider:      nil,
 		PhysicalCommunicator:  cpTransport,
 		KnownPeerListFilePath: path.Join(n.FolderConfig.Config, "peers.lst"),
 	}
@@ -124,6 +139,7 @@ func (n *OgNode) Setup() {
 	cpRpc.InitDefault()
 
 	cpContentFetcher := &ogsyncer.RandomPickerContentFetcher{
+		EventBus:                ebus,
 		ExpireDuration:          time.Minute * 5,
 		MinimumIntervalDuration: time.Second * 5,
 		MaxTryTimes:             10,
@@ -140,8 +156,10 @@ func (n *OgNode) Setup() {
 
 	// OG engine
 	cpOgEngine := &og.OgEngine{
+		EventBus:         ebus,
 		Ledger:           ledger,
 		CommunityManager: cpCommunityManager,
+		NetworkId:        "1",
 	}
 	cpCommunityManager.NodeInfoProvider = cpOgEngine
 
@@ -159,6 +177,7 @@ func (n *OgNode) Setup() {
 	if viper.GetBool("features.consensus") {
 		// consensus. Current all peers are Partner
 		cpConsensusPartner := &consensus.Partner{
+			EventBus:          ebus,
 			Logger:            logrus.StandardLogger(),
 			Reporter:          lowLevelReporter,
 			ProposalGenerator: proposalGenerator,
@@ -175,36 +194,31 @@ func (n *OgNode) Setup() {
 		}
 		cpConsensusPartner.InitDefault()
 		n.components = append(n.components, cpConsensusPartner)
-		cpConsensusPartner.AddSubscriberNewOutgoingMessageEvent(cpTransport)
-		cpTransport.AddSubscriberNewIncomingMessageEvent(cpConsensusPartner)
+
+		ebus.Subscribe(int(consts.NewIncomingMessageEvent), cpConsensusPartner)
 	}
 
 	// event registration
-
 	// message senders
-	cpOgEngine.AddSubscriberNewOutgoingMessageEvent(cpTransport)
-	cpCommunityManager.AddSubscriberNewOutgoingMessageEvent(cpTransport)
-	cpIntLedgerSyncer.AddSubscriberNewOutgoingMessageEvent(cpTransport)
-	cpContentFetcher.AddSubscriberNewOutgoingMessageEvent(cpTransport)
-
+	ebus.Subscribe(int(consts.NewOutgoingMessageEvent), cpTransport)
 	// message receivers
-	cpTransport.AddSubscriberNewIncomingMessageEvent(cpOgEngine)
-	cpTransport.AddSubscriberNewIncomingMessageEvent(cpCommunityManager)
-	cpTransport.AddSubscriberNewIncomingMessageEvent(cpIntLedgerSyncer)
+	ebus.Subscribe(int(consts.NewIncomingMessageEvent), cpOgEngine)
+	ebus.Subscribe(int(consts.NewIncomingMessageEvent), cpCommunityManager)
+	ebus.Subscribe(int(consts.NewIncomingMessageEvent), cpIntLedgerSyncer)
 
 	// peer connected
-	cpTransport.AddSubscriberPeerConnectedEvent(cpCommunityManager)
+	ebus.Subscribe(int(consts.PeerConnectedEvent), cpCommunityManager)
 
 	// peer joined and left to the network cluster (protocol verified)
-	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpOgEngine)
-	cpCommunityManager.AddSubscriberPeerJoinedEvent(cpContentFetcher)
+	ebus.Subscribe(int(consts.PeerJoinedEvent), cpOgEngine)
+	ebus.Subscribe(int(consts.PeerJoinedEvent), cpContentFetcher)
 	//cpCommunityManager.AddSubscriberPeerLeftEvent(cpSyncer)
-
-	ledger.AddSubscriberUnknownNeededEvent(cpIntLedgerSyncer)
+	ebus.Subscribe(int(consts.UnknownNeededEvent), cpIntLedgerSyncer)
 
 	// peer height provided
-	cpIntLedgerSyncer.AddSubscriberNewHeightDetectedEvent(cpContentFetcher)
-	cpIntLedgerSyncer.AddSubscriberNewHeightBlockSyncedEvent(cpContentFetcher)
+	ebus.Subscribe(int(consts.NewHeightDetectedEvent), cpContentFetcher)
+	ebus.Subscribe(int(consts.NewHeightDetectedEvent), cpIntLedgerSyncer)
+	ebus.Subscribe(int(consts.NewHeightBlockSyncedEvent), cpContentFetcher)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpOgEngine)

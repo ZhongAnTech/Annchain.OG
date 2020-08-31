@@ -1,12 +1,13 @@
 package og
 
 import (
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/commongo/utilfuncs"
-	"github.com/latifrons/goffchan"
+	"github.com/latifrons/go-eventbus"
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"time"
@@ -22,6 +23,7 @@ type CommunityManager interface {
 // It keeps the community with a stable scale。
 // It also tries to balance the whole network to prevent some node being too heavy loaded
 type DefaultCommunityManager struct {
+	EventBus              *eventbus.EventBus
 	NodeInfoProvider      og_interface.NodeInfoProvider
 	PhysicalCommunicator  *transport.PhysicalCommunicator
 	KnownPeerListFilePath string
@@ -41,12 +43,20 @@ type DefaultCommunityManager struct {
 	quit chan bool
 }
 
-func (d *DefaultCommunityManager) GetPeerDisconnectedEventChannel() chan *transport_interface.PeerEvent {
-	return d.myPeerDisconnectedEventChannel
+func (d *DefaultCommunityManager) Receive(topic int, msg interface{}) error {
+	switch consts.EventType(topic) {
+	case consts.NewIncomingMessageEvent:
+		d.myNewIncomingMessageEventChannel <- msg.(*transport_interface.IncomingLetter)
+	case consts.PeerConnectedEvent:
+		d.myPeerConnectedEventChannel <- msg.(*transport_interface.PeerEvent)
+	default:
+		return eventbus.ErrNotSupported
+	}
+	return nil
 }
 
-func (d *DefaultCommunityManager) GetPeerConnectedEventChannel() chan *transport_interface.PeerEvent {
-	return d.myPeerConnectedEventChannel
+func (d *DefaultCommunityManager) GetPeerDisconnectedEventChannel() chan *transport_interface.PeerEvent {
+	return d.myPeerDisconnectedEventChannel
 }
 
 func (d *DefaultCommunityManager) InitDefault() {
@@ -66,38 +76,16 @@ func (d *DefaultCommunityManager) NewIncomingMessageEventChannel() chan *transpo
 	return d.myNewIncomingMessageEventChannel
 }
 
-// subscribe mine
-func (d *DefaultCommunityManager) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
-	d.newOutgoingMessageSubscribers = append(d.newOutgoingMessageSubscribers, sub)
-}
-
 func (d *DefaultCommunityManager) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
-	for _, subscriber := range d.newOutgoingMessageSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing community manager"+subscriber.Name()).C
-		//subscriber.NewOutgoingMessageEventChannel() <- event
-	}
-}
-
-func (d *DefaultCommunityManager) AddSubscriberPeerJoinedEvent(sub og_interface.PeerJoinedEventSubscriber) {
-	d.peerJoinedEventSubscribers = append(d.peerJoinedEventSubscribers, sub)
+	d.EventBus.Publish(int(consts.NewOutgoingMessageEvent), event)
 }
 
 func (d *DefaultCommunityManager) notifyPeerJoined(event *og_interface.PeerJoinedEvent) {
-	for _, subscriber := range d.peerJoinedEventSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.PeerJoinedChannel(), event, "peerjoined").C
-		//subscriber.PeerJoinedChannel() <- event
-	}
-}
-
-func (d *DefaultCommunityManager) AddSubscriberPeerLeftEvent(sub og_interface.PeerLeftEventSubscriber) {
-	d.peerLeftEventSubscribers = append(d.peerLeftEventSubscribers, sub)
+	d.EventBus.Publish(int(consts.PeerJoinedEvent), event)
 }
 
 func (d *DefaultCommunityManager) notifyPeerLeft(event *og_interface.PeerLeftEvent) {
-	for _, subscriber := range d.peerLeftEventSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.PeerLeftChannel(), event, "peerleft").C
-		//subscriber.PeerLeftChannel() <- event
-	}
+	d.EventBus.Publish(int(consts.PeerLeftEvent), event)
 }
 
 // event handlers over

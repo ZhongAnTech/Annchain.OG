@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/latifrons/go-eventbus"
 	"github.com/latifrons/goffchan"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core/crypto"
@@ -33,6 +35,7 @@ type IoEvent struct {
 
 // PhysicalCommunicator
 type PhysicalCommunicator struct {
+	EventBus        *eventbus.EventBus
 	Port            int // listening port
 	PrivateKey      core.PrivKey
 	ProtocolId      string
@@ -53,33 +56,22 @@ type PhysicalCommunicator struct {
 	mu       sync.RWMutex
 }
 
-func (c *PhysicalCommunicator) NewOutgoingMessageEventChannel() chan *transport_interface.OutgoingLetter {
-	return c.outgoingChannel
-}
-
-func (c *PhysicalCommunicator) AddSubscriberNewIncomingMessageEvent(sub transport_interface.NewIncomingMessageEventSubscriber) {
-	c.newIncomingMessageSubscribers = append(c.newIncomingMessageSubscribers, sub)
-}
-
-func (c *PhysicalCommunicator) notifyNewIncomingMessage(incomingLetter *transport_interface.IncomingLetter) {
-	for _, sub := range c.newIncomingMessageSubscribers {
-		//sub.NewIncomingMessageEventChannel() <- message
-		logrus.WithField("sub", sub.Name()).WithField("type", incomingLetter.Msg.MsgType).Debug("receive message")
-		<-goffchan.NewTimeoutSenderShort(sub.NewIncomingMessageEventChannel(), incomingLetter, "receive message "+sub.Name()).C
-		//sub.NewIncomingMessageEventChannel() <- message
+func (c *PhysicalCommunicator) Receive(topic int, msg interface{}) error {
+	switch consts.EventType(topic) {
+	case consts.NewOutgoingMessageEvent:
+		c.outgoingChannel <- msg.(*transport_interface.OutgoingLetter)
+	default:
+		return eventbus.ErrNotSupported
 	}
+	return nil
 }
 
-func (c *PhysicalCommunicator) AddSubscriberPeerConnectedEvent(sub transport_interface.PeerConnectedEventSubscriber) {
-	c.peerConnectedSubscribers = append(c.peerConnectedSubscribers, sub)
+func (c *PhysicalCommunicator) notifyNewIncomingMessage(event *transport_interface.IncomingLetter) {
+	c.EventBus.Publish(int(consts.NewOutgoingMessageEvent), event)
 }
 
 func (c *PhysicalCommunicator) notifyPeerConnected(event *transport_interface.PeerEvent) {
-	for _, sub := range c.peerConnectedSubscribers {
-		//sub.NewIncomingMessageEventChannel() <- message
-		<-goffchan.NewTimeoutSenderShort(sub.GetPeerConnectedEventChannel(), event, "peer connected"+sub.Name()).C
-		//sub.NewIncomingMessageEventChannel() <- message
-	}
+	c.EventBus.Publish(int(consts.PeerConnectedEvent), event)
 }
 
 func (c *PhysicalCommunicator) Name() string {

@@ -2,13 +2,16 @@ package core
 
 import (
 	"github.com/annchain/OG/arefactor/bouncer"
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/commongo/utilfuncs"
+	"github.com/latifrons/go-eventbus"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"path"
+	"time"
 )
 
 // OgNode is the basic entry point for all modules to start.
@@ -27,6 +30,15 @@ func (n *SampleNode) InitDefault() {
 }
 
 func (n *SampleNode) Setup() {
+	ebus := &eventbus.EventBus{
+		TimeoutControl: true, // for debugging
+		Timeout:        time.Second * 5,
+	}
+	// reg events
+	for eventCode, eventValue := range consts.EventCodeTextMap {
+		ebus.RegisterEventType(int(eventCode), eventValue)
+	}
+
 	// load private info
 	// check if file exists
 	n.transportAccountHolder = &og.LocalTransportAccountProvider{
@@ -55,8 +67,8 @@ func (n *SampleNode) Setup() {
 
 	// event registration
 	// bouncer io
-	cpBouncer.RegisterSubscriberNewOutgoingMessageEvent(cpTransport)
-	cpTransport.AddSubscriberNewIncomingMessageEvent(cpBouncer)
+	ebus.Subscribe(int(consts.NewOutgoingMessageEvent), cpTransport)
+	ebus.Subscribe(int(consts.NewIncomingMessageEvent), cpBouncer)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpBouncer)

@@ -1,10 +1,11 @@
 package ogsyncer
 
 import (
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/gcache"
-	"github.com/latifrons/goffchan"
+	"github.com/latifrons/go-eventbus"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -13,6 +14,7 @@ import (
 // It tries to dedup the messages so that duplicate messages won't be sent twice.
 // OgRelayer will listen to broadcast messages and new block qced event
 type OgRelayer struct {
+	EventBus                      *eventbus.EventBus
 	notificationCache             gcache.Cache
 	newOutgoingMessageSubscribers []transport_interface.NewOutgoingMessageEventSubscriber // a message need to be sent
 
@@ -32,10 +34,7 @@ func (n *OgRelayer) AddSubscriberNewOutgoingMessageEvent(sub transport_interface
 }
 
 func (n *OgRelayer) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
-	for _, subscriber := range n.newOutgoingMessageSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing ogrelayer "+subscriber.Name()).C
-		//subscriber.NewOutgoingMessageEventChannel() <- event
-	}
+	n.EventBus.Publish(int(consts.NewOutgoingMessageEvent), event)
 }
 
 func (o *OgRelayer) Start() {

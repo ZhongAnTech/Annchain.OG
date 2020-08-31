@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/ogsyncer_interface"
 	"github.com/annchain/commongo/files"
 	"github.com/annchain/commongo/format"
 	"github.com/annchain/commongo/math"
 	"github.com/annchain/commongo/utilfuncs"
-	"github.com/latifrons/goffchan"
+	"github.com/latifrons/go-eventbus"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -70,6 +71,7 @@ func (i *IntArrayBlockContent) GetHeight() int64 {
 }
 
 type IntArrayLedger struct {
+	EventBus   *eventbus.EventBus
 	DataPath   string
 	ConfigPath string
 	Reporter   *soccerdash.Reporter
@@ -543,26 +545,12 @@ func (d *IntArrayLedger) applyGenesisStore(gs *og_interface.GenesisStore) {
 	d.genesis = g
 }
 
-func (d *IntArrayLedger) AddSubscriberUnknownNeededEvent(sub ogsyncer_interface.UnknownNeededEventSubscriber) {
-	d.unknownNeededEventSubscribers = append(d.unknownNeededEventSubscribers, sub)
-}
-
 func (n *IntArrayLedger) notifyUnknownNeededEvent(event ogsyncer_interface.Unknown) {
-	for _, subscriber := range n.unknownNeededEventSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.UnknownNeededEventChannel(), event, "notifyUnknownNeededEvent"+subscriber.Name()).C
-		//subscriber.NewOutgoingMessageEventChannel() <- event
-	}
-}
-
-func (d *IntArrayLedger) AddSubscriberNewLocalHeightUpdatedEventSubscriber(sub og_interface.NewLocalHeightUpdatedEventSubscriber) {
-	d.newLocalHeightUpdatedEventSubscribers = append(d.newLocalHeightUpdatedEventSubscribers, sub)
+	n.EventBus.Publish(int(consts.UnknownNeededEvent), event)
 }
 
 func (n *IntArrayLedger) notifyNewLocalHeightUpdatedEvent(event ogsyncer_interface.Unknown) {
-	for _, subscriber := range n.newLocalHeightUpdatedEventSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewLocalHeightUpdatedChannel(), event, "notifyNewLocalHeightUpdatedEvent").C
-		//subscriber.NewOutgoingMessageEventChannel() <- event
-	}
+	n.EventBus.Publish(int(consts.LocalHeightUpdatedEvent), event)
 }
 
 type IntArrayProposalGenerator struct {

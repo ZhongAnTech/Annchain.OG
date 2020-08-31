@@ -3,12 +3,12 @@ package ogsyncer
 import (
 	"errors"
 	"fmt"
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/ogsyncer_interface"
-	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/commongo/todolist"
-	"github.com/latifrons/goffchan"
+	"github.com/latifrons/go-eventbus"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -24,6 +24,7 @@ const MaxTolerantHeightDiff = 0 // ogsyncer will start syncing if myHeight + Max
 // between each try there will be an interval.
 // You should resolve the task explicitly if you get the answer.
 type RandomPickerContentFetcher struct {
+	EventBus                *eventbus.EventBus
 	ExpireDuration          time.Duration
 	MinimumIntervalDuration time.Duration
 	MaxTryTimes             int
@@ -40,6 +41,20 @@ type RandomPickerContentFetcher struct {
 
 	quit chan bool
 	mu   sync.RWMutex
+}
+
+func (b *RandomPickerContentFetcher) Receive(topic int, msg interface{}) error {
+	switch consts.EventType(topic) {
+	case consts.PeerJoinedEvent:
+		b.peerJoinedEventChan <- msg.(*og_interface.PeerJoinedEvent)
+	case consts.NewHeightDetectedEvent:
+		b.newHeightDetectedEventChan <- msg.(*og_interface.NewHeightDetectedEvent)
+	case consts.NewHeightBlockSyncedEvent:
+		b.newHeightBlockSyncedEventChan <- msg.(*og_interface.ResourceGotEvent)
+	default:
+		return eventbus.ErrNotSupported
+	}
+	return nil
 }
 
 func (b *RandomPickerContentFetcher) InitDefault() {
@@ -65,18 +80,6 @@ func (b *RandomPickerContentFetcher) InitDefault() {
 	b.quit = make(chan bool)
 }
 
-func (b *RandomPickerContentFetcher) PeerLeftChannel() chan *og_interface.PeerLeftEvent {
-	panic("implement me")
-}
-
-func (b *RandomPickerContentFetcher) NewHeightDetectedEventChannel() chan *og_interface.NewHeightDetectedEvent {
-	return b.newHeightDetectedEventChan
-}
-
-func (b *RandomPickerContentFetcher) ResourceGotEventChannel() chan *og_interface.ResourceGotEvent {
-	return b.newHeightBlockSyncedEventChan
-}
-
 func (b *RandomPickerContentFetcher) NeedToKnow(unknown ogsyncer_interface.Unknown) {
 	b.taskList.AddTask(unknown)
 	b.triggerSync("NeedToKnow")
@@ -86,20 +89,8 @@ func (b *RandomPickerContentFetcher) Resolve(unknown ogsyncer_interface.Unknown)
 	b.taskList.RemoveTask(unknown)
 }
 
-// notify sending events
-func (b *RandomPickerContentFetcher) AddSubscriberNewOutgoingMessageEvent(transport *transport.PhysicalCommunicator) {
-	b.newOutgoingMessageSubscribers = append(b.newOutgoingMessageSubscribers, transport)
-}
-
 func (b *RandomPickerContentFetcher) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
-	for _, subscriber := range b.newOutgoingMessageSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing ogsyncer"+subscriber.Name()).C
-		//subscriber.NewOutgoingMessageEventChannel() <- event
-	}
-}
-
-func (b *RandomPickerContentFetcher) PeerJoinedChannel() chan *og_interface.PeerJoinedEvent {
-	return b.peerJoinedEventChan
+	b.EventBus.Publish(int(consts.NewOutgoingMessageEvent), event)
 }
 
 func (b *RandomPickerContentFetcher) Start() {

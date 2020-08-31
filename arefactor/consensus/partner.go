@@ -3,8 +3,9 @@ package consensus
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/transport_interface"
-	"github.com/latifrons/goffchan"
+	"github.com/latifrons/go-eventbus"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -19,6 +20,7 @@ Maofan Yin, Dahlia Malkhi, Michael K. Reiter, Guy Golan Gueta and Ittai Abraham
 */
 
 type Partner struct {
+	EventBus *eventbus.EventBus
 	//BlockTree        *BlockTree
 	Logger   *logrus.Logger
 	Reporter *soccerdash.Reporter
@@ -49,6 +51,16 @@ type Partner struct {
 	timeoutChecker *time.Ticker
 }
 
+func (n *Partner) Receive(topic int, msg interface{}) error {
+	switch consts.EventType(topic) {
+	case consts.NewIncomingMessageEvent:
+		n.myNewIncomingMessageEventChan <- msg.(*transport_interface.IncomingLetter)
+	default:
+		return eventbus.ErrNotSupported
+	}
+	return nil
+}
+
 func (n *Partner) InitDefault() {
 	n.quit = make(chan bool)
 	n.safety = &Safety{
@@ -69,15 +81,16 @@ func (n *Partner) InitDefault() {
 	n.pendingBlockTree.InitDefault()
 
 	n.paceMaker = &PaceMaker{
-		Logger:            n.Logger,
-		CurrentRound:      n.Ledger.GetConsensusState().LastVoteRound,
-		Safety:            n.safety,
-		Partner:           n,
-		ConsensusSigner:   n.ConsensusSigner,
-		AccountProvider:   n.ConsensusAccountProvider,
-		CommitteeProvider: n.CommitteeProvider,
-		Reporter:          n.Reporter,
-		BlockTime:         n.BlockTime,
+		EventBus:                      n.EventBus,
+		Logger:                        n.Logger,
+		CurrentRound:                  n.Ledger.GetConsensusState().LastVoteRound,
+		Safety:                        n.safety,
+		Partner:                       n,
+		ConsensusSigner:               n.ConsensusSigner,
+		AccountProvider:               n.ConsensusAccountProvider,
+		CommitteeProvider:             n.CommitteeProvider,
+		Reporter:                      n.Reporter,
+		BlockTime:                     n.BlockTime,
 	}
 	n.paceMaker.InitDefault()
 
@@ -347,23 +360,8 @@ func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter)
 	}
 }
 
-// notifications
-
-func (n *Partner) NewIncomingMessageEventChannel() chan *transport_interface.IncomingLetter {
-	return n.myNewIncomingMessageEventChan
-}
-
-// subscribe mine
-func (n *Partner) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
-	n.newOutgoingMessageSubscribers = append(n.newOutgoingMessageSubscribers, sub)
-	n.paceMaker.AddSubscriberNewOutgoingMessageEvent(sub)
-}
-
 func (n *Partner) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
-	for _, subscriber := range n.newOutgoingMessageSubscribers {
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing hotstuff partner"+subscriber.Name()).C
-		//subscriber.NewOutgoingMessageEventChannel() <- event
-	}
+	n.EventBus.Publish(int(consts.NewOutgoingMessageEvent), event)
 }
 
 func (n *Partner) ensureQCCollector(commitInfoHash string) consensus_interface.SignatureCollector {

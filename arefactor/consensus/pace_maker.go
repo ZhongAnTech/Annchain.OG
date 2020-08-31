@@ -3,8 +3,9 @@ package consensus
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/consensus_interface"
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/transport_interface"
-	"github.com/latifrons/goffchan"
+	"github.com/latifrons/go-eventbus"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -12,7 +13,8 @@ import (
 )
 
 type PaceMaker struct {
-	Logger *logrus.Logger
+	EventBus *eventbus.EventBus
+	Logger   *logrus.Logger
 
 	CurrentRound    int64
 	Safety          *Safety
@@ -44,17 +46,8 @@ func (m *PaceMaker) InitDefault() {
 
 }
 
-// subscribe mine
-func (m *PaceMaker) AddSubscriberNewOutgoingMessageEvent(sub transport_interface.NewOutgoingMessageEventSubscriber) {
-	m.newOutgoingMessageSubscribers = append(m.newOutgoingMessageSubscribers, sub)
-}
-
 func (m *PaceMaker) notifyNewOutgoingMessage(event *transport_interface.OutgoingLetter) {
-	for _, subscriber := range m.newOutgoingMessageSubscribers {
-		logrus.WithField("to", subscriber.Name()).WithField("type", event.String()).Info("notifyNewOutgoingmessage")
-		<-goffchan.NewTimeoutSenderShort(subscriber.NewOutgoingMessageEventChannel(), event, "outgoing hotstuff pacemaker"+subscriber.Name()).C
-		//subscriber.NewOutgoingMessageEventChannel() <- event
-	}
+	m.EventBus.Publish(int(consts.NewOutgoingMessageEvent), event)
 }
 
 func (m *PaceMaker) ProcessRemoteTimeoutMessage(msg *consensus_interface.HotStuffSignedMessage) {

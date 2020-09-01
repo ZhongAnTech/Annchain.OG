@@ -14,8 +14,6 @@
 package tx_types
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -177,31 +175,6 @@ func NewOpStrAndSign(opStr []byte, sign crypto.Signature) *OpStrAndSign {
 		OpStr:     opStr,
 		Signature: hexutil.Encode(sign.Bytes),
 	}
-}
-
-// VerifyOpHash 验证存证哈希
-func (t *Archive) VerifyOpHash() bool {
-	// 对Data签名
-	signer := &crypto.SignerSecp256k1{}
-	kr, err := crypto.PrivateKeyFromString(string(t.PublicKey)) /* 相同账户公钥的相同动作对应相同存证哈希 */
-	if err != nil {
-		fmt.Println(err)
-	}
-	signature := signer.Sign(kr, t.Data)
-	dataAndSign := *NewOpStrAndSign(t.Data, signature)
-	// 把Data和签名JSON排序和合并
-	dataAndSignBytes, err := json.Marshal(dataAndSign)
-	if err != nil {
-		fmt.Println(err)
-	}
-	// sort(dataAndSignStr) /* JSON排序，尚未实现 */
-	// 把合并结果求SHA256，验证存证哈希
-	h := sha256.New()
-	_, err = h.Write(dataAndSignBytes)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return bytes.Equal(h.Sum(nil), t.OpHash.ToBytes())
 }
 
 // 存证：type=4

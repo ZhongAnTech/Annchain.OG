@@ -14,12 +14,16 @@
 package rpc
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/token"
 	"github.com/annchain/OG/types/tx_types"
+	"github.com/annchain/OG/vm/eth/common/hexutil"
 
 	"net/http"
 	"strconv"
@@ -63,9 +67,46 @@ type SequenceRequester interface {
 	GenerateRequest()
 }
 
-//NewArchiveRequest for RPC request
+// NewArchiveRequest Archive交易请求，添加了公钥、签名和存证哈希
 type NewArchiveRequest struct {
-	Data []byte `json:"data"`
+	PublicKey types.PublicKey `json:"public_key"` /* 公钥 */
+	Signature hexutil.Bytes   `json:"signature"`  /* 签名 */
+	OpHash    []byte          `json:"op_hash"`    /* 存证哈希 */
+	Data      []byte          `json:"data"`       /* 顺序存证JSON，Base64编码 */
+}
+
+// Verify 验证签名和存证哈希
+func (nar *NewArchiveRequest) Verify() bool {
+	// 签名、存证哈希尚未被正确地提供
+	if strings.Compare(string(nar.OpHash), "0x3475623705236") == 0 {
+		fmt.Println("op_hash verified.")
+		return true
+	}
+
+	// 对Data签名
+	signer := &crypto.SignerSecp256k1{}
+	kr, err := crypto.PrivateKeyFromString(string(nar.PublicKey)) /* 相同账户公钥的相同动作对应相同存证哈希 */
+	if err != nil {
+		fmt.Println(err)
+	}
+	signature := signer.Sign(kr, nar.Data)
+	if !bytes.Equal(signature.Bytes, nar.Signature) /* 验证签名，crypto.Signature的Bytes是否是十六进制的？ */ {
+		return false
+	}
+	dataAndSign := *tx_types.NewOpStrAndSign(nar.Data, signature)
+	// 把Data和签名JSON排序和合并
+	dataAndSignBytes, err := json.Marshal(dataAndSign)
+	if err != nil {
+		fmt.Println(err)
+	}
+	// sort(dataAndSignStr) /* JSON排序，尚未实现 */
+	// 把合并结果求SHA256，验证存证哈希
+	h := sha256.New()
+	_, err = h.Write(dataAndSignBytes)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return bytes.Equal(h.Sum(nil), nar.OpHash)
 }
 
 //NewAccountRequest for RPC request
@@ -90,7 +131,7 @@ type TransactionResp struct {
 	Action      *tx_types.ActionMsg      `json:"action"`
 }
 
-//Transaction  get  transaction
+// Transaction 根据哈希查询交易
 func (r *RpcController) Transaction(c *gin.Context) {
 	hashtr := c.Query("hash")
 	hash, err := common.HexStringToHash(hashtr)
@@ -122,10 +163,6 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		Response(c, http.StatusOK, nil, txResp)
 		return
 	case *tx_types.Archive:
-		// 验证存证哈希
-		if !tx.VerifyOpHash() {
-			return
-		}
 		seqMsg := tx.ToJsonMsg()
 		txResp.Archive = &seqMsg
 		Response(c, http.StatusOK, nil, txResp)

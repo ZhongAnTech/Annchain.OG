@@ -17,13 +17,14 @@ package rpc
 import (
 	"bytes"
 	"fmt"
+	"net/http"
+	"sync/atomic"
+	"time"
+
 	"github.com/annchain/OG/types"
 	"github.com/annchain/OG/vm/eth/common/math"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"sync/atomic"
-	"time"
 )
 
 var archiveId uint32
@@ -35,6 +36,7 @@ func getArchiveId() uint32 {
 	return atomic.AddUint32(&archiveId, 1)
 }
 
+// NewArchive 新建Archive交易
 func (r *RpcController) NewArchive(c *gin.Context) {
 	var (
 		tx    types.Txi
@@ -49,6 +51,12 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 	err := c.ShouldBindJSON(&txReq)
 	if err != nil {
 		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: %v", err), nil)
+		return
+	}
+	// 处理NewArchiveRequest类型数据
+	// 验证签名和存证哈希
+	if !txReq.Verify() {
+		fmt.Println("New archive not verified.")
 		return
 	}
 	//c.Request.Context()
@@ -76,6 +84,7 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 	r.TxBuffer.ReceivedNewTxChan <- tx
 	logrus.WithField("used time ", time.Since(now)).WithField("id ", id).WithField("tx ", tx).Trace("send ok")
 
+	// 返回交易哈希
 	Response(c, http.StatusOK, nil, tx.GetTxHash().Hex())
 	return
 }

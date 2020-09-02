@@ -21,6 +21,17 @@ import (
 //	Fetch(request ResourceRequest) []Resource
 //}
 
+type SequencerReceivedEventArg struct {
+}
+
+type TxReceivedEventArg struct {
+}
+
+type IntsReceivedEventArg struct {
+	Ints MessageContentInt
+	From string
+}
+
 type OgSyncMessage interface {
 	GetType() OgSyncMessageType
 	GetTypeValue() int

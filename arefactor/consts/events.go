@@ -12,6 +12,7 @@ const (
 	NewHeightDetectedEvent
 	NewHeightBlockSyncedEvent
 	LocalHeightUpdatedEvent
+	NewBlockProducedEvent
 
 	SequencerReceivedEvent
 	TxReceivedEvent
@@ -31,4 +32,6 @@ var EventCodeTextMap = map[EventType]string{
 	NewHeightDetectedEvent:    "NewHeightDetectedEvent",
 	NewHeightBlockSyncedEvent: "NewHeightBlockSyncedEvent",
 	LocalHeightUpdatedEvent:   "LocalHeightUpdatedEvent",
+	NewBlockProducedEvent:     "NewBlockProducedEvent",
+	IntsReceivedEvent:         "IntsReceivedEvent",
 }

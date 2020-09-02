@@ -22,10 +22,10 @@ type IntLedgerSyncer struct {
 	Ledger   og_interface.Ledger
 
 	ContentFetcher                 *RandomPickerContentFetcher
-	newHeightDetectedEventChan     chan *og_interface.NewHeightDetectedEvent
-	newLocalHeightUpdatedEventChan chan *og_interface.NewLocalHeightUpdatedEvent
+	newHeightDetectedEventChan     chan *og_interface.NewHeightDetectedEventArg
+	newLocalHeightUpdatedEventChan chan *og_interface.NewLocalHeightUpdatedEventArg
 	unknownNeededEventChan         chan ogsyncer_interface.Unknown
-	intsReceivedEventChan          chan *og_interface.IntsReceivedEvent
+	intsReceivedEventChan          chan *ogsyncer_interface.IntsReceivedEventArg
 
 	newIncomingMessageEventChan chan *transport_interface.IncomingLetter
 
@@ -41,7 +41,9 @@ func (s *IntLedgerSyncer) Receive(topic int, msg interface{}) error {
 	case consts.UnknownNeededEvent:
 		s.unknownNeededEventChan <- msg.(ogsyncer_interface.Unknown)
 	case consts.IntsReceivedEvent:
-		s.intsReceivedEventChan <- msg.(*og_interface.IntsReceivedEvent)
+		s.intsReceivedEventChan <- msg.(*ogsyncer_interface.IntsReceivedEventArg)
+	case consts.NewHeightDetectedEvent:
+		s.newHeightDetectedEventChan <- msg.(*og_interface.NewHeightDetectedEventArg)
 	default:
 		return eventbus.ErrNotSupported
 	}
@@ -49,9 +51,9 @@ func (s *IntLedgerSyncer) Receive(topic int, msg interface{}) error {
 }
 
 func (s *IntLedgerSyncer) InitDefault() {
-	s.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEvent)
-	s.newLocalHeightUpdatedEventChan = make(chan *og_interface.NewLocalHeightUpdatedEvent)
-	s.intsReceivedEventChan = make(chan *og_interface.IntsReceivedEvent)
+	s.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEventArg)
+	s.newLocalHeightUpdatedEventChan = make(chan *og_interface.NewLocalHeightUpdatedEventArg)
+	s.intsReceivedEventChan = make(chan *ogsyncer_interface.IntsReceivedEventArg)
 
 	s.unknownNeededEventChan = make(chan ogsyncer_interface.Unknown)
 	s.newIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
@@ -76,7 +78,7 @@ func (s *IntLedgerSyncer) notifyNewOutgoingMessage(event *transport_interface.Ou
 	s.EventBus.Publish(int(consts.NewOutgoingMessageEvent), event)
 }
 
-func (s *IntLedgerSyncer) notifyNewHeightDetectedEvent(event *og_interface.NewHeightDetectedEvent) {
+func (s *IntLedgerSyncer) notifyNewHeightDetectedEvent(event *og_interface.NewHeightDetectedEventArg) {
 	s.EventBus.Publish(int(consts.NewHeightDetectedEvent), event)
 }
 
@@ -87,7 +89,7 @@ func (s *IntLedgerSyncer) notifyNewHeightBlockSynced(event *og_interface.Resourc
 func (s *IntLedgerSyncer) eventLoop() {
 	timer := time.NewTicker(time.Second * time.Duration(SyncCheckHeightIntervalSeconds))
 	for {
-		logrus.Warn("Another round?")
+		logrus.Debug("Another round?")
 		select {
 		case <-s.quit:
 			timer.Stop()
@@ -124,7 +126,7 @@ func (s *IntLedgerSyncer) messageLoop() {
 	}
 }
 
-func (s *IntLedgerSyncer) handleNewHeightDetectedEvent(event *og_interface.NewHeightDetectedEvent) {
+func (s *IntLedgerSyncer) handleNewHeightDetectedEvent(event *og_interface.NewHeightDetectedEventArg) {
 	s.knownMaxPeerHeight = math.BiggerInt64(s.knownMaxPeerHeight, event.Height)
 	// record this peer so that we may sync from it in the future.
 	if s.Ledger.CurrentHeight() < s.knownMaxPeerHeight {
@@ -132,7 +134,7 @@ func (s *IntLedgerSyncer) handleNewHeightDetectedEvent(event *og_interface.NewHe
 	}
 }
 
-func (s *IntLedgerSyncer) handleNewLocalHeightUpdatedEvent(event *og_interface.NewLocalHeightUpdatedEvent) {
+func (s *IntLedgerSyncer) handleNewLocalHeightUpdatedEvent(event *og_interface.NewLocalHeightUpdatedEventArg) {
 	// check height
 	if event.Height < s.knownMaxPeerHeight {
 		// sync next
@@ -177,7 +179,8 @@ func (s *IntLedgerSyncer) handleIncomingMessage(letter *transport_interface.Inco
 		req := &ogsyncer_interface.OgSyncLatestHeightRequest{}
 		err := req.FromBytes(letter.Msg.ContentBytes)
 		if err != nil {
-			logrus.WithError(err).Fatal("height request")
+			logrus.WithError(err).Warn("cannot parse OgSyncLatestHeightRequest")
+			return
 		}
 		// response him a height
 		resp := &ogsyncer_interface.OgSyncLatestHeightResponse{
@@ -196,10 +199,11 @@ func (s *IntLedgerSyncer) handleIncomingMessage(letter *transport_interface.Inco
 		req := &ogsyncer_interface.OgSyncLatestHeightResponse{}
 		err := req.FromBytes(letter.Msg.ContentBytes)
 		if err != nil {
-			logrus.WithError(err).Fatal("height response")
+			logrus.WithError(err).Warn("cannot parse OgSyncMessageTypeLatestHeightResponse")
+			return
 		}
 		logrus.WithField("reqHeight", req.MyHeight).Debug("OgSyncMessageTypeLatestHeightResponse")
-		s.notifyNewHeightDetectedEvent(&og_interface.NewHeightDetectedEvent{
+		s.notifyNewHeightDetectedEvent(&og_interface.NewHeightDetectedEventArg{
 			Height: req.MyHeight,
 			PeerId: letter.From,
 		})
@@ -208,7 +212,8 @@ func (s *IntLedgerSyncer) handleIncomingMessage(letter *transport_interface.Inco
 		req := &ogsyncer_interface.OgSyncBlockByHeightRequest{}
 		err := req.FromBytes(letter.Msg.ContentBytes)
 		if err != nil {
-			logrus.WithError(err).Fatal("block by height request")
+			logrus.WithError(err).Warn("cannot parse OgSyncBlockByHeightRequest")
+			return
 		}
 		logrus.WithField("req", req).Debug("OgSyncMessageTypeBlockByHeightRequest")
 
@@ -221,7 +226,16 @@ func (s *IntLedgerSyncer) handleIncomingMessage(letter *transport_interface.Inco
 	//	}
 	//	logrus.WithField("req", req).Debug("OgSyncMessageTypeBlockByHeightResponse")
 	//	s.handleBlockByHeightResponse(req, letter.From)
-	//case ogsyncer_interface.OgSyncMessageTypeByHashesRequest:
+	case ogsyncer_interface.OgSyncMessageTypeByHashesRequest:
+		req := &ogsyncer_interface.OgSyncBlockByHashRequest{}
+		err := req.FromBytes(letter.Msg.ContentBytes)
+		if err != nil {
+			logrus.WithError(err).Warn("cannot parse OgSyncBlockByHashRequest")
+			return
+		}
+		logrus.WithField("req", req).Debug("OgSyncBlockByHashRequest")
+
+		s.handleBlockByHashRequest(req, letter.From)
 	//case ogsyncer_interface.OgSyncMessageTypeBlockByHashRequest:
 	//case ogsyncer_interface.OgSyncMessageTypeByHashesResponse:
 	//case ogsyncer_interface.OgSyncMessageTypeByBlockHashResponse:
@@ -231,6 +245,28 @@ func (s *IntLedgerSyncer) handleIncomingMessage(letter *transport_interface.Inco
 
 func (s *IntLedgerSyncer) handleBlockByHeightRequest(req *ogsyncer_interface.OgSyncBlockByHeightRequest, from string) {
 	blockContent := s.Ledger.GetBlock(req.Height)
+	if blockContent == nil {
+		// I don't have this. no response
+		logrus.WithField("height", req.Height).Debug("I don't have this block")
+		return
+	}
+	s.sendBlockResponse(blockContent, from)
+}
+
+func (s *IntLedgerSyncer) handleBlockByHashRequest(req *ogsyncer_interface.OgSyncBlockByHashRequest, from string) {
+	hash := &og_interface.Hash32{}
+	hash.FromBytes(req.Hash)
+	blockContent := s.Ledger.GetBlockByHash(hash.HashString())
+	if blockContent == nil {
+		// I don't have this. no response
+		logrus.WithField("hash", req.Hash).Debug("I don't have this block")
+		return
+	}
+	s.sendBlockResponse(blockContent, from)
+
+}
+
+func (s *IntLedgerSyncer) sendBlockResponse(blockContent og_interface.BlockContent, from string) {
 	iab := blockContent.(*dummy.IntArrayBlockContent)
 
 	resp := &ogsyncer_interface.OgSyncBlockByHeightResponse{
@@ -259,6 +295,9 @@ func (s *IntLedgerSyncer) handleBlockByHeightRequest(req *ogsyncer_interface.OgS
 }
 
 func (s *IntLedgerSyncer) resolveBlock(block *dummy.IntArrayBlockContent, from string) {
+	// In normal case, this should be done in TxBuffer and TxPool, conducted by ConsensusEnforcer
+	// Here we just bypass all things and insert the block directly to ledger
+
 	s.Ledger.ConfirmBlock(block)
 
 	// clear all related tasks
@@ -285,7 +324,7 @@ func (s *IntLedgerSyncer) trySyncNextHeight() {
 	}
 }
 
-func (s *IntLedgerSyncer) handleIntsReceivedEvent(event *og_interface.IntsReceivedEvent) {
+func (s *IntLedgerSyncer) handleIntsReceivedEvent(event *ogsyncer_interface.IntsReceivedEventArg) {
 	// resolve this
 	s.resolveBlock(s.convertBlock(event.Ints), event.From)
 }

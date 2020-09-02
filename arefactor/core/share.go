@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/transport"
 	"github.com/annchain/commongo/utilfuncs"
+	"github.com/latifrons/go-eventbus"
 	"github.com/latifrons/soccerdash"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -93,13 +94,17 @@ func ensureConsensusAccountProvider(provider consensus_interface.ConsensusAccoun
 	}
 }
 
-func getTransport(accountProvider og.TransportAccountProvider, reporter performance.PerformanceReporter) *transport.PhysicalCommunicator {
+func getTransport(accountProvider og.TransportAccountProvider,
+	reporter performance.PerformanceReporter,
+	ebus *eventbus.EventBus,
+) *transport.PhysicalCommunicator {
 	account, err := accountProvider.ProvideAccount()
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to provide transport account")
 	}
 
 	p2p := &transport.PhysicalCommunicator{
+		EventBus:        ebus,
 		Port:            viper.GetInt("p2p.port"),
 		PrivateKey:      account.PrivateKey,
 		ProtocolId:      viper.GetString("p2p.network_id"),

@@ -40,6 +40,7 @@ func (o *OgReceiver) Receive(topic int, msg interface{}) error {
 		o.myNewIncomingMessageEventChan <- msg.(*transport_interface.IncomingLetter)
 
 	}
+	return nil
 }
 
 func (o *OgReceiver) eventLoop() {
@@ -54,7 +55,27 @@ func (o *OgReceiver) eventLoop() {
 }
 
 func (o *OgReceiver) handleIncomingMessage(msg *transport_interface.IncomingLetter) {
-	switch msg.Msg.MsgType {
+	switch ogsyncer_interface.OgSyncMessageType(msg.Msg.MsgType) {
+	// sync response
+	case ogsyncer_interface.OgSyncMessageTypeBlockByHeightResponse:
+		obj := &ogsyncer_interface.OgSyncBlockByHeightResponse{}
+		err := obj.FromBytes(msg.Msg.ContentBytes)
+		if err != nil {
+			logrus.Warn("failed to deserialize OgSyncBlockByHeightResponse")
+			return
+		}
+		for _, v := range obj.Ints {
+			o.EventBus.PublishAsync(int(consts.IntsReceivedEvent), &ogsyncer_interface.IntsReceivedEventArg{
+				Ints: v,
+				From: msg.From,
+			})
+		}
+		if len(obj.Ints) != 0 {
+			o.EventBus.PublishAsync(int(consts.NewHeightBlockSyncedEvent), &og_interface.NewHeightBlockSyncedEventArg{
+				Height: obj.Ints[len(obj.Ints)-1].Height,
+			})
+		}
+
 	case ogsyncer_interface.OgAnnouncementTypeNewSequencer:
 		panic("not implemented")
 	case ogsyncer_interface.OgAnnouncementTypeNewTx:
@@ -64,11 +85,14 @@ func (o *OgReceiver) handleIncomingMessage(msg *transport_interface.IncomingLett
 		err := ni.FromBytes(msg.Msg.ContentBytes)
 		if err != nil {
 			logrus.Warn("failed to deserialize OgAnnouncementTypeNewInt")
+			return
 		}
-		o.EventBus.Publish(int(consts.IntsReceivedEvent), &og_interface.IntsReceivedEvent{
+		o.EventBus.PublishAsync(int(consts.IntsReceivedEvent), &ogsyncer_interface.IntsReceivedEventArg{
 			Ints: ni.Ints,
 			From: msg.From,
 		})
-
+		o.EventBus.PublishAsync(int(consts.NewHeightBlockSyncedEvent), &og_interface.NewHeightBlockSyncedEventArg{
+			Height: ni.Ints.Height,
+		})
 	}
 }

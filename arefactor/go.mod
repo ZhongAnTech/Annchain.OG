@@ -7,7 +7,7 @@ require (
 	github.com/annchain/commongo v0.0.7-0.20200814095302-c0ba5e6b2cfb
 	github.com/annchain/gcache v0.0.2
 	github.com/gin-gonic/gin v1.5.0
-	github.com/latifrons/go-eventbus v0.0.2-0.20200831081356-657d3a53a5cf
+	github.com/latifrons/go-eventbus v0.0.2-0.20200902112924-4ae9e99c7d2d
 	github.com/latifrons/goffchan v1.0.0
 	github.com/latifrons/soccerdash v1.1.2
 	github.com/libp2p/go-libp2p v0.9.2

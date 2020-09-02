@@ -80,16 +80,16 @@ func (n *Partner) InitDefault() {
 	n.pendingBlockTree.InitDefault()
 
 	n.paceMaker = &PaceMaker{
-		EventBus:                      n.EventBus,
-		Logger:                        n.Logger,
-		CurrentRound:                  n.Ledger.GetConsensusState().LastVoteRound,
-		Safety:                        n.safety,
-		Partner:                       n,
-		ConsensusSigner:               n.ConsensusSigner,
-		AccountProvider:               n.ConsensusAccountProvider,
-		CommitteeProvider:             n.CommitteeProvider,
-		Reporter:                      n.Reporter,
-		BlockTime:                     n.BlockTime,
+		EventBus:          n.EventBus,
+		Logger:            n.Logger,
+		CurrentRound:      n.Ledger.GetConsensusState().LastVoteRound,
+		Safety:            n.safety,
+		Partner:           n,
+		ConsensusSigner:   n.ConsensusSigner,
+		AccountProvider:   n.ConsensusAccountProvider,
+		CommitteeProvider: n.CommitteeProvider,
+		Reporter:          n.Reporter,
+		BlockTime:         n.BlockTime,
 	}
 	n.paceMaker.InitDefault()
 
@@ -280,8 +280,7 @@ func (n *Partner) ProcessCertificates(qc *consensus_interface.QC, tc *consensus_
 	if qc != nil {
 		n.safety.UpdatePreferredRound(qc)
 		if qc.VoteData.ExecStateId != "" {
-			n.pendingBlockTree.Commit(qc.VoteData.Id)
-			n. // broadcast this block.
+			n.pendingBlockTree.Commit(qc.VoteData.GrandParentId)
 		}
 	}
 }

@@ -74,11 +74,11 @@ func (d *DefaultCommunityManager) notifyNewOutgoingMessage(event *transport_inte
 	d.EventBus.Publish(int(consts.NewOutgoingMessageEvent), event)
 }
 
-func (d *DefaultCommunityManager) notifyPeerJoined(event *og_interface.PeerJoinedEvent) {
+func (d *DefaultCommunityManager) notifyPeerJoined(event *og_interface.PeerJoinedEventArg) {
 	d.EventBus.Publish(int(consts.PeerJoinedEvent), event)
 }
 
-func (d *DefaultCommunityManager) notifyPeerLeft(event *og_interface.PeerLeftEvent) {
+func (d *DefaultCommunityManager) notifyPeerLeft(event *og_interface.PeerLeftEventArg) {
 	d.EventBus.Publish(int(consts.PeerLeftEvent), event)
 }
 
@@ -225,7 +225,7 @@ func (d *DefaultCommunityManager) handlePeerConnected(event *transport_interface
 		EndReceivers:   []string{event.PeerId},
 	}
 	d.notifyNewOutgoingMessage(oreq)
-	peerJoinedEvent := &og_interface.PeerJoinedEvent{
+	peerJoinedEvent := &og_interface.PeerJoinedEventArg{
 		PeerId: event.PeerId,
 	}
 	d.notifyPeerJoined(peerJoinedEvent)
@@ -233,7 +233,7 @@ func (d *DefaultCommunityManager) handlePeerConnected(event *transport_interface
 
 func (d *DefaultCommunityManager) handlePeerDisconnected(event *transport_interface.PeerEvent) {
 	// TODO: connect another potential node if there is spare node
-	peerLeftEvent := &og_interface.PeerLeftEvent{
+	peerLeftEvent := &og_interface.PeerLeftEventArg{
 		PeerId: event.PeerId,
 	}
 

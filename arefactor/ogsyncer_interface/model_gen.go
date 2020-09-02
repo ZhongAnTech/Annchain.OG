@@ -7,113 +7,6 @@ import (
 )
 
 // DecodeMsg implements msgp.Decodable
-func (z *OgAnnouncementNewSequencer) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
-	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			err = msgp.WrapError(err)
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Sequencer":
-			err = z.Sequencer.DecodeMsg(dc)
-			if err != nil {
-				err = msgp.WrapError(err, "Sequencer")
-				return
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				err = msgp.WrapError(err)
-				return
-			}
-		}
-	}
-	return
-}
-
-// EncodeMsg implements msgp.Encodable
-func (z *OgAnnouncementNewSequencer) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
-	// write "Sequencer"
-	err = en.Append(0x81, 0xa9, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
-	if err != nil {
-		return
-	}
-	err = z.Sequencer.EncodeMsg(en)
-	if err != nil {
-		err = msgp.WrapError(err, "Sequencer")
-		return
-	}
-	return
-}
-
-// MarshalMsg implements msgp.Marshaler
-func (z *OgAnnouncementNewSequencer) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
-	// string "Sequencer"
-	o = append(o, 0x81, 0xa9, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
-	o, err = z.Sequencer.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "Sequencer")
-		return
-	}
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *OgAnnouncementNewSequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			err = msgp.WrapError(err)
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Sequencer":
-			bts, err = z.Sequencer.UnmarshalMsg(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "Sequencer")
-				return
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				err = msgp.WrapError(err)
-				return
-			}
-		}
-	}
-	o = bts
-	return
-}
-
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *OgAnnouncementNewSequencer) Msgsize() (s int) {
-	s = 1 + 10 + z.Sequencer.Msgsize()
-	return
-}
-
-// DecodeMsg implements msgp.Decodable
 func (z *OgAnnouncementNewInt) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -217,6 +110,113 @@ func (z *OgAnnouncementNewInt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *OgAnnouncementNewInt) Msgsize() (s int) {
 	s = 1 + 5 + z.Ints.Msgsize()
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *OgAnnouncementNewSequencer) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Sequencer":
+			err = z.Sequencer.DecodeMsg(dc)
+			if err != nil {
+				err = msgp.WrapError(err, "Sequencer")
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *OgAnnouncementNewSequencer) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 1
+	// write "Sequencer"
+	err = en.Append(0x81, 0xa9, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = z.Sequencer.EncodeMsg(en)
+	if err != nil {
+		err = msgp.WrapError(err, "Sequencer")
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *OgAnnouncementNewSequencer) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 1
+	// string "Sequencer"
+	o = append(o, 0x81, 0xa9, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72)
+	o, err = z.Sequencer.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "Sequencer")
+		return
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *OgAnnouncementNewSequencer) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	for zb0001 > 0 {
+		zb0001--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "Sequencer":
+			bts, err = z.Sequencer.UnmarshalMsg(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Sequencer")
+				return
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				err = msgp.WrapError(err)
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *OgAnnouncementNewSequencer) Msgsize() (s int) {
+	s = 1 + 10 + z.Sequencer.Msgsize()
 	return
 }
 

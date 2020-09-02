@@ -2,7 +2,9 @@ package ogsyncer
 
 import (
 	"github.com/annchain/OG/arefactor/consts"
+	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og_interface"
+	"github.com/annchain/OG/arefactor/ogsyncer_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/annchain/gcache"
 	"github.com/latifrons/go-eventbus"
@@ -17,13 +19,27 @@ type OgRelayer struct {
 	EventBus          *eventbus.EventBus
 	notificationCache gcache.Cache
 
-	newBlockToldChan chan *og_interface.NewBlockToldEvent
-	quit             chan bool
+	newBlockProducedEventChan chan *og_interface.NewBlockProducedEventArg
+	intsReceivedEventChan     chan *ogsyncer_interface.IntsReceivedEventArg
+	quit                      chan bool
+}
+
+func (o *OgRelayer) Receive(topic int, msg interface{}) error {
+	switch topic {
+	case int(consts.NewBlockProducedEvent):
+		o.newBlockProducedEventChan <- msg.(*og_interface.NewBlockProducedEventArg)
+	case int(consts.IntsReceivedEvent):
+		o.intsReceivedEventChan <- msg.(*ogsyncer_interface.IntsReceivedEventArg)
+	default:
+		return eventbus.ErrNotSupported
+	}
+	return nil
 }
 
 func (o *OgRelayer) InitDefault() {
 	o.notificationCache = gcache.New(100).LRU().Expiration(time.Minute).Build()
-	o.newBlockToldChan = make(chan *og_interface.NewBlockToldEvent)
+	o.newBlockProducedEventChan = make(chan *og_interface.NewBlockProducedEventArg)
+	o.intsReceivedEventChan = make(chan *ogsyncer_interface.IntsReceivedEventArg)
 	o.quit = make(chan bool)
 }
 
@@ -48,21 +64,63 @@ func (o *OgRelayer) eventLoop() {
 		select {
 		case <-o.quit:
 			return
-		case event := <-o.newBlockToldChan:
-			o.handleNewBlockToldEvent(event)
+		case event := <-o.newBlockProducedEventChan:
+			o.handleNewBlockProducedEvent(event)
+		case event := <-o.intsReceivedEventChan:
+			o.handleIntsReceivedEvent(event)
 		}
 	}
 }
 
-func (o *OgRelayer) handleNewBlockToldEvent(event *og_interface.NewBlockToldEvent) {
+func (o *OgRelayer) handleNewBlockProducedEvent(event *og_interface.NewBlockProducedEventArg) {
+	key := event.Block.GetHash().HashString()
+	block := event.Block.(*dummy.IntArrayBlockContent)
+	o.relayInts(key, ogsyncer_interface.MessageContentInt{
+		Height:      block.Height,
+		Step:        block.Step,
+		PreviousSum: block.PreviousSum,
+		MySum:       block.MySum,
+		Submitter:   block.Submitter,
+		Ts:          block.Ts,
+	}, nil)
+}
+
+func (o *OgRelayer) relayInts(key string, ints ogsyncer_interface.MessageContentInt, excepts []string) {
 	// broadcast to all my neighbours if not in the cache
-	key := event.BlockContent.GetHash().HashString()
 	if o.notificationCache.Has(key) {
 		// already told others, ignore
 		logrus.WithField("key", key).Debug("I have already told my neighbours")
 		return
 	}
+	_ = o.notificationCache.Set(key, true)
 	// broadcast list
-	o.notifyNewOutgoingMessage()
+	msg := &ogsyncer_interface.OgAnnouncementNewInt{
+		Ints: ints,
+	}
 
+	letter := &transport_interface.OutgoingLetter{
+		Msg:             msg,
+		SendType:        transport_interface.SendTypeBroadcast,
+		CloseAfterSent:  false,
+		ExceptMyself:    true,
+		EndReceivers:    nil,
+		ExceptReceivers: excepts,
+	}
+
+	o.notifyNewOutgoingMessage(letter)
+}
+
+func (o *OgRelayer) handleIntsReceivedEvent(event *ogsyncer_interface.IntsReceivedEventArg) {
+	block := event.Ints
+	v := dummy.IntArrayBlockContent{
+		Height:      block.Height,
+		Step:        block.Step,
+		PreviousSum: block.PreviousSum,
+		MySum:       block.MySum,
+		Submitter:   block.Submitter,
+		Ts:          block.Ts,
+	}
+
+	key := v.GetHash().HashString()
+	o.relayInts(key, event.Ints, []string{event.From})
 }

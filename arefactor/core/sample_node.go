@@ -49,7 +49,7 @@ func (n *SampleNode) Setup() {
 	}
 
 	// low level transport (libp2p)
-	cpTransport := getTransport(n.transportAccountHolder, nil)
+	cpTransport := getTransport(n.transportAccountHolder, nil, nil)
 
 	cpPerformanceMonitor := getPerformanceMonitor(nil)
 

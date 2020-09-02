@@ -17,8 +17,8 @@ const (
 	OgSyncMessageTypeBlockByHashRequest
 
 	OgSyncMessageTypeByHashesResponse
-	//OgSyncMessageTypeBlockByHeightResponse
-	//OgSyncMessageTypeByBlockHashResponse
+	OgSyncMessageTypeBlockByHeightResponse
+	OgSyncMessageTypeByBlockHashResponse
 
 	OgAnnouncementTypeNewSequencer
 	OgAnnouncementTypeNewTx

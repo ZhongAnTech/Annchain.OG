@@ -1,10 +1,12 @@
 package core
 
 import (
+	"fmt"
 	"github.com/annchain/OG/arefactor/consensus"
 	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
+	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/ogsyncer"
 	"github.com/annchain/OG/arefactor/performance"
@@ -34,10 +36,7 @@ func (n *OgNode) Setup() {
 	blockTime := time.Second * 1
 	myId := viper.GetInt("id")
 
-	ebus := &eventbus.EventBus{
-		TimeoutControl: true, // for debugging
-		Timeout:        time.Second * 5,
-	}
+	ebus := eventbus.NewEventBus(true, time.Second*5, printPublish)
 	// reg events
 	for eventCode, eventValue := range consts.EventCodeTextMap {
 		ebus.RegisterEventType(int(eventCode), eventValue)
@@ -106,7 +105,7 @@ func (n *OgNode) Setup() {
 
 	// low level transport (libp2p)
 	cpPerformanceMonitor := getPerformanceMonitor(lowLevelReporter)
-	cpTransport := getTransport(n.transportAccountProvider, performanceReporter)
+	cpTransport := getTransport(n.transportAccountProvider, performanceReporter, ebus)
 
 	// peer relationship management
 	cpCommunityManager := &og.DefaultCommunityManager{
@@ -161,6 +160,11 @@ func (n *OgNode) Setup() {
 
 	cpOgReceiver.InitDefault()
 
+	cpOgRelayer := &ogsyncer.OgRelayer{
+		EventBus: ebus,
+	}
+	cpOgRelayer.InitDefault()
+
 	// OG engine
 	cpOgEngine := &og.OgEngine{
 		EventBus:         ebus,
@@ -180,6 +184,8 @@ func (n *OgNode) Setup() {
 	n.components = append(n.components, cpRpc)
 	n.components = append(n.components, cpContentFetcher)
 	n.components = append(n.components, cpIntLedgerSyncer)
+	n.components = append(n.components, cpOgReceiver)
+	n.components = append(n.components, cpOgRelayer)
 
 	if viper.GetBool("features.consensus") {
 		// consensus. Current all peers are Partner
@@ -226,13 +232,34 @@ func (n *OgNode) Setup() {
 	// peer height provided
 	ebus.Subscribe(int(consts.NewHeightDetectedEvent), cpContentFetcher)
 	ebus.Subscribe(int(consts.NewHeightDetectedEvent), cpIntLedgerSyncer)
+
 	ebus.Subscribe(int(consts.NewHeightBlockSyncedEvent), cpContentFetcher)
 
 	// block received
 	ebus.Subscribe(int(consts.IntsReceivedEvent), cpIntLedgerSyncer)
+	ebus.Subscribe(int(consts.IntsReceivedEvent), cpOgRelayer)
+
+	ebus.Subscribe(int(consts.NewBlockProducedEvent), cpOgRelayer)
 
 	// performance monitor registration
 	cpPerformanceMonitor.Register(cpOgEngine)
+}
+
+func printPublish(info eventbus.PublishInfo, event interface{}) {
+	if info.Topic == int(consts.NewOutgoingMessageEvent) {
+		insider := event.(*transport_interface.OutgoingLetter)
+		fmt.Printf("PUB %s(%d)(%s) TO %s\n", info.TopicName, info.Topic,
+			message.MapMessageType[message.OgMessageType(insider.Msg.GetTypeValue())],
+			info.SubscriberName)
+	} else if info.Topic == int(consts.NewIncomingMessageEvent) {
+		insider := event.(*transport_interface.IncomingLetter)
+		fmt.Printf("PUB %s(%d)(%s) TO %s\n", info.TopicName, info.Topic,
+			message.MapMessageType[message.OgMessageType(insider.Msg.MsgType)],
+			info.SubscriberName)
+	} else {
+		fmt.Printf("PUB %s(%d) TO %s\n", info.TopicName, info.Topic, info.SubscriberName)
+	}
+
 }
 
 func (n *OgNode) Start() {

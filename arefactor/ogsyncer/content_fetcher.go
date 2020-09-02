@@ -33,9 +33,9 @@ type RandomPickerContentFetcher struct {
 	Reporter *soccerdash.Reporter
 	taskList *todolist.TodoList
 
-	peerJoinedEventChan           chan *og_interface.PeerJoinedEvent
-	newHeightDetectedEventChan    chan *og_interface.NewHeightDetectedEvent
-	newHeightBlockSyncedEventChan chan *og_interface.ResourceGotEvent
+	peerJoinedEventChan           chan *og_interface.PeerJoinedEventArg
+	newHeightDetectedEventChan    chan *og_interface.NewHeightDetectedEventArg
+	newHeightBlockSyncedEventChan chan *og_interface.NewHeightBlockSyncedEventArg
 	syncTriggerChan               chan string
 
 	quit chan bool
@@ -45,11 +45,11 @@ type RandomPickerContentFetcher struct {
 func (b *RandomPickerContentFetcher) Receive(topic int, msg interface{}) error {
 	switch consts.EventType(topic) {
 	case consts.PeerJoinedEvent:
-		b.peerJoinedEventChan <- msg.(*og_interface.PeerJoinedEvent)
+		b.peerJoinedEventChan <- msg.(*og_interface.PeerJoinedEventArg)
 	case consts.NewHeightDetectedEvent:
-		b.newHeightDetectedEventChan <- msg.(*og_interface.NewHeightDetectedEvent)
+		b.newHeightDetectedEventChan <- msg.(*og_interface.NewHeightDetectedEventArg)
 	case consts.NewHeightBlockSyncedEvent:
-		b.newHeightBlockSyncedEventChan <- msg.(*og_interface.ResourceGotEvent)
+		b.newHeightBlockSyncedEventChan <- msg.(*og_interface.NewHeightBlockSyncedEventArg)
 	default:
 		return eventbus.ErrNotSupported
 	}
@@ -70,9 +70,9 @@ func (b *RandomPickerContentFetcher) InitDefault() {
 	}
 	b.taskList.InitDefault()
 
-	b.peerJoinedEventChan = make(chan *og_interface.PeerJoinedEvent)
-	b.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEvent)
-	b.newHeightBlockSyncedEventChan = make(chan *og_interface.ResourceGotEvent)
+	b.peerJoinedEventChan = make(chan *og_interface.PeerJoinedEventArg)
+	b.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEventArg)
+	b.newHeightBlockSyncedEventChan = make(chan *og_interface.NewHeightBlockSyncedEventArg)
 	b.syncTriggerChan = make(chan string)
 
 	b.quit = make(chan bool)
@@ -186,11 +186,11 @@ func (b *RandomPickerContentFetcher) doOneTask(reason string) {
 	if task == nil {
 		return
 	}
-	logrus.WithField("task", task.GetId()).WithField("reason", reason).Warn("handling task")
+	logrus.WithField("task", task.GetId()).WithField("reason", reason).Info("handling task")
 	b.handleSyncTask(task)
 }
 
-func (b *RandomPickerContentFetcher) handlePeerJoinedEvent(event *og_interface.PeerJoinedEvent) {
+func (b *RandomPickerContentFetcher) handlePeerJoinedEvent(event *og_interface.PeerJoinedEventArg) {
 	logrus.WithField("peer", event.PeerId).Warn("peer joined")
 	b.peerManager.updateKnownPeerHeight(event.PeerId, 0)
 	b.queryHeights([]string{event.PeerId})
@@ -281,21 +281,27 @@ func (b *RandomPickerContentFetcher) keepUpdateHeights() {
 		case <-b.quit:
 			return
 		case <-ticker.C:
-			b.updateHeightOnce()
+			b.updateHeightOnce(false)
 		}
 	}
 }
 
-func (b *RandomPickerContentFetcher) updateHeightOnce() {
-	peersToUpdate := b.peerManager.findOutdatedPeersToQueryHeight(5)
+func (b *RandomPickerContentFetcher) updateHeightOnce(force bool) {
+	var peersToUpdate []string
+	if force {
+		peersToUpdate = b.peerManager.findPeersToQueryHeight(5)
+	} else {
+		peersToUpdate = b.peerManager.findOutdatedPeersToQueryHeight(5)
+	}
+
 	if len(peersToUpdate) != 0 {
 		b.queryHeights(peersToUpdate)
 	}
 }
 
-func (b *RandomPickerContentFetcher) handleNewHeightBlockSyncedEvent(event *og_interface.ResourceGotEvent) {
+func (b *RandomPickerContentFetcher) handleNewHeightBlockSyncedEvent(event *og_interface.NewHeightBlockSyncedEventArg) {
 	if event.Height == b.peerManager.knownMaxPeerHeight {
-		// trigger another query
-		b.updateHeightOnce()
+		// trigger another query since we already on our top
+		b.updateHeightOnce(true)
 	}
 }

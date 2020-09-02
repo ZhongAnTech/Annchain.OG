@@ -2,26 +2,14 @@ package og_interface
 
 import (
 	"github.com/annchain/OG/arefactor/consensus_interface"
-	"github.com/annchain/OG/arefactor/ogsyncer_interface"
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
-type PeerJoinedEvent struct {
+type PeerJoinedEventArg struct {
 	PeerId string
 }
-type PeerLeftEvent struct {
+type PeerLeftEventArg struct {
 	PeerId string
-}
-
-type SequencerReceivedEvent struct {
-}
-
-type TxReceivedEvent struct {
-}
-
-type IntsReceivedEvent struct {
-	Ints ogsyncer_interface.MessageContentInt
-	From string
 }
 
 type NodeInfoProvider interface {
@@ -29,18 +17,25 @@ type NodeInfoProvider interface {
 	GetNetworkId() string
 }
 
-type NewHeightDetectedEvent struct {
+type NewHeightDetectedEventArg struct {
 	Height int64
 	PeerId string
 }
 
-type NewLocalHeightUpdatedEvent struct {
+type NewLocalHeightUpdatedEventArg struct {
 	Height int64
 }
 type ResourceGotEvent struct {
 	ResourceType int
 	Resource     interface{}
 	From         string
+}
+type NewHeightBlockSyncedEventArg struct {
+	Height int64
+}
+
+type NewBlockProducedEventArg struct {
+	Block BlockContent
 }
 
 type AccountHolder interface {
@@ -77,5 +72,6 @@ type Ledger interface {
 	CurrentHeight() int64
 	CurrentCommittee() *consensus_interface.Committee
 	GetBlock(height int64) BlockContent
+	GetBlockByHash(hash string) BlockContent
 	ConfirmBlock(block BlockContent)
 }

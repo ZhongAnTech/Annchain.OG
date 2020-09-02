@@ -64,7 +64,7 @@ func (c *PhysicalCommunicator) Receive(topic int, msg interface{}) error {
 }
 
 func (c *PhysicalCommunicator) notifyNewIncomingMessage(event *transport_interface.IncomingLetter) {
-	c.EventBus.Publish(int(consts.NewOutgoingMessageEvent), event)
+	c.EventBus.Publish(int(consts.NewIncomingMessageEvent), event)
 }
 
 func (c *PhysicalCommunicator) notifyPeerConnected(event *transport_interface.PeerEvent) {
@@ -391,7 +391,18 @@ func (c *PhysicalCommunicator) handleOutgoing(req *transport_interface.OutgoingL
 		}
 
 		for _, neighbour := range c.activePeers {
-			neighbour.EnqueueSend(req)
+			if req.ExceptReceivers != nil {
+				encodedId := neighbour.Id.String()
+				for _, exceptReceiverId := range req.ExceptReceivers {
+					if exceptReceiverId != encodedId {
+						// send only if not in list
+						neighbour.EnqueueSend(req)
+					}
+				}
+			} else {
+				neighbour.EnqueueSend(req)
+			}
+
 		}
 		return
 	}
@@ -418,7 +429,17 @@ func (c *PhysicalCommunicator) handleOutgoing(req *transport_interface.OutgoingL
 		}
 		logrus.WithField("peerId", peerId).Trace("go send")
 		//c.NetworkReporter.Report("send:"+peerId.String(), time.Now().String())
-		neighbour.EnqueueSend(req)
+		if req.ExceptReceivers != nil {
+			encodedId := neighbour.Id.String()
+			for _, exceptReceiverId := range req.ExceptReceivers {
+				if exceptReceiverId != encodedId {
+					// send only if not in list
+					neighbour.EnqueueSend(req)
+				}
+			}
+		} else {
+			neighbour.EnqueueSend(req)
+		}
 	}
 }
 

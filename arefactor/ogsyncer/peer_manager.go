@@ -77,6 +77,20 @@ func (b *PeerManager) findOutdatedPeersToQueryHeight(limit int) []string {
 	return needUpdatePeers
 }
 
+func (b *PeerManager) findPeersToQueryHeight(limit int) []string {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	needUpdatePeers := []string{}
+
+	for peerId, _ := range b.peerHeights {
+		needUpdatePeers = append(needUpdatePeers, peerId)
+		if len(needUpdatePeers) >= limit {
+			break
+		}
+	}
+	return needUpdatePeers
+}
+
 func (b *PeerManager) reportHeights() {
 	vs := []string{}
 	for k, v := range b.peerHeights {

@@ -43,7 +43,7 @@ type IntArrayBlockContent struct {
 
 func (i *IntArrayBlockContent) FromString(s string) {
 	err := json.Unmarshal([]byte(s), i)
-	utilfuncs.PanicIfError(err, "ledger unmarshal")
+	utilfuncs.PanicIfError(err, "ledger unmarshal: "+s)
 }
 
 func (i *IntArrayBlockContent) GetType() og_interface.BlockContentType {
@@ -158,16 +158,30 @@ func (d *IntArrayLedger) GetState(blockId string) (stateId string) {
 	return fmt.Sprintf("%d", block.(*IntArrayBlockContent).MySum)
 }
 
+// Commit commits the temp block to permanent block list.
+// The block to be committed should be a new block (not loaded from disk)
 func (d *IntArrayLedger) Commit(blockId string) {
 	block, ok := d.allBlockContents[blockId]
 	if !ok {
 		logrus.WithField("blockId", blockId).Warn("blockId not found")
+		hash := &og_interface.Hash32{}
+		err := hash.FromHex(blockId)
+		if err != nil {
+			logrus.WithField("blockId", blockId).Warn("blockId invalid")
+		}
+		d.notifyUnknownNeededEvent(&ogsyncer_interface.UnknownHash{
+			Hash: hash,
+		})
 		return
 	}
 	d.ConfirmBlock(block)
+	d.EventBus.PublishAsync(int(consts.NewBlockProducedEvent),
+		&og_interface.NewBlockProducedEventArg{
+			Block: block,
+		})
 }
 
-// KnowBlock just knows the existance of the block.
+// KnowBlock just knows the existence of the block.
 // Block may not be confirmed.
 func (d *IntArrayLedger) KnowBlock(block og_interface.BlockContent) {
 	logrus.WithField("blockId", block.GetHash().HashString()).Debug("know this block")
@@ -175,7 +189,13 @@ func (d *IntArrayLedger) KnowBlock(block og_interface.BlockContent) {
 }
 
 // ConfirmBlock add the block to the permanent ledger.
+// ConfirmBlock will write to ledger.
 func (d *IntArrayLedger) ConfirmBlock(block og_interface.BlockContent) {
+	d.loadBlock(block)
+	d.SaveLedger()
+}
+
+func (d *IntArrayLedger) loadBlock(block og_interface.BlockContent) {
 	if _, ok := d.confirmedBlockContents[block.GetHeight()]; ok {
 		logrus.WithField("height", block.GetHeight()).Debug("block already added")
 		return
@@ -186,9 +206,9 @@ func (d *IntArrayLedger) ConfirmBlock(block og_interface.BlockContent) {
 	d.allBlockContents[id] = block
 	// update height
 	d.updateHeight(block)
-	d.SaveLedger()
-	d.Reporter.Report("lastCommit", fmt.Sprintf("%d %s", block.GetHeight(), block.GetHash().HashString()), false)
-	logrus.WithField("block", block.GetHeight()).Warn("confirmed block")
+	d.Reporter.Report("height", fmt.Sprintf("%d %s",
+		d.height, d.confirmedBlockContents[d.height]), false)
+	logrus.WithField("block", block.GetHeight()).Info("loaded block")
 }
 
 func (d *IntArrayLedger) updateHeight(block og_interface.BlockContent) {
@@ -208,10 +228,15 @@ func (d *IntArrayLedger) updateHeight(block og_interface.BlockContent) {
 			}
 		}
 	}
+	d.notifyNewLocalHeightUpdatedEvent()
 }
 
 func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {
 	return d.confirmedBlockContents[height]
+}
+
+func (d *IntArrayLedger) GetBlockByHash(hash string) og_interface.BlockContent {
+	return d.allBlockContents[hash]
 }
 
 func (d *IntArrayLedger) AddRandomBlock(height int64) {
@@ -333,7 +358,7 @@ func (d *IntArrayLedger) LoadTempLedger() (err error) {
 	}
 
 	for _, line := range lines {
-		slots := strings.SplitN(line, " ", 3)
+		slots := strings.SplitN(line, " ", 2)
 		hash := slots[0]
 		blockString := slots[1]
 		block := &IntArrayBlockContent{}
@@ -377,7 +402,7 @@ func (d *IntArrayLedger) LoadLedger() (err error) {
 		if block.Height != int64(height) {
 			return errors.New("height not aligned")
 		}
-		d.ConfirmBlock(block)
+		d.loadBlock(block)
 		logrus.WithFields(
 			logrus.Fields{
 				"height": d.height,
@@ -547,8 +572,10 @@ func (n *IntArrayLedger) notifyUnknownNeededEvent(event ogsyncer_interface.Unkno
 	n.EventBus.Publish(int(consts.UnknownNeededEvent), event)
 }
 
-func (n *IntArrayLedger) notifyNewLocalHeightUpdatedEvent(event ogsyncer_interface.Unknown) {
-	n.EventBus.Publish(int(consts.LocalHeightUpdatedEvent), event)
+func (n *IntArrayLedger) notifyNewLocalHeightUpdatedEvent() {
+	n.EventBus.Publish(int(consts.LocalHeightUpdatedEvent), &og_interface.NewLocalHeightUpdatedEventArg{
+		Height: n.height,
+	})
 }
 
 type IntArrayProposalGenerator struct {

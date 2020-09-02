@@ -20,7 +20,7 @@ type OgEngine struct {
 
 	// receive events
 	myNewIncomingMessageEventChan chan *transport_interface.IncomingLetter // subscribe to NewIncomingMessageEvent
-	myPeerJoinedEventChan         chan *og_interface.PeerJoinedEvent
+	myPeerJoinedEventChan         chan *og_interface.PeerJoinedEventArg
 }
 
 func (o *OgEngine) Receive(topic int, msg interface{}) error {
@@ -28,7 +28,7 @@ func (o *OgEngine) Receive(topic int, msg interface{}) error {
 	case consts.NewIncomingMessageEvent:
 		o.myNewIncomingMessageEventChan <- msg.(*transport_interface.IncomingLetter)
 	case consts.PeerJoinedEvent:
-		o.myPeerJoinedEventChan <- msg.(*og_interface.PeerJoinedEvent)
+		o.myPeerJoinedEventChan <- msg.(*og_interface.PeerJoinedEventArg)
 	default:
 		return eventbus.ErrNotSupported
 	}
@@ -36,7 +36,7 @@ func (o *OgEngine) Receive(topic int, msg interface{}) error {
 }
 
 func (o *OgEngine) InitDefault() {
-	o.myPeerJoinedEventChan = make(chan *og_interface.PeerJoinedEvent)
+	o.myPeerJoinedEventChan = make(chan *og_interface.PeerJoinedEventArg)
 	o.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
 	o.quit = make(chan bool)
 }

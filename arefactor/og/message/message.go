@@ -20,8 +20,8 @@ const (
 	OgMessageTypePing
 	OgMessageTypePong
 	OgMessageTypeSyncResponse
-	MessageTypeFetchByHashRequest
-	MessageTypeFetchByHashResponse
+	OgMessageTypeFetchByHashRequest
+	OgMessageTypeFetchByHashResponse
 	OgMessageTypeQueryStatusRequest
 	OgMessageTypeQueryStatusResponse
 	OgMessageTypeNewResource
@@ -80,14 +80,25 @@ const (
 	MessageTypeNewActionTx
 )
 
+var MapMessageType = map[OgMessageType]string{
+	OgMessageTypeStatus:              "OGMTStatus",
+	OgMessageTypePing:                "OGMTPing",
+	OgMessageTypePong:                "OGMTPong",
+	OgMessageTypeSyncResponse:        "OGMTSyncResponse",
+	OgMessageTypeQueryStatusRequest:  "OGMTQueryStatusRequest",
+	OgMessageTypeQueryStatusResponse: "OGMTQueryStatusResponse",
+	OgMessageTypeNewResource:         "OGMTNewResource",
+
+	OgMessageTypeFetchByHashRequest:  "OGMTFetchByHashRequest",
+	OgMessageTypeFetchByHashResponse: "OGMTFetchByHashResponse",
+}
+
 func (o OgMessageType) String() string {
-	switch o {
-	case OgMessageTypePing:
-		return "OgMessageTypePing"
-	case OgMessageTypePong:
-		return "OgMessageTypePong"
-	default:
+	if v, ok := MapMessageType[o]; ok {
+		return v
+	} else {
 		return "Unknown Message " + strconv.Itoa(int(o))
+
 	}
 }
 

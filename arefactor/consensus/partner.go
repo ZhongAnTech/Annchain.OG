@@ -100,7 +100,7 @@ func (n *Partner) InitDefault() {
 		Safety:           n.safety,
 	}
 	n.pendingQCs = make(map[string]consensus_interface.SignatureCollector)
-	n.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
+	n.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter, consts.DefaultEventQueueSize)
 }
 func (n *Partner) Start() {
 	n.timeoutChecker = time.NewTicker(n.TimeoutTime)

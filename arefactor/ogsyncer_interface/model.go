@@ -3,6 +3,7 @@ package ogsyncer_interface
 import (
 	"fmt"
 	"github.com/annchain/commongo/hexutil"
+	"strconv"
 )
 
 //go:generate msgp
@@ -25,6 +26,30 @@ const (
 	OgAnnouncementTypeNewTxs
 	OgAnnouncementTypeNewInt
 )
+
+var MapMessageType = map[OgSyncMessageType]string{
+	OgSyncMessageTypeLatestHeightRequest:   "OgSyncMessageTypeLatestHeightRequest",
+	OgSyncMessageTypeLatestHeightResponse:  "OgSyncMessageTypeLatestHeightResponse",
+	OgSyncMessageTypeByHashesRequest:       "OgSyncMessageTypeByHashesRequest",
+	OgSyncMessageTypeBlockByHeightRequest:  "OgSyncMessageTypeBlockByHeightRequest",
+	OgSyncMessageTypeBlockByHashRequest:    "OgSyncMessageTypeBlockByHashRequest",
+	OgSyncMessageTypeByHashesResponse:      "OgSyncMessageTypeByHashesResponse",
+	OgSyncMessageTypeBlockByHeightResponse: "OgSyncMessageTypeBlockByHeightResponse",
+	OgSyncMessageTypeByBlockHashResponse:   "OgSyncMessageTypeByBlockHashResponse",
+	OgAnnouncementTypeNewSequencer:         "OgAnnouncementTypeNewSequencer",
+	OgAnnouncementTypeNewTx:                "OgAnnouncementTypeNewTx",
+	OgAnnouncementTypeNewTxs:               "OgAnnouncementTypeNewTxs",
+	OgAnnouncementTypeNewInt:               "OgAnnouncementTypeNewInt",
+}
+
+func (o OgSyncMessageType) String() string {
+	if v, ok := MapMessageType[o]; ok {
+		return v
+	} else {
+		return "Unknown Message " + strconv.Itoa(int(o))
+
+	}
+}
 
 //msgp OgSyncLatestHeightRequest
 type OgSyncLatestHeightRequest struct {

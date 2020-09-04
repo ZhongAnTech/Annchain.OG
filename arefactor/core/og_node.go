@@ -3,12 +3,14 @@ package core
 import (
 	"fmt"
 	"github.com/annchain/OG/arefactor/consensus"
+	"github.com/annchain/OG/arefactor/consensus_interface"
 	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/dummy"
 	"github.com/annchain/OG/arefactor/og"
 	"github.com/annchain/OG/arefactor/og/message"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/ogsyncer"
+	"github.com/annchain/OG/arefactor/ogsyncer_interface"
 	"github.com/annchain/OG/arefactor/performance"
 	"github.com/annchain/OG/arefactor/rpc"
 	"github.com/annchain/OG/arefactor/transport_interface"
@@ -249,17 +251,30 @@ func printPublish(info eventbus.PublishInfo, event interface{}) {
 	if info.Topic == int(consts.NewOutgoingMessageEvent) {
 		insider := event.(*transport_interface.OutgoingLetter)
 		fmt.Printf("PUB %s(%d)(%s) TO %s\n", info.TopicName, info.Topic,
-			message.MapMessageType[message.OgMessageType(insider.Msg.GetTypeValue())],
+			getMsgType(insider.Msg.GetTypeValue()),
 			info.SubscriberName)
 	} else if info.Topic == int(consts.NewIncomingMessageEvent) {
 		insider := event.(*transport_interface.IncomingLetter)
 		fmt.Printf("PUB %s(%d)(%s) TO %s\n", info.TopicName, info.Topic,
-			message.MapMessageType[message.OgMessageType(insider.Msg.MsgType)],
+			getMsgType(insider.Msg.MsgType),
 			info.SubscriberName)
 	} else {
 		fmt.Printf("PUB %s(%d) TO %s\n", info.TopicName, info.Topic, info.SubscriberName)
 	}
 
+}
+
+func getMsgType(msgType int) string {
+	if v, ok := message.MapMessageType[message.OgMessageType(msgType)]; ok {
+		return v
+	}
+	if v, ok := ogsyncer_interface.MapMessageType[ogsyncer_interface.OgSyncMessageType(msgType)]; ok {
+		return v
+	}
+	if v, ok := consensus_interface.MapMessageType[consensus_interface.HotStuffMessageType(msgType)]; ok {
+		return v
+	}
+	return "NA"
 }
 
 func (n *OgNode) Start() {

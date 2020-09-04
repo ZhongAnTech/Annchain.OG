@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/transport_interface"
 	"github.com/latifrons/goffchan"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -34,7 +35,7 @@ type Neighbour struct {
 
 func (c *Neighbour) InitDefault() {
 	c.quit = make(chan bool)
-	c.outgoingChannel = make(chan *transport_interface.OutgoingLetter, 100) // messages already dispatched
+	c.outgoingChannel = make(chan *transport_interface.OutgoingLetter, consts.DefaultEventQueueSize) // messages already dispatched
 }
 
 func (c *Neighbour) Start() {

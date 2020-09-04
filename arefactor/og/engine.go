@@ -36,8 +36,8 @@ func (o *OgEngine) Receive(topic int, msg interface{}) error {
 }
 
 func (o *OgEngine) InitDefault() {
-	o.myPeerJoinedEventChan = make(chan *og_interface.PeerJoinedEventArg)
-	o.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
+	o.myPeerJoinedEventChan = make(chan *og_interface.PeerJoinedEventArg, consts.DefaultEventQueueSize)
+	o.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter, consts.DefaultEventQueueSize)
 	o.quit = make(chan bool)
 }
 

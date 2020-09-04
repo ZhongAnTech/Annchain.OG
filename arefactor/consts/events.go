@@ -35,3 +35,5 @@ var EventCodeTextMap = map[EventType]string{
 	NewBlockProducedEvent:     "NewBlockProducedEvent",
 	IntsReceivedEvent:         "IntsReceivedEvent",
 }
+
+var DefaultEventQueueSize = 100

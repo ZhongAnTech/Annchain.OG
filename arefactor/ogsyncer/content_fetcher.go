@@ -70,20 +70,22 @@ func (b *RandomPickerContentFetcher) InitDefault() {
 	}
 	b.taskList.InitDefault()
 
-	b.peerJoinedEventChan = make(chan *og_interface.PeerJoinedEventArg)
-	b.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEventArg)
-	b.newHeightBlockSyncedEventChan = make(chan *og_interface.NewHeightBlockSyncedEventArg)
+	b.peerJoinedEventChan = make(chan *og_interface.PeerJoinedEventArg, consts.DefaultEventQueueSize)
+	b.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEventArg, consts.DefaultEventQueueSize)
+	b.newHeightBlockSyncedEventChan = make(chan *og_interface.NewHeightBlockSyncedEventArg, consts.DefaultEventQueueSize)
 	b.syncTriggerChan = make(chan string)
 
 	b.quit = make(chan bool)
 }
 
 func (b *RandomPickerContentFetcher) NeedToKnow(unknown ogsyncer_interface.Unknown) {
+	logrus.WithField("id", unknown.GetId()).WithField("un", unknown.GetValue()).Info("enqueue task")
 	b.taskList.AddTask(unknown)
 	b.triggerSync("NeedToKnow")
 }
 
 func (b *RandomPickerContentFetcher) Resolve(unknown ogsyncer_interface.Unknown) {
+	logrus.WithField("id", unknown.GetId()).WithField("un", unknown.GetValue()).Info("resolve task")
 	b.taskList.RemoveTask(unknown)
 }
 
@@ -230,7 +232,7 @@ func (b *RandomPickerContentFetcher) handleSyncHeightTask(taskv *ogsyncer_interf
 		logrus.WithError(err).Warn("we know a higher nextHeight but we failed to pick up source peer")
 		return true
 	}
-	logrus.WithField("height", taskv.Height).WithField("from", peerId).Info("ask for height")
+	logrus.WithField("height", taskv.Height).WithField("from", peerId).Debug("please give me the block")
 	// send sync request to this peer
 	// always start offset from 0.
 	// if there is more, send another request in the response handler function
@@ -256,7 +258,7 @@ func (b *RandomPickerContentFetcher) handleSyncHashTask(taskv *ogsyncer_interfac
 		logrus.WithError(err).Warn("we failed to pick up source peer")
 		return true
 	}
-	logrus.WithField("hash", taskv.Hash.HashString()).WithField("from", peerId).Info("ask for hash")
+	logrus.WithField("hash", taskv.Hash.HashString()).WithField("from", peerId).Debug("please give me the block")
 	req := &ogsyncer_interface.OgSyncByHashesRequest{
 		Hashes: [][]byte{
 			taskv.Hash.Bytes(),

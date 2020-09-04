@@ -36,7 +36,7 @@ func (b *Bouncer) GetBenchmarks() map[string]interface{} {
 }
 
 func (b *Bouncer) InitDefault() {
-	b.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
+	b.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter, consts.DefaultEventQueueSize)
 	b.quit = make(chan bool)
 }
 

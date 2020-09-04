@@ -38,8 +38,8 @@ func (o *OgRelayer) Receive(topic int, msg interface{}) error {
 
 func (o *OgRelayer) InitDefault() {
 	o.notificationCache = gcache.New(100).LRU().Expiration(time.Minute).Build()
-	o.newBlockProducedEventChan = make(chan *og_interface.NewBlockProducedEventArg)
-	o.intsReceivedEventChan = make(chan *ogsyncer_interface.IntsReceivedEventArg)
+	o.newBlockProducedEventChan = make(chan *og_interface.NewBlockProducedEventArg, consts.DefaultEventQueueSize)
+	o.intsReceivedEventChan = make(chan *ogsyncer_interface.IntsReceivedEventArg, consts.DefaultEventQueueSize)
 	o.quit = make(chan bool)
 }
 

@@ -26,7 +26,7 @@ func (o *OgReceiver) Stop() {
 }
 
 func (o *OgReceiver) InitDefault() {
-	o.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
+	o.myNewIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter, consts.DefaultEventQueueSize)
 	o.quit = make(chan bool)
 }
 

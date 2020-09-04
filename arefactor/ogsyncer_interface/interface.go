@@ -99,7 +99,7 @@ func (u UnknownHash) GetHintPeerId() string {
 }
 
 func (u UnknownHash) GetId() string {
-	return fmt.Sprintf("HS.%s", u.Hash)
+	return fmt.Sprintf("HS.%s", u.Hash.HashString())
 }
 
 func (u UnknownHash) GetType() UnknownType {

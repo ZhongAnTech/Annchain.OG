@@ -58,9 +58,9 @@ func (d *DefaultCommunityManager) GetPeerDisconnectedEventChannel() chan *transp
 
 func (d *DefaultCommunityManager) InitDefault() {
 	d.quit = make(chan bool)
-	d.myPeerConnectedEventChannel = make(chan *transport_interface.PeerEvent)
-	d.myPeerDisconnectedEventChannel = make(chan *transport_interface.PeerEvent)
-	d.myNewIncomingMessageEventChannel = make(chan *transport_interface.IncomingLetter)
+	d.myPeerConnectedEventChannel = make(chan *transport_interface.PeerEvent, consts.DefaultEventQueueSize)
+	d.myPeerDisconnectedEventChannel = make(chan *transport_interface.PeerEvent, consts.DefaultEventQueueSize)
+	d.myNewIncomingMessageEventChannel = make(chan *transport_interface.IncomingLetter, consts.DefaultEventQueueSize)
 }
 
 // event handlers begin

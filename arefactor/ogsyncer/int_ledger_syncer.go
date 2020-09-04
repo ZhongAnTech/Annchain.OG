@@ -51,12 +51,12 @@ func (s *IntLedgerSyncer) Receive(topic int, msg interface{}) error {
 }
 
 func (s *IntLedgerSyncer) InitDefault() {
-	s.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEventArg)
-	s.newLocalHeightUpdatedEventChan = make(chan *og_interface.NewLocalHeightUpdatedEventArg)
-	s.intsReceivedEventChan = make(chan *ogsyncer_interface.IntsReceivedEventArg)
+	s.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEventArg, consts.DefaultEventQueueSize)
+	s.newLocalHeightUpdatedEventChan = make(chan *og_interface.NewLocalHeightUpdatedEventArg, consts.DefaultEventQueueSize)
+	s.intsReceivedEventChan = make(chan *ogsyncer_interface.IntsReceivedEventArg, consts.DefaultEventQueueSize)
 
-	s.unknownNeededEventChan = make(chan ogsyncer_interface.Unknown)
-	s.newIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter)
+	s.unknownNeededEventChan = make(chan ogsyncer_interface.Unknown, consts.DefaultEventQueueSize)
+	s.newIncomingMessageEventChan = make(chan *transport_interface.IncomingLetter, consts.DefaultEventQueueSize)
 
 	s.quit = make(chan bool)
 }
@@ -309,7 +309,7 @@ func (s *IntLedgerSyncer) resolveBlock(block *dummy.IntArrayBlockContent, from s
 		"from":   from,
 		"height": block.Height,
 		"hash":   block.GetHash().HashString(),
-	}).Trace("got block")
+	}).Debug("got block")
 	s.trySyncNextHeight()
 	//b.Reporter.Report("tasks", b.taskList)
 	//s.notifyNewHeightBlockSynced(&og_interface.ResourceGotEvent{

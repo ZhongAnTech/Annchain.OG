@@ -78,9 +78,9 @@ func (c *PhysicalCommunicator) Name() string {
 func (c *PhysicalCommunicator) InitDefault() {
 	c.activePeers = make(map[peer.ID]*Neighbour)
 	c.tryingPeers = make(map[peer.ID]bool)
-	c.outgoingChannel = make(chan *transport_interface.OutgoingLetter)
-	c.incomingChannel = make(chan *transport_interface.IncomingLetter)
-	c.ioEventChannel = make(chan *IoEvent)
+	c.outgoingChannel = make(chan *transport_interface.OutgoingLetter, consts.DefaultEventQueueSize)
+	c.incomingChannel = make(chan *transport_interface.IncomingLetter, consts.DefaultEventQueueSize)
+	c.ioEventChannel = make(chan *IoEvent, consts.DefaultEventQueueSize)
 	c.initWait.Add(1)
 	c.quit = make(chan bool)
 }

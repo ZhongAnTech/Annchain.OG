@@ -19,20 +19,18 @@ const (
 	HotStuffMessageTypeString
 )
 
-func (m HotStuffMessageType) String() string {
-	switch m {
-	case HotStuffMessageTypeProposal:
-		return "HotStuffProposal"
-	case HotStuffMessageTypeVote:
-		return "HotStuffVote"
-	case HotStuffMessageTypeTimeout:
-		return "HotStuffTimeout"
-	//case LocalTimeout:
-	//	return "LocalTimeout"
-	case HotStuffMessageTypeString:
-		return "HotStuffString"
-	default:
-		return "Unknown Message " + strconv.Itoa(int(m))
+var MapMessageType = map[HotStuffMessageType]string{
+	HotStuffMessageTypeProposal: "HotStuffMessageTypeProposal",
+	HotStuffMessageTypeVote:     "HotStuffMessageTypeVote",
+	HotStuffMessageTypeTimeout:  "HotStuffMessageTypeTimeout",
+	HotStuffMessageTypeString:   "HotStuffMessageTypeString",
+}
+
+func (o HotStuffMessageType) String() string {
+	if v, ok := MapMessageType[o]; ok {
+		return v
+	} else {
+		return "Unknown Message " + strconv.Itoa(int(o))
 	}
 }
 

@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 
 	"github.com/annchain/OG/consensus/annsensus"
@@ -93,12 +92,9 @@ func (nar *NewArchiveRequest) Verify() bool {
 	if !bytes.Equal(signature.Bytes, nar.Signature) /* 验证签名，crypto.Signature的Bytes是否是十六进制的？ */ {
 		return false
 	}
+	// 把Data和签名JSON合并和排序
 	dataAndSign := *tx_types.NewOpStrAndSign(nar.Data, signature)
-	// 把Data和签名JSON排序和合并
-	dataAndSignBytes, err := json.Marshal(dataAndSign)
-	if err != nil {
-		fmt.Println(err)
-	}
+	dataAndSignBytes := dataAndSign.Sort()
 	// sort(dataAndSignStr) /* JSON排序，尚未实现 */
 	// 把合并结果求SHA256，验证存证哈希
 	h := sha256.New()
@@ -162,7 +158,7 @@ func (r *RpcController) Transaction(c *gin.Context) {
 		txResp.Sequencer = &seqMsg
 		Response(c, http.StatusOK, nil, txResp)
 		return
-	case *tx_types.Archive:
+	case *tx_types.Archive: /* 通过哈希查询交易 */
 		seqMsg := tx.ToJsonMsg()
 		txResp.Archive = &seqMsg
 		Response(c, http.StatusOK, nil, txResp)

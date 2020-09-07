@@ -23,6 +23,7 @@ import (
 	"github.com/annchain/OG/common/crypto"
 	"github.com/annchain/OG/common/hexutil"
 	"github.com/annchain/OG/types"
+	"github.com/annchain/commongo/jsonutil"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -175,6 +176,15 @@ func NewOpStrAndSign(opStr []byte, sign crypto.Signature) *OpStrAndSign {
 		OpStr:     opStr,
 		Signature: hexutil.Encode(sign.Bytes),
 	}
+}
+
+// Sort 对存证字符串跟签名合并排序，返回排序后的JSON
+func (osas *OpStrAndSign) Sort() []byte {
+	OpStrAndSignBytes, err := json.Marshal(osas)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return []byte(jsonutil.Normalize(string(OpStrAndSignBytes)))
 }
 
 // 存证：type=4

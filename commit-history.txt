@@ -5,3 +5,6 @@
 2020-09-02-1
 1.  给rpc.NewArchiveRequest字段添加了公钥、签名和存证哈希，未调试。
 2.  把VerifyOpHash改成了Verify，同时验证签名和哈希，在rpc.NewArchive被调用，未调试。
+
+2020-09-07-1
+1.  调用了JSON排序器。

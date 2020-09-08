@@ -51,7 +51,7 @@ func (m *PaceMaker) ProcessRemoteTimeoutMessage(msg *consensus_interface.HotStuf
 	p := &consensus_interface.ContentTimeout{}
 	err := p.FromBytes(msg.ContentBytes)
 	if err != nil {
-		logrus.WithError(err).Debug("failed to decode ContentTimeout")
+		logrus.WithError(err).Warn("failed to decode ContentTimeout")
 		return
 	}
 
@@ -62,7 +62,7 @@ func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, 
 	id, err := m.CommitteeProvider.GetPeerIndex(fromMemberId)
 	if err != nil {
 		logrus.WithError(err).WithField("peerId", fromMemberId).
-			Fatal("error in finding peer in committee")
+			Warn("error in finding peer in committee")
 		return
 	}
 
@@ -90,7 +90,7 @@ func (m *PaceMaker) ProcessRemoteTimeout(p *consensus_interface.ContentTimeout, 
 
 func (m *PaceMaker) LocalTimeoutRound() {
 
-	logrus.WithField("rand", rand.Int31()).WithField("round", m.CurrentRound).Warn("local timeout")
+	logrus.WithField("rand", rand.Int31()).WithField("round", m.CurrentRound).Info("consensus local timeout")
 	_ = m.ensureTCCollector(m.CurrentRound)
 
 	m.Safety.IncreaseLastVoteRound(m.CurrentRound)

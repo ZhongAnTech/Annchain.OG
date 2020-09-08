@@ -121,15 +121,17 @@ func (d *IntArrayLedger) GetConsensusState() *consensus_interface.ConsensusState
 }
 
 func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interface.Block) (executionResult consensus_interface.ExecutionResult) {
-	fmt.Println("Speculate Prev block:", prevBlockId)
-	fmt.Println("Speculate Curr block:", block.Id)
-	fmt.Println(block.String())
+	logrus.WithFields(logrus.Fields{
+		"currentBlockId":  block.Id,
+		"previousBlockId": prevBlockId,
+	}).Info("speculate")
+	//fmt.Println(block.String())
 	executionResult.BlockId = block.Id
 
 	v := d.getBlockByHashThreadSafe(prevBlockId)
 
 	if v == nil {
-		logrus.WithField("prevBlockId", prevBlockId).Warn("prev block not found")
+		logrus.WithField("prevBlockId", prevBlockId).Debug("prev block not found")
 		hash := &og_interface.Hash32{}
 		err := hash.FromHex(prevBlockId)
 		if err != nil {
@@ -155,7 +157,7 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 	if block.Id != newBlock.GetHash().HashString() {
 		logrus.WithField("myhash", newBlock.GetHash().HashString()).
 			WithField("given", block.Id).
-			Fatal("myhash is not aligned with given hash")
+			Warn("speculate error, hash not aligned")
 	}
 	d.knowBlockThreadSafe(newBlock)
 	d.saveLedgerThreadSafe()
@@ -219,7 +221,7 @@ func (d *IntArrayLedger) KnowBlock(block og_interface.BlockContent) {
 func (d *IntArrayLedger) knowBlockThreadSafe(block og_interface.BlockContent) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	logrus.WithField("blockId", block.GetHash().HashString()).Debug("know this block")
+	logrus.WithField("blockId", block.GetHash().HashString()).Trace("know this block")
 	d.allBlockContents[block.GetHash().HashString()] = block
 }
 
@@ -378,7 +380,7 @@ func (d *IntArrayLedger) InitLedgerGenesis() {
 func (d *IntArrayLedger) saveLedgerThreadSafe() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	logrus.Info("saving ledger")
+	logrus.Trace("saving ledger")
 
 	lines := []string{}
 	for i := int64(0); i <= d.height; i++ {
@@ -568,12 +570,12 @@ func (d *IntArrayLedger) SaveConsensusState(consensusState *consensus_interface.
 	logrus.WithField("state", consensusState).Trace("saving consensus state")
 	bytes, err := json.MarshalIndent(consensusState, "", "    ")
 	if err != nil {
-		logrus.WithError(err).Fatal("dump consensus state")
+		logrus.WithError(err).Warn("failed to dump consensus state")
 	}
 
 	err = ioutil.WriteFile(path.Join(d.DataPath, ConsensusStateFile), bytes, 0644)
 	if err != nil {
-		logrus.WithError(err).Fatal("save consensus state")
+		logrus.WithError(err).Warn("failed to save consensus state")
 	}
 }
 
@@ -581,13 +583,13 @@ func (d *IntArrayLedger) loadConsensusState() (err error) {
 	byteContent, err := ioutil.ReadFile(path.Join(d.DataPath, ConsensusStateFile))
 
 	if err != nil {
-		logrus.WithError(err).Debug("error on loading consensus state")
+		logrus.WithError(err).Warn("failed to load consensus state")
 		return
 	}
 	cs := &consensus_interface.ConsensusState{}
 	err = json.Unmarshal(byteContent, cs)
 	if err != nil {
-		logrus.WithError(err).Fatal("unmarshal consensus state")
+		logrus.WithError(err).Warn("unmarshal consensus state")
 		return
 	}
 	d.consensusState = cs
@@ -654,20 +656,20 @@ func (i *IntArrayProposalGenerator) InitDefault() {
 func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface.ProposalContext) *consensus_interface.ContentProposal {
 	var b og_interface.BlockContent = nil
 	if b = i.Ledger.GetBlockByHash(context.HighQC.VoteData.Id); b == nil {
-		logrus.WithField("blockId", context.HighQC.VoteData.Id).Warn("prev block not found in ledger. Propose further")
+		logrus.WithField("blockId", context.HighQC.VoteData.Id).Info("prev block not found in ledger. Propose further")
 	}
 	if b == nil {
 		if b = i.Ledger.GetBlockByHash(context.HighQC.VoteData.ParentId); b == nil {
-			logrus.WithField("blockId", context.HighQC.VoteData.ParentId).Warn("parent block not found in ledger. Propose further")
+			logrus.WithField("blockId", context.HighQC.VoteData.ParentId).Info("parent block not found in ledger. Propose further")
 		}
 	}
 	if b == nil {
 		if b = i.Ledger.GetBlockByHash(context.HighQC.VoteData.GrandParentId); b == nil {
-			logrus.WithField("blockId", context.HighQC.VoteData.GrandParentId).Warn("gparent block not found in ledger.")
+			logrus.WithField("blockId", context.HighQC.VoteData.GrandParentId).Info("gparent block not found in ledger.")
 		}
 	}
 	if b == nil {
-		logrus.Warn("i cannot propose since the previous blocks is still missing.")
+		logrus.Info("i cannot propose since the previous blocks is still missing.")
 		i.Ledger.dump()
 		return nil
 	}

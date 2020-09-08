@@ -201,7 +201,7 @@ func (d *DefaultCommunityManager) handleMsgPong(letter *transport_interface.Inco
 	}
 	// remove the peer if not removed
 	if m.Close || !d.protocolMatch(Protocol, m.Protocol) {
-		logrus.WithField("peer", letter.From).Debug("closing neighbour because the target is closing")
+		logrus.WithField("peer", letter.From).Trace("closing neighbour because the target is closing")
 		d.PhysicalCommunicator.ClosePeer(letter.From)
 	}
 }

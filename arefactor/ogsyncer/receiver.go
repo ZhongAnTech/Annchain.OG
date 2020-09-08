@@ -1,7 +1,6 @@
 package ogsyncer
 
 import (
-	"fmt"
 	"github.com/annchain/OG/arefactor/consts"
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/ogsyncer_interface"
@@ -65,9 +64,7 @@ func (o *OgReceiver) handleIncomingMessage(msg *transport_interface.IncomingLett
 			logrus.Warn("failed to deserialize OgSyncBlockByHeightResponse")
 			return
 		}
-		fmt.Println("EVT started")
 		for _, v := range obj.Ints {
-			fmt.Println(v.Height)
 			o.EventBus.PublishAsync(int(consts.IntsReceivedEvent), &ogsyncer_interface.IntsReceivedEventArg{
 				Ints: v,
 				From: msg.From,
@@ -78,8 +75,6 @@ func (o *OgReceiver) handleIncomingMessage(msg *transport_interface.IncomingLett
 				Height: obj.Ints[len(obj.Ints)-1].Height,
 			})
 		}
-		fmt.Println("EVT ended")
-
 	case ogsyncer_interface.OgAnnouncementTypeNewSequencer:
 		panic("not implemented")
 	case ogsyncer_interface.OgAnnouncementTypeNewTx:

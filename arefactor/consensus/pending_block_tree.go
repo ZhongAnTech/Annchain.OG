@@ -21,7 +21,7 @@ func (t *PendingBlockTree) ExecuteProposal(block *consensus_interface.Block) (ex
 	t.AddBranch(block)
 	executionResult = t.Ledger.Speculate(block.ParentQC.VoteData.Id, block)
 	t.Safety.Reporter.Report("lastSpeculate", block.Id, false)
-	logrus.WithField("result", executionResult).Debug("executed block")
+	logrus.WithField("result", executionResult).Trace("executed block")
 	return executionResult
 
 }

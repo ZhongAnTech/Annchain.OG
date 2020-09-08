@@ -51,7 +51,7 @@ func (c *Neighbour) loopRead() {
 		err = msg.DecodeMsg(c.msgpReader)
 		if err != nil {
 			// bad message, drop
-			logrus.WithError(err).Warn("read error")
+			logrus.WithError(err).Debug("read error")
 			c.peerError(err, "read")
 			break
 		}
@@ -127,7 +127,7 @@ func (c *Neighbour) CloseOutgoing() {
 	}
 	logrus.Trace("neighbour closing")
 	close(c.outgoingChannel)
-	logrus.Warn("neighbour closed")
+	logrus.Debug("neighbour closed")
 }
 
 func (c *Neighbour) peerError(err error, reason string) {

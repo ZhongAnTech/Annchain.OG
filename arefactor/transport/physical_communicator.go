@@ -188,7 +188,7 @@ func (c *PhysicalCommunicator) Listen() {
 	case <-c.quit:
 		err := c.node.Close()
 		if err != nil {
-			logrus.WithError(err).Warn("closing communicator")
+			logrus.WithError(err).Info("closing communicator")
 		}
 	}
 }
@@ -212,7 +212,7 @@ func (c *PhysicalCommunicator) HandlePeerStream(s network.Stream) {
 		// already established. close
 		err := s.Close()
 		if err != nil {
-			logrus.WithError(err).Warn("closing peer")
+			logrus.WithError(err).Debug("closing peer")
 		}
 		return
 	}
@@ -353,7 +353,7 @@ func (c *PhysicalCommunicator) SuggestConnection(address string) (peerIds string
 }
 
 func (c *PhysicalCommunicator) Enqueue(req *transport_interface.OutgoingLetter) {
-	logrus.WithField("req", req).Info("Sending message")
+	logrus.WithField("req", req).Trace("Sending message")
 	c.initWait.Wait()
 	<-goffchan.NewTimeoutSenderShort(c.outgoingChannel, req, "enqueue").C
 	//c.outgoingChannel <- req
@@ -367,8 +367,6 @@ func (c *PhysicalCommunicator) loopbackMessage(msg transport_interface.OutgoingM
 	}
 
 	go func() {
-		i := rand.Int31()
-		logrus.WithField("rand", i).Debug("non-blocking inner send start")
 		<-goffchan.NewTimeoutSenderShort(c.incomingChannel, &transport_interface.IncomingLetter{
 			Msg:  wireMessage,
 			From: c.node.ID().String(),
@@ -377,7 +375,6 @@ func (c *PhysicalCommunicator) loopbackMessage(msg transport_interface.OutgoingM
 		//	Msg:  wireMessage,
 		//	From: c.node.ID().String(),
 		//}
-		logrus.WithField("rand", i).Debug("non-blocking inner send end")
 	}()
 }
 

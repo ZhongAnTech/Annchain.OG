@@ -37,7 +37,7 @@ func (b *PlainBftCommitteeProvider) InitCommittee(version int, peers []consensus
 	}
 	if b.myIndex == -1 {
 		// panic during testing.
-		logrus.Fatal("where is my position?")
+		logrus.Info("I'm not part of the consensus")
 	}
 }
 

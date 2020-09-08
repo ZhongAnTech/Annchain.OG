@@ -79,31 +79,15 @@ func (b *RandomPickerContentFetcher) InitDefault() {
 }
 
 func (b *RandomPickerContentFetcher) NeedToKnow(unknown ogsyncer_interface.Unknown) {
-	logrus.WithField("id", unknown.GetId()).WithField("un", unknown.GetValue()).Info("enqueue task")
+	logrus.WithField("id", unknown.GetId()).WithField("un", unknown.GetValue()).Trace("enqueue task")
 	b.Reporter.Report("tasksize", b.taskList.Count(), false)
 
-	done := make(chan struct{})
-	t1 := time.Now()
-
-	go func() {
-		b.taskList.AddTask(unknown)
-		b.triggerSync("NeedToKnow")
-
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(time.Second * 3):
-		logrus.Fatal("timeout")
-	}
-	fmt.Println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-	fmt.Println(time.Since(t1))
-
+	b.taskList.AddTask(unknown)
+	b.triggerSync("NeedToKnow")
 }
 
 func (b *RandomPickerContentFetcher) Resolve(unknown ogsyncer_interface.Unknown) {
-	logrus.WithField("id", unknown.GetId()).WithField("un", unknown.GetValue()).Info("resolve task")
+	logrus.WithField("id", unknown.GetId()).WithField("un", unknown.GetValue()).Trace("resolve task")
 	b.taskList.RemoveTask(unknown)
 }
 
@@ -206,12 +190,12 @@ func (b *RandomPickerContentFetcher) doOneTask(reason string) {
 	if task == nil {
 		return
 	}
-	logrus.WithField("task", task.GetId()).WithField("reason", reason).Info("handling task")
+	logrus.WithField("task", task.GetId()).WithField("reason", reason).Trace("handling task")
 	b.handleSyncTask(task)
 }
 
 func (b *RandomPickerContentFetcher) handlePeerJoinedEvent(event *og_interface.PeerJoinedEventArg) {
-	logrus.WithField("peer", event.PeerId).Warn("peer joined")
+	logrus.WithField("peer", event.PeerId).Debug("peer joined")
 	b.peerManager.updateKnownPeerHeight(event.PeerId, 0)
 	b.queryHeights([]string{event.PeerId})
 }
@@ -250,7 +234,7 @@ func (b *RandomPickerContentFetcher) handleSyncHeightTask(taskv *ogsyncer_interf
 		logrus.WithError(err).Warn("we know a higher nextHeight but we failed to pick up source peer")
 		return true
 	}
-	logrus.WithField("height", taskv.Height).WithField("from", peerId).Debug("please give me the block")
+	logrus.WithField("height", taskv.Height).WithField("from", peerId).Trace("please give me the block")
 	// send sync request to this peer
 	// always start offset from 0.
 	// if there is more, send another request in the response handler function
@@ -276,7 +260,7 @@ func (b *RandomPickerContentFetcher) handleSyncHashTask(taskv *ogsyncer_interfac
 		logrus.WithError(err).Warn("we failed to pick up source peer")
 		return true
 	}
-	logrus.WithField("hash", taskv.Hash.HashString()).WithField("from", peerId).Debug("please give me the block")
+	logrus.WithField("hash", taskv.Hash.HashString()).WithField("from", peerId).Trace("please give me the block")
 	req := &ogsyncer_interface.OgSyncBlockByHashRequest{
 		Hash: taskv.Hash.Bytes(),
 	}

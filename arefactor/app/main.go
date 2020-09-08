@@ -16,7 +16,6 @@ package main
 
 import (
 	"github.com/annchain/OG/arefactor/app/cmd"
-	"github.com/sasha-s/go-deadlock"
 	"math/rand"
 	"time"
 )
@@ -24,6 +23,5 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	// deadlock debugger
-	deadlock.Opts.DeadlockTimeout = time.Millisecond * 500
 	cmd.Execute()
 }

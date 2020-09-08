@@ -105,7 +105,6 @@ func (n *Partner) InitDefault() {
 func (n *Partner) Start() {
 	n.timeoutChecker = time.NewTicker(n.TimeoutTime)
 	for {
-		logrus.Trace("partner loop round start")
 		select {
 		case <-n.quit:
 			return
@@ -123,7 +122,7 @@ func (n *Partner) Start() {
 			// check if the last proposal was received some times ago.
 			if n.paceMaker.lastValidTime.Before(time.Now().Add(-n.TimeoutTime)) {
 				// timeout
-				logrus.WithField("round", n.paceMaker.CurrentRound).Warn("paceMaker timeout")
+				logrus.WithField("round", n.paceMaker.CurrentRound).Info("paceMaker timeout")
 				n.paceMaker.LocalTimeoutRound()
 				// update timeout
 			}
@@ -132,8 +131,6 @@ func (n *Partner) Start() {
 		n.Reporter.Report("lastTC", consensusState.LastTC, false)
 		n.Reporter.Report("CurrentRound", n.paceMaker.CurrentRound, false)
 		n.Reporter.Report("HighQC", consensusState.HighQC.VoteData, false)
-
-		logrus.Trace("partner loop round end")
 	}
 }
 
@@ -232,7 +229,7 @@ func (n *Partner) ProcessVoteMessage(msg *consensus_interface.HotStuffSignedMess
 	p := &consensus_interface.ContentVote{}
 	err := p.FromBytes(msg.ContentBytes)
 	if err != nil {
-		logrus.WithError(err).Debug("failed to decode ContentVote")
+		logrus.WithError(err).Warn("failed to decode ContentVote")
 		return
 	}
 	n.ProcessCertificates(p.QC, p.TC, "Vote")
@@ -250,7 +247,7 @@ func (n *Partner) ProcessVote(vote *consensus_interface.ContentVote, signature c
 	logrus.WithFields(logrus.Fields{
 		"from":      fromId,
 		"voteIndex": voteIndex,
-	}).Info("handling vote")
+	}).Debug("handling vote")
 
 	collector := n.ensureQCCollector(voteIndex)
 	collector.Collect(signature, id)
@@ -335,7 +332,7 @@ func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter)
 	signedMessage := &consensus_interface.HotStuffSignedMessage{}
 	_, err := signedMessage.UnmarshalMsg(msg.Msg.ContentBytes)
 	if err != nil {
-		logrus.WithError(err).Debug("failed to parse HotStuffSignedMessage message")
+		logrus.WithError(err).Warn("failed to parse HotStuffSignedMessage message")
 		return
 	}
 
@@ -344,13 +341,13 @@ func (n *Partner) handleIncomingMessage(msg *transport_interface.IncomingLetter)
 
 	switch consensus_interface.HotStuffMessageType(signedMessage.HotStuffMessageType) {
 	case consensus_interface.HotStuffMessageTypeProposal:
-		logrus.Info("handling proposal")
+		logrus.Trace("handling proposal")
 		n.ProcessProposalMessage(signedMessage)
 	case consensus_interface.HotStuffMessageTypeVote:
-		logrus.Info("handling vote")
+		logrus.Trace("handling vote")
 		n.ProcessVoteMessage(signedMessage)
 	case consensus_interface.HotStuffMessageTypeTimeout:
-		logrus.WithField("rand", rand.Int31()).Info("handling timeout")
+		logrus.WithField("rand", rand.Int31()).Trace("handling timeout")
 		n.paceMaker.ProcessRemoteTimeoutMessage(signedMessage)
 	default:
 		panic("unsupported typev")

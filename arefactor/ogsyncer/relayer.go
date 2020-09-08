@@ -34,17 +34,11 @@ type OgRelayer struct {
 func (o *OgRelayer) Receive(topic int, msg interface{}) error {
 	switch consts.EventType(topic) {
 	case consts.NewBlockProducedEvent:
-		logrus.Info("R1")
 		o.newBlockProducedEventChan <- msg.(*og_interface.NewBlockProducedEventArg)
-		logrus.Info("R1 end")
 	case consts.IntsReceivedEvent:
-		logrus.Info("R2")
 		o.intsReceivedEventChan <- msg.(*ogsyncer_interface.IntsReceivedEventArg)
-		logrus.Info("R2 end")
 	case consts.NewHeightDetectedEvent:
-		logrus.Info("R3")
 		<-goffchan.NewTimeoutSenderShort(o.newHeightDetectedEventChan, msg.(*og_interface.NewHeightDetectedEventArg), "NewHeightDetectedEvent").C
-		logrus.Info("R3 end")
 		//s.newHeightDetectedEventChan <- msg.(*og_interface.NewHeightDetectedEventArg)
 	default:
 		return eventbus.ErrNotSupported
@@ -108,7 +102,7 @@ func (o *OgRelayer) relayInts(key string, ints ogsyncer_interface.MessageContent
 	// broadcast to all my neighbours if not in the cache
 	if o.notificationCache.Has(key) {
 		// already told others, ignore
-		logrus.WithField("key", key).Debug("I have already told my neighbours")
+		logrus.WithField("key", key).Trace("I have already told my neighbours")
 		return
 	}
 	_ = o.notificationCache.Set(key, true)
@@ -147,7 +141,7 @@ func (o *OgRelayer) handleIntsReceivedEvent(event *ogsyncer_interface.IntsReceiv
 	key := v.GetHash().HashString()
 	logrus.WithField("height", block.Height).
 		WithField("myknownBestHeight", o.minBroadcastHeight).
-		Info("I would like to broadcast this block")
+		Debug("I would like to broadcast this block")
 	o.relayInts(key, event.Ints, []string{event.From})
 }
 

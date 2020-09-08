@@ -6,8 +6,10 @@ import (
 	"github.com/annchain/OG/arefactor/og_interface"
 	"github.com/annchain/OG/arefactor/ogsyncer_interface"
 	"github.com/annchain/OG/arefactor/transport_interface"
+	"github.com/annchain/commongo/math"
 	"github.com/annchain/gcache"
 	"github.com/latifrons/go-eventbus"
+	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -18,18 +20,32 @@ import (
 type OgRelayer struct {
 	EventBus          *eventbus.EventBus
 	notificationCache gcache.Cache
+	// don't broadcast new block with height less than this height
+	// to prevent too many messages during syncing.
+	minBroadcastHeight int64
 
-	newBlockProducedEventChan chan *og_interface.NewBlockProducedEventArg
-	intsReceivedEventChan     chan *ogsyncer_interface.IntsReceivedEventArg
-	quit                      chan bool
+	newBlockProducedEventChan  chan *og_interface.NewBlockProducedEventArg
+	intsReceivedEventChan      chan *ogsyncer_interface.IntsReceivedEventArg
+	newHeightDetectedEventChan chan *og_interface.NewHeightDetectedEventArg
+
+	quit chan bool
 }
 
 func (o *OgRelayer) Receive(topic int, msg interface{}) error {
-	switch topic {
-	case int(consts.NewBlockProducedEvent):
+	switch consts.EventType(topic) {
+	case consts.NewBlockProducedEvent:
+		logrus.Info("R1")
 		o.newBlockProducedEventChan <- msg.(*og_interface.NewBlockProducedEventArg)
-	case int(consts.IntsReceivedEvent):
+		logrus.Info("R1 end")
+	case consts.IntsReceivedEvent:
+		logrus.Info("R2")
 		o.intsReceivedEventChan <- msg.(*ogsyncer_interface.IntsReceivedEventArg)
+		logrus.Info("R2 end")
+	case consts.NewHeightDetectedEvent:
+		logrus.Info("R3")
+		<-goffchan.NewTimeoutSenderShort(o.newHeightDetectedEventChan, msg.(*og_interface.NewHeightDetectedEventArg), "NewHeightDetectedEvent").C
+		logrus.Info("R3 end")
+		//s.newHeightDetectedEventChan <- msg.(*og_interface.NewHeightDetectedEventArg)
 	default:
 		return eventbus.ErrNotSupported
 	}
@@ -40,6 +56,7 @@ func (o *OgRelayer) InitDefault() {
 	o.notificationCache = gcache.New(100).LRU().Expiration(time.Minute).Build()
 	o.newBlockProducedEventChan = make(chan *og_interface.NewBlockProducedEventArg, consts.DefaultEventQueueSize)
 	o.intsReceivedEventChan = make(chan *ogsyncer_interface.IntsReceivedEventArg, consts.DefaultEventQueueSize)
+	o.newHeightDetectedEventChan = make(chan *og_interface.NewHeightDetectedEventArg, consts.DefaultEventQueueSize)
 	o.quit = make(chan bool)
 }
 
@@ -68,6 +85,8 @@ func (o *OgRelayer) eventLoop() {
 			o.handleNewBlockProducedEvent(event)
 		case event := <-o.intsReceivedEventChan:
 			o.handleIntsReceivedEvent(event)
+		case event := <-o.newHeightDetectedEventChan:
+			o.handleNewHeightDetectedEvent(event)
 		}
 	}
 }
@@ -112,6 +131,10 @@ func (o *OgRelayer) relayInts(key string, ints ogsyncer_interface.MessageContent
 
 func (o *OgRelayer) handleIntsReceivedEvent(event *ogsyncer_interface.IntsReceivedEventArg) {
 	block := event.Ints
+	if block.Height < o.minBroadcastHeight {
+		// no broadcast since it may be an old height
+		return
+	}
 	v := dummy.IntArrayBlockContent{
 		Height:      block.Height,
 		Step:        block.Step,
@@ -122,5 +145,12 @@ func (o *OgRelayer) handleIntsReceivedEvent(event *ogsyncer_interface.IntsReceiv
 	}
 
 	key := v.GetHash().HashString()
+	logrus.WithField("height", block.Height).
+		WithField("myknownBestHeight", o.minBroadcastHeight).
+		Info("I would like to broadcast this block")
 	o.relayInts(key, event.Ints, []string{event.From})
+}
+
+func (o *OgRelayer) handleNewHeightDetectedEvent(event *og_interface.NewHeightDetectedEventArg) {
+	o.minBroadcastHeight = math.BiggerInt64(o.minBroadcastHeight, event.Height)
 }

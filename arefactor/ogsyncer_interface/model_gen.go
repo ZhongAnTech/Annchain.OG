@@ -351,12 +351,6 @@ func (z *OgSyncBlockByHashRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Hash")
 				return
 			}
-		case "Offset":
-			z.Offset, err = dc.ReadInt()
-			if err != nil {
-				err = msgp.WrapError(err, "Offset")
-				return
-			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -370,9 +364,9 @@ func (z *OgSyncBlockByHashRequest) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *OgSyncBlockByHashRequest) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
+	// map header, size 1
 	// write "Hash"
-	err = en.Append(0x82, 0xa4, 0x48, 0x61, 0x73, 0x68)
+	err = en.Append(0x81, 0xa4, 0x48, 0x61, 0x73, 0x68)
 	if err != nil {
 		return
 	}
@@ -381,29 +375,16 @@ func (z *OgSyncBlockByHashRequest) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Hash")
 		return
 	}
-	// write "Offset"
-	err = en.Append(0xa6, 0x4f, 0x66, 0x66, 0x73, 0x65, 0x74)
-	if err != nil {
-		return
-	}
-	err = en.WriteInt(z.Offset)
-	if err != nil {
-		err = msgp.WrapError(err, "Offset")
-		return
-	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *OgSyncBlockByHashRequest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
+	// map header, size 1
 	// string "Hash"
-	o = append(o, 0x82, 0xa4, 0x48, 0x61, 0x73, 0x68)
+	o = append(o, 0x81, 0xa4, 0x48, 0x61, 0x73, 0x68)
 	o = msgp.AppendBytes(o, z.Hash)
-	// string "Offset"
-	o = append(o, 0xa6, 0x4f, 0x66, 0x66, 0x73, 0x65, 0x74)
-	o = msgp.AppendInt(o, z.Offset)
 	return
 }
 
@@ -431,12 +412,6 @@ func (z *OgSyncBlockByHashRequest) UnmarshalMsg(bts []byte) (o []byte, err error
 				err = msgp.WrapError(err, "Hash")
 				return
 			}
-		case "Offset":
-			z.Offset, bts, err = msgp.ReadIntBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "Offset")
-				return
-			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -451,7 +426,7 @@ func (z *OgSyncBlockByHashRequest) UnmarshalMsg(bts []byte) (o []byte, err error
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *OgSyncBlockByHashRequest) Msgsize() (s int) {
-	s = 1 + 5 + msgp.BytesPrefixSize + len(z.Hash) + 7 + msgp.IntSize
+	s = 1 + 5 + msgp.BytesPrefixSize + len(z.Hash)
 	return
 }
 
@@ -1197,148 +1172,6 @@ func (z *OgSyncBlockByHeightResponse) Msgsize() (s int) {
 	s += 4 + msgp.ArrayHeaderSize
 	for za0003 := range z.Txs {
 		s += z.Txs[za0003].Msgsize()
-	}
-	return
-}
-
-// DecodeMsg implements msgp.Decodable
-func (z *OgSyncByHashesRequest) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
-	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	for zb0001 > 0 {
-		zb0001--
-		field, err = dc.ReadMapKeyPtr()
-		if err != nil {
-			err = msgp.WrapError(err)
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Hashes":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
-			if err != nil {
-				err = msgp.WrapError(err, "Hashes")
-				return
-			}
-			if cap(z.Hashes) >= int(zb0002) {
-				z.Hashes = (z.Hashes)[:zb0002]
-			} else {
-				z.Hashes = make([][]byte, zb0002)
-			}
-			for za0001 := range z.Hashes {
-				z.Hashes[za0001], err = dc.ReadBytes(z.Hashes[za0001])
-				if err != nil {
-					err = msgp.WrapError(err, "Hashes", za0001)
-					return
-				}
-			}
-		default:
-			err = dc.Skip()
-			if err != nil {
-				err = msgp.WrapError(err)
-				return
-			}
-		}
-	}
-	return
-}
-
-// EncodeMsg implements msgp.Encodable
-func (z *OgSyncByHashesRequest) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 1
-	// write "Hashes"
-	err = en.Append(0x81, 0xa6, 0x48, 0x61, 0x73, 0x68, 0x65, 0x73)
-	if err != nil {
-		return
-	}
-	err = en.WriteArrayHeader(uint32(len(z.Hashes)))
-	if err != nil {
-		err = msgp.WrapError(err, "Hashes")
-		return
-	}
-	for za0001 := range z.Hashes {
-		err = en.WriteBytes(z.Hashes[za0001])
-		if err != nil {
-			err = msgp.WrapError(err, "Hashes", za0001)
-			return
-		}
-	}
-	return
-}
-
-// MarshalMsg implements msgp.Marshaler
-func (z *OgSyncByHashesRequest) MarshalMsg(b []byte) (o []byte, err error) {
-	o = msgp.Require(b, z.Msgsize())
-	// map header, size 1
-	// string "Hashes"
-	o = append(o, 0x81, 0xa6, 0x48, 0x61, 0x73, 0x68, 0x65, 0x73)
-	o = msgp.AppendArrayHeader(o, uint32(len(z.Hashes)))
-	for za0001 := range z.Hashes {
-		o = msgp.AppendBytes(o, z.Hashes[za0001])
-	}
-	return
-}
-
-// UnmarshalMsg implements msgp.Unmarshaler
-func (z *OgSyncByHashesRequest) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
-	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err)
-		return
-	}
-	for zb0001 > 0 {
-		zb0001--
-		field, bts, err = msgp.ReadMapKeyZC(bts)
-		if err != nil {
-			err = msgp.WrapError(err)
-			return
-		}
-		switch msgp.UnsafeString(field) {
-		case "Hashes":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "Hashes")
-				return
-			}
-			if cap(z.Hashes) >= int(zb0002) {
-				z.Hashes = (z.Hashes)[:zb0002]
-			} else {
-				z.Hashes = make([][]byte, zb0002)
-			}
-			for za0001 := range z.Hashes {
-				z.Hashes[za0001], bts, err = msgp.ReadBytesBytes(bts, z.Hashes[za0001])
-				if err != nil {
-					err = msgp.WrapError(err, "Hashes", za0001)
-					return
-				}
-			}
-		default:
-			bts, err = msgp.Skip(bts)
-			if err != nil {
-				err = msgp.WrapError(err)
-				return
-			}
-		}
-	}
-	o = bts
-	return
-}
-
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *OgSyncByHashesRequest) Msgsize() (s int) {
-	s = 1 + 7 + msgp.ArrayHeaderSize
-	for za0001 := range z.Hashes {
-		s += msgp.BytesPrefixSize + len(z.Hashes[za0001])
 	}
 	return
 }

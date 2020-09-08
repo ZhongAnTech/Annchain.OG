@@ -80,8 +80,26 @@ func (b *RandomPickerContentFetcher) InitDefault() {
 
 func (b *RandomPickerContentFetcher) NeedToKnow(unknown ogsyncer_interface.Unknown) {
 	logrus.WithField("id", unknown.GetId()).WithField("un", unknown.GetValue()).Info("enqueue task")
-	b.taskList.AddTask(unknown)
-	b.triggerSync("NeedToKnow")
+	b.Reporter.Report("tasksize", b.taskList.Count(), false)
+
+	done := make(chan struct{})
+	t1 := time.Now()
+
+	go func() {
+		b.taskList.AddTask(unknown)
+		b.triggerSync("NeedToKnow")
+
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second * 3):
+		logrus.Fatal("timeout")
+	}
+	fmt.Println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+	fmt.Println(time.Since(t1))
+
 }
 
 func (b *RandomPickerContentFetcher) Resolve(unknown ogsyncer_interface.Unknown) {
@@ -259,10 +277,8 @@ func (b *RandomPickerContentFetcher) handleSyncHashTask(taskv *ogsyncer_interfac
 		return true
 	}
 	logrus.WithField("hash", taskv.Hash.HashString()).WithField("from", peerId).Debug("please give me the block")
-	req := &ogsyncer_interface.OgSyncByHashesRequest{
-		Hashes: [][]byte{
-			taskv.Hash.Bytes(),
-		},
+	req := &ogsyncer_interface.OgSyncBlockByHashRequest{
+		Hash: taskv.Hash.Bytes(),
 	}
 
 	letter := &transport_interface.OutgoingLetter{

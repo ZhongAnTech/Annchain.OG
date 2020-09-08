@@ -13,7 +13,7 @@ type OgSyncMessageType int
 const (
 	OgSyncMessageTypeLatestHeightRequest OgSyncMessageType = iota + 20
 	OgSyncMessageTypeLatestHeightResponse
-	OgSyncMessageTypeByHashesRequest
+	//OgSyncMessageTypeByHashesRequest
 	OgSyncMessageTypeBlockByHeightRequest
 	OgSyncMessageTypeBlockByHashRequest
 
@@ -28,9 +28,9 @@ const (
 )
 
 var MapMessageType = map[OgSyncMessageType]string{
-	OgSyncMessageTypeLatestHeightRequest:   "OgSyncMessageTypeLatestHeightRequest",
-	OgSyncMessageTypeLatestHeightResponse:  "OgSyncMessageTypeLatestHeightResponse",
-	OgSyncMessageTypeByHashesRequest:       "OgSyncMessageTypeByHashesRequest",
+	OgSyncMessageTypeLatestHeightRequest:  "OgSyncMessageTypeLatestHeightRequest",
+	OgSyncMessageTypeLatestHeightResponse: "OgSyncMessageTypeLatestHeightResponse",
+	//OgSyncMessageTypeByHashesRequest:       "OgSyncMessageTypeByHashesRequest",
 	OgSyncMessageTypeBlockByHeightRequest:  "OgSyncMessageTypeBlockByHeightRequest",
 	OgSyncMessageTypeBlockByHashRequest:    "OgSyncMessageTypeBlockByHashRequest",
 	OgSyncMessageTypeByHashesResponse:      "OgSyncMessageTypeByHashesResponse",
@@ -116,38 +116,38 @@ func (z *OgSyncLatestHeightResponse) String() string {
 	return fmt.Sprintf("OgSyncLatestHeightResponse [%d]", z.MyHeight)
 }
 
-//msgp OgSyncByHashesRequest
-type OgSyncByHashesRequest struct {
-	Hashes [][]byte
-}
-
-func (z *OgSyncByHashesRequest) GetType() OgSyncMessageType {
-	return OgSyncMessageTypeByHashesRequest
-}
-
-func (z *OgSyncByHashesRequest) GetTypeValue() int {
-	return int(z.GetType())
-}
-
-func (z *OgSyncByHashesRequest) ToBytes() []byte {
-	b, err := z.MarshalMsg(nil)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func (z *OgSyncByHashesRequest) FromBytes(bts []byte) error {
-	_, err := z.UnmarshalMsg(bts)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (z *OgSyncByHashesRequest) String() string {
-	return fmt.Sprintf("OgSyncByHashesRequest len [%d]", len(z.Hashes))
-}
+////msgp OgSyncByHashesRequest
+//type OgSyncByHashesRequest struct {
+//	Hashes [][]byte
+//}
+//
+//func (z *OgSyncByHashesRequest) GetType() OgSyncMessageType {
+//	return OgSyncMessageTypeByHashesRequest
+//}
+//
+//func (z *OgSyncByHashesRequest) GetTypeValue() int {
+//	return int(z.GetType())
+//}
+//
+//func (z *OgSyncByHashesRequest) ToBytes() []byte {
+//	b, err := z.MarshalMsg(nil)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return b
+//}
+//
+//func (z *OgSyncByHashesRequest) FromBytes(bts []byte) error {
+//	_, err := z.UnmarshalMsg(bts)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+//func (z *OgSyncByHashesRequest) String() string {
+//	return fmt.Sprintf("OgSyncByHashesRequest len [%d]", len(z.Hashes))
+//}
 
 //msgp OgSyncByHashesResponse
 type OgSyncByHashesResponse struct {
@@ -259,8 +259,7 @@ func (z *OgSyncBlockByHeightResponse) String() string {
 
 //msgp OgSyncBlockByHashRequest
 type OgSyncBlockByHashRequest struct {
-	Hash   []byte
-	Offset int
+	Hash []byte
 }
 
 func (z *OgSyncBlockByHashRequest) GetType() OgSyncMessageType {
@@ -288,7 +287,7 @@ func (z *OgSyncBlockByHashRequest) FromBytes(bts []byte) error {
 }
 
 func (z *OgSyncBlockByHashRequest) String() string {
-	return fmt.Sprintf("OgSyncLatestHeightResponse hashes [%d] offset [%d]", len(z.Hash), z.Offset)
+	return fmt.Sprintf("OgSyncLatestHeightResponse hashes [%d]", len(z.Hash))
 }
 
 //msgp OgSyncBlockByHashResponse

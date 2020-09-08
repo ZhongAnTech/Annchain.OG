@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/annchain/OG v0.0.5
-	github.com/annchain/commongo v0.0.7-0.20200814095302-c0ba5e6b2cfb
+	github.com/annchain/commongo v0.0.10
 	github.com/annchain/gcache v0.0.2
 	github.com/gin-gonic/gin v1.5.0
 	github.com/latifrons/go-eventbus v0.0.2-0.20200902112924-4ae9e99c7d2d
@@ -14,6 +14,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.5.6
 	github.com/libp2p/go-libp2p-swarm v0.2.6
 	github.com/multiformats/go-multiaddr v0.2.2
+	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0

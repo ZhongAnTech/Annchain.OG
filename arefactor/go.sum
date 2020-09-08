@@ -36,8 +36,8 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYU
 github.com/annchain/OG v0.0.5 h1:GbCE2XMOrCksPe90me4XUHYQCjxwNFLpG1Lh51GXEz8=
 github.com/annchain/OG v0.0.5/go.mod h1:pLMQXS8WyBJL1NbYGSkW/OiYZeROIcjdo/6Im4UAG7w=
 github.com/annchain/bloom v2.0.4+incompatible/go.mod h1:NaO/1aKiTqpS4a8Q4lN4v5OchY2WrX5k0Ll5NmpuFGA=
-github.com/annchain/commongo v0.0.7-0.20200814095302-c0ba5e6b2cfb h1:NjK9WuPvncNpNc1vkGvaXxhnIgy1Nd5NvyJRDoZG1mQ=
-github.com/annchain/commongo v0.0.7-0.20200814095302-c0ba5e6b2cfb/go.mod h1:YGb5Ij+N5lFJ+0M5a1hYakl+8iIyaUFPeACyLO2fMTY=
+github.com/annchain/commongo v0.0.10 h1:/9Gz+IIz1NxtPvdanLmja+0pF8f2/zGbChCjRNpVnB0=
+github.com/annchain/commongo v0.0.10/go.mod h1:Op9fMAaaIrMxCCwJttB9wNFpmdkt8o511eitemO1bCY=
 github.com/annchain/gcache v0.0.2 h1:vdQkSVT7iKiQl6yM5wIPR4YymTdCmdCrAc0/BY/MRAk=
 github.com/annchain/gcache v0.0.2/go.mod h1:2eUoU39YhvRAJGoI7ROAOAdoGt03FxDx2b4qjFGNdd8=
 github.com/annchain/kyber/v3 v3.1.1 h1:Xq4bhZGLz1wXvzkxlvCYbxvgkkYQicNqfNHC06fNWaw=
@@ -588,6 +588,8 @@ github.com/openzipkin/zipkin-go v0.1.1/go.mod h1:NtoC/o8u3JlF1lSlyPNswIbeQH9bJTm
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pelletier/go-toml v1.2.0 h1:T5zMGML61Wp+FlcbWjRDT7yAxhJNAiPPLOFECq181zc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
+github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 h1:q2e307iGHPdTGp0hoxKjt1H5pDo6utceo3dQVK3I5XQ=
+github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5/go.mod h1:jvVRKCrJTQWu0XVbaOlby/2lO20uSCHEMzzplHXte1o=
 github.com/philhofer/fwd v1.0.0 h1:UbZqGr5Y38ApvM/V/jEljVxwocdweyH+vmYvRPBnbqQ=
 github.com/philhofer/fwd v1.0.0/go.mod h1:gk3iGcWd9+svBvR0sR+KPcfE+RNWozjowpeBVG3ZVNU=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
@@ -618,6 +620,8 @@ github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFR
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
+github.com/sasha-s/go-deadlock v0.2.0 h1:lMqc+fUb7RrFS3gQLtoQsJ7/6TV/pAIFvBsqX73DK8Y=
+github.com/sasha-s/go-deadlock v0.2.0/go.mod h1:StQn567HiB1fF2yJ44N9au7wOhrPS3iZqiDbRupzT10=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
 github.com/shurcooL/component v0.0.0-20170202220835-f88ec8f54cc4/go.mod h1:XhFIlyj5a1fBNx5aJTbKoIq0mNaPvOagO+HjB3EtxrY=

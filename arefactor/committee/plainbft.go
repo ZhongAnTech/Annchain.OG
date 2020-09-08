@@ -80,8 +80,8 @@ func (b PlainBftCommitteeProvider) GetMyPeerIndex() int {
 
 func (b PlainBftCommitteeProvider) GetLeader(round int64) consensus_interface.CommitteeMember {
 	// TODO: change back: Hack: change to 2 for better debugging
-	return b.members[round%3]
-	//return b.members[round%int64(len(b.memberIds))]
+	//return b.members[round%3]
+	return b.members[round%int64(len(b.memberIds))]
 }
 
 func (b PlainBftCommitteeProvider) GetPeerIndex(memberId string) (index int, err error) {

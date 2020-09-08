@@ -38,7 +38,8 @@ func (n *OgNode) Setup() {
 	blockTime := time.Second * 1
 	myId := viper.GetInt("id")
 
-	ebus := eventbus.NewEventBus(true, time.Second*5, printPublish)
+	//ebus := eventbus.NewEventBus(true, time.Second*5, printPublish)
+	ebus := eventbus.NewEventBus(true, time.Second*5, nil)
 	// reg events
 	for eventCode, eventValue := range consts.EventCodeTextMap {
 		ebus.RegisterEventType(int(eventCode), eventValue)
@@ -234,6 +235,7 @@ func (n *OgNode) Setup() {
 	// peer height provided
 	ebus.Subscribe(int(consts.NewHeightDetectedEvent), cpContentFetcher)
 	ebus.Subscribe(int(consts.NewHeightDetectedEvent), cpIntLedgerSyncer)
+	ebus.Subscribe(int(consts.NewHeightDetectedEvent), cpOgRelayer)
 
 	ebus.Subscribe(int(consts.NewHeightBlockSyncedEvent), cpContentFetcher)
 

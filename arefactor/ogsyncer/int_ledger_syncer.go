@@ -9,6 +9,7 @@ import (
 	"github.com/annchain/commongo/math"
 	"github.com/annchain/commongo/utilfuncs"
 	"github.com/latifrons/go-eventbus"
+	"github.com/latifrons/goffchan"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -37,13 +38,18 @@ type IntLedgerSyncer struct {
 func (s *IntLedgerSyncer) Receive(topic int, msg interface{}) error {
 	switch consts.EventType(topic) {
 	case consts.NewIncomingMessageEvent:
-		s.newIncomingMessageEventChan <- msg.(*transport_interface.IncomingLetter)
+		<-goffchan.NewTimeoutSenderShort(s.newIncomingMessageEventChan, msg.(*transport_interface.IncomingLetter), "NewIncomingMessageEvent").C
+		//s.newIncomingMessageEventChan <- msg.(*transport_interface.IncomingLetter)
 	case consts.UnknownNeededEvent:
-		s.unknownNeededEventChan <- msg.(ogsyncer_interface.Unknown)
+		<-goffchan.NewTimeoutSenderShort(s.unknownNeededEventChan, msg.(ogsyncer_interface.Unknown), "UnknownNeededEvent").C
+		//s.unknownNeededEventChan <- msg.(ogsyncer_interface.Unknown)
 	case consts.IntsReceivedEvent:
-		s.intsReceivedEventChan <- msg.(*ogsyncer_interface.IntsReceivedEventArg)
+		logrus.WithField("size", len(s.intsReceivedEventChan)).Info("int queue size")
+		<-goffchan.NewTimeoutSenderShort(s.intsReceivedEventChan, msg.(*ogsyncer_interface.IntsReceivedEventArg), "IntsReceivedEvent").C
+		//s.intsReceivedEventChan <- msg.(*ogsyncer_interface.IntsReceivedEventArg)
 	case consts.NewHeightDetectedEvent:
-		s.newHeightDetectedEventChan <- msg.(*og_interface.NewHeightDetectedEventArg)
+		<-goffchan.NewTimeoutSenderShort(s.newHeightDetectedEventChan, msg.(*og_interface.NewHeightDetectedEventArg), "NewHeightDetectedEvent").C
+		//s.newHeightDetectedEventChan <- msg.(*og_interface.NewHeightDetectedEventArg)
 	default:
 		return eventbus.ErrNotSupported
 	}
@@ -89,17 +95,24 @@ func (s *IntLedgerSyncer) notifyNewHeightBlockSynced(event *og_interface.Resourc
 func (s *IntLedgerSyncer) eventLoop() {
 	timer := time.NewTicker(time.Second * time.Duration(SyncCheckHeightIntervalSeconds))
 	for {
-		logrus.Debug("Another round?")
+		logrus.WithField("intchan", len(s.intsReceivedEventChan)).Debug("Another round?")
 		select {
 		case <-s.quit:
+			logrus.Info("S1")
 			timer.Stop()
 			utilfuncs.DrainTicker(timer)
+			logrus.Info("S1 end")
 			return
 		case event := <-s.newHeightDetectedEventChan:
+			logrus.Info("S2")
 			s.handleNewHeightDetectedEvent(event)
+			logrus.Info("S2 end")
 		case event := <-s.newLocalHeightUpdatedEventChan:
+			logrus.Info("S3")
 			s.handleNewLocalHeightUpdatedEvent(event)
+			logrus.Info("S3 end")
 		case event := <-s.unknownNeededEventChan:
+			logrus.Info("S4")
 			switch event.GetType() {
 			case ogsyncer_interface.UnknownTypeHash:
 				s.enqueueHashTask(event.(*ogsyncer_interface.UnknownHash).Hash, "")
@@ -108,8 +121,13 @@ func (s *IntLedgerSyncer) eventLoop() {
 			default:
 				logrus.Warn("Unexpected unknown type")
 			}
+			logrus.Info("S4 end")
 		case event := <-s.intsReceivedEventChan:
+			logrus.Info("S5")
+			start := time.Now()
 			s.handleIntsReceivedEvent(event)
+			ss := time.Since(start).Milliseconds()
+			logrus.WithField("time", ss).Info("S5 end")
 		}
 	}
 }
@@ -226,7 +244,7 @@ func (s *IntLedgerSyncer) handleIncomingMessage(letter *transport_interface.Inco
 	//	}
 	//	logrus.WithField("req", req).Debug("OgSyncMessageTypeBlockByHeightResponse")
 	//	s.handleBlockByHeightResponse(req, letter.From)
-	case ogsyncer_interface.OgSyncMessageTypeByHashesRequest:
+	case ogsyncer_interface.OgSyncMessageTypeBlockByHashRequest:
 		req := &ogsyncer_interface.OgSyncBlockByHashRequest{}
 		err := req.FromBytes(letter.Msg.ContentBytes)
 		if err != nil {
@@ -297,7 +315,6 @@ func (s *IntLedgerSyncer) sendBlockResponse(blockContent og_interface.BlockConte
 func (s *IntLedgerSyncer) resolveBlock(block *dummy.IntArrayBlockContent, from string) {
 	// In normal case, this should be done in TxBuffer and TxPool, conducted by ConsensusEnforcer
 	// Here we just bypass all things and insert the block directly to ledger
-
 	s.Ledger.ConfirmBlock(block)
 
 	// clear all related tasks
@@ -310,7 +327,9 @@ func (s *IntLedgerSyncer) resolveBlock(block *dummy.IntArrayBlockContent, from s
 		"height": block.Height,
 		"hash":   block.GetHash().HashString(),
 	}).Debug("got block")
+
 	s.trySyncNextHeight()
+
 	//b.Reporter.Report("tasks", b.taskList)
 	//s.notifyNewHeightBlockSynced(&og_interface.ResourceGotEvent{
 	//	Height: block.Height,
@@ -320,6 +339,10 @@ func (s *IntLedgerSyncer) resolveBlock(block *dummy.IntArrayBlockContent, from s
 func (s *IntLedgerSyncer) trySyncNextHeight() {
 	// immediately trigger a sync to continuously empty the task queue.
 	if s.Ledger.CurrentHeight() < s.knownMaxPeerHeight {
+		logrus.WithFields(logrus.Fields{
+			"currentHeight": s.Ledger.CurrentHeight(),
+			"knownMax":      s.knownMaxPeerHeight,
+		}).Info("trying to sync next block")
 		s.enqueueHeightTask(s.Ledger.CurrentHeight()+int64(1), "handleBlockByHeightResponse")
 	}
 }

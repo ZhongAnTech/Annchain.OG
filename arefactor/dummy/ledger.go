@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -76,15 +77,21 @@ type IntArrayLedger struct {
 	ConfigPath string
 	Reporter   *soccerdash.Reporter
 
-	height                        int64
-	genesis                       *og_interface.Genesis
+	height  int64
+	genesis *og_interface.Genesis
+
 	confirmedBlockIdHeightMapping map[string]int64
 	confirmedBlockContents        map[int64]og_interface.BlockContent  // height-content
 	allBlockContents              map[string]og_interface.BlockContent // blockId-content
 	consensusState                *consensus_interface.ConsensusState
+
+	mu sync.RWMutex
 }
 
-func (d *IntArrayLedger) Dump() {
+func (d *IntArrayLedger) dump() {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
 	values := []*IntArrayBlockContent{}
 	for _, v := range d.allBlockContents {
 		values = append(values, v.(*IntArrayBlockContent))
@@ -117,10 +124,23 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 	fmt.Println("Speculate Prev block:", prevBlockId)
 	fmt.Println("Speculate Curr block:", block.Id)
 	fmt.Println(block.String())
-	_, ok := d.allBlockContents[prevBlockId]
+	executionResult.BlockId = block.Id
 
-	if !ok {
+	v := d.getBlockByHashThreadSafe(prevBlockId)
+
+	if v == nil {
 		logrus.WithField("prevBlockId", prevBlockId).Warn("prev block not found")
+		hash := &og_interface.Hash32{}
+		err := hash.FromHex(prevBlockId)
+		if err != nil {
+			logrus.WithError(err).Warn("hash invalid")
+			executionResult.Err = err
+			return
+		}
+		d.notifyUnknownNeededEvent(&ogsyncer_interface.UnknownHash{
+			Hash: hash,
+		})
+		executionResult.Err = errors.New("missing dependencies")
 		return
 		// wait until sync is done.
 	}
@@ -137,8 +157,8 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 			WithField("given", block.Id).
 			Fatal("myhash is not aligned with given hash")
 	}
-	d.KnowBlock(newBlock)
-	d.SaveLedger()
+	d.knowBlockThreadSafe(newBlock)
+	d.saveLedgerThreadSafe()
 
 	logrus.WithField("block", newBlock).Info("speculated new block")
 	d.Reporter.Report("lastSpeculateHeight", newBlock.Height, false)
@@ -151,6 +171,13 @@ func (d *IntArrayLedger) Speculate(prevBlockId string, block *consensus_interfac
 }
 
 func (d *IntArrayLedger) GetState(blockId string) (stateId string) {
+	return d.getStateThreadSafe(blockId)
+}
+
+func (d *IntArrayLedger) getStateThreadSafe(blockId string) (stateId string) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
 	block, ok := d.allBlockContents[blockId]
 	if !ok {
 		return ""
@@ -184,6 +211,14 @@ func (d *IntArrayLedger) Commit(blockId string) {
 // KnowBlock just knows the existence of the block.
 // Block may not be confirmed.
 func (d *IntArrayLedger) KnowBlock(block og_interface.BlockContent) {
+	d.knowBlockThreadSafe(block)
+}
+
+// KnowBlock just knows the existence of the block.
+// Block may not be confirmed.
+func (d *IntArrayLedger) knowBlockThreadSafe(block og_interface.BlockContent) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	logrus.WithField("blockId", block.GetHash().HashString()).Debug("know this block")
 	d.allBlockContents[block.GetHash().HashString()] = block
 }
@@ -191,11 +226,14 @@ func (d *IntArrayLedger) KnowBlock(block og_interface.BlockContent) {
 // ConfirmBlock add the block to the permanent ledger.
 // ConfirmBlock will write to ledger.
 func (d *IntArrayLedger) ConfirmBlock(block og_interface.BlockContent) {
-	d.loadBlock(block)
-	d.SaveLedger()
+	d.loadBlockThreadSafe(block)
+	d.saveLedgerThreadSafe()
 }
 
-func (d *IntArrayLedger) loadBlock(block og_interface.BlockContent) {
+func (d *IntArrayLedger) loadBlockThreadSafe(block og_interface.BlockContent) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if _, ok := d.confirmedBlockContents[block.GetHeight()]; ok {
 		logrus.WithField("height", block.GetHeight()).Debug("block already added")
 		return
@@ -208,7 +246,11 @@ func (d *IntArrayLedger) loadBlock(block og_interface.BlockContent) {
 	d.updateHeight(block)
 	d.Reporter.Report("height", fmt.Sprintf("%d %s",
 		d.height, d.confirmedBlockContents[d.height]), false)
-	logrus.WithField("block", block.GetHeight()).Info("loaded block")
+	logrus.WithFields(
+		logrus.Fields{
+			"height": d.height,
+			"hash":   block.GetHash().HashString(),
+		}).Debug("loaded block")
 }
 
 func (d *IntArrayLedger) updateHeight(block og_interface.BlockContent) {
@@ -232,15 +274,27 @@ func (d *IntArrayLedger) updateHeight(block og_interface.BlockContent) {
 }
 
 func (d *IntArrayLedger) GetBlock(height int64) og_interface.BlockContent {
+	return d.getBlockThreadSafe(height)
+}
+
+func (d *IntArrayLedger) getBlockThreadSafe(height int64) og_interface.BlockContent {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	return d.confirmedBlockContents[height]
 }
 
 func (d *IntArrayLedger) GetBlockByHash(hash string) og_interface.BlockContent {
+	return d.getBlockByHashThreadSafe(hash)
+}
+
+func (d *IntArrayLedger) getBlockByHashThreadSafe(hash string) og_interface.BlockContent {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	return d.allBlockContents[hash]
 }
 
 func (d *IntArrayLedger) AddRandomBlock(height int64) {
-	previousBlock := d.GetBlock(height - 1).(*IntArrayBlockContent)
+	previousBlock := d.getBlockThreadSafe(height - 1).(*IntArrayBlockContent)
 	step := rand.Intn(50)
 	d.ConfirmBlock(&IntArrayBlockContent{
 		Height:      height,
@@ -259,19 +313,19 @@ func (d *IntArrayLedger) StaticSetup() {
 	// load from local storage first.
 	// if error, init ledger and consensus
 	var err error
-	err = d.LoadLedger()
+	err = d.loadLedger()
 	if err != nil {
 		reInit = true
 	}
-	err = d.LoadTempLedger()
+	err = d.loadTempLedger()
 	if err != nil {
 		reInit = true
 	}
-	err = d.LoadConsensusState()
+	err = d.loadConsensusState()
 	if err != nil {
 		reInit = true
 	}
-	err = d.LoadConsensusCommittee()
+	err = d.loadConsensusCommittee()
 	if err != nil {
 		reInit = true
 	}
@@ -279,7 +333,7 @@ func (d *IntArrayLedger) StaticSetup() {
 		d.InitLedgerGenesis()
 		d.InitConsensusStateGenesis()
 		d.InitConsensusCommitteeGenesis()
-		d.SaveLedger()
+		d.saveLedgerThreadSafe()
 		d.SaveConsensusState(d.consensusState)
 		d.SaveConsensusCommittee()
 	}
@@ -290,7 +344,7 @@ func (d *IntArrayLedger) StaticSetup() {
 	// check if ledger exists.
 	//d.InitLedgerGenesis()
 
-	//d.LoadConsensusCommittee()
+	//d.loadConsensusCommittee()
 	//for i := 1; i < 10000; i ++{
 	//	d.AddRandomBlock(int64(i))
 	//}
@@ -299,7 +353,7 @@ func (d *IntArrayLedger) StaticSetup() {
 	//d.AddRandomBlock(3)
 	//d.AddRandomBlock(4)
 	//d.AddRandomBlock(5)
-	//d.SaveLedger()
+	//d.saveLedgerThreadSafe()
 
 }
 
@@ -321,7 +375,11 @@ func (d *IntArrayLedger) InitLedgerGenesis() {
 	d.ConfirmBlock(d.ProvideGenesis())
 }
 
-func (d *IntArrayLedger) SaveLedger() {
+func (d *IntArrayLedger) saveLedgerThreadSafe() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	logrus.Info("saving ledger")
+
 	lines := []string{}
 	for i := int64(0); i <= d.height; i++ {
 		if v, ok := d.confirmedBlockContents[i]; ok {
@@ -347,7 +405,7 @@ func (d *IntArrayLedger) SaveLedger() {
 	utilfuncs.PanicIfError(err, "dump ledger")
 }
 
-func (d *IntArrayLedger) LoadTempLedger() (err error) {
+func (d *IntArrayLedger) loadTempLedger() (err error) {
 	if !files.FileExists(path.Join(d.DataPath, TempLedgerFile)) {
 		err = errors.New("ledger file not exists: " + path.Join(d.DataPath, TempLedgerFile))
 		return
@@ -359,6 +417,11 @@ func (d *IntArrayLedger) LoadTempLedger() (err error) {
 
 	for _, line := range lines {
 		slots := strings.SplitN(line, " ", 2)
+		if len(slots) != 2 {
+			logrus.WithField("line", line).Warn("invalid line")
+			continue
+		}
+
 		hash := slots[0]
 		blockString := slots[1]
 		block := &IntArrayBlockContent{}
@@ -367,7 +430,7 @@ func (d *IntArrayLedger) LoadTempLedger() (err error) {
 		if block.GetHash().HashString() != hash {
 			return errors.New("hash not aligned")
 		}
-		d.KnowBlock(block)
+		d.knowBlockThreadSafe(block)
 		logrus.WithFields(
 			logrus.Fields{
 				"height": d.height,
@@ -377,7 +440,7 @@ func (d *IntArrayLedger) LoadTempLedger() (err error) {
 	return
 }
 
-func (d *IntArrayLedger) LoadLedger() (err error) {
+func (d *IntArrayLedger) loadLedger() (err error) {
 	if !files.FileExists(path.Join(d.DataPath, LedgerFile)) {
 		err = errors.New("ledger file not exists: " + path.Join(d.DataPath, LedgerFile))
 		return
@@ -389,6 +452,10 @@ func (d *IntArrayLedger) LoadLedger() (err error) {
 
 	for _, line := range lines {
 		slots := strings.SplitN(line, " ", 3)
+		if len(slots) != 3 {
+			logrus.WithField("line", line).Warn("invalid line")
+			continue
+		}
 		height, err := strconv.Atoi(slots[0])
 		utilfuncs.PanicIfError(err, "read line")
 		hash := slots[1]
@@ -402,12 +469,7 @@ func (d *IntArrayLedger) LoadLedger() (err error) {
 		if block.Height != int64(height) {
 			return errors.New("height not aligned")
 		}
-		d.loadBlock(block)
-		logrus.WithFields(
-			logrus.Fields{
-				"height": d.height,
-				"hash":   block.GetHash().HashString(),
-			}).Debug("loaded ledger")
+		d.loadBlockThreadSafe(block)
 	}
 	// in case empty ledger
 	if d.height == 0 {
@@ -461,7 +523,7 @@ func (d *IntArrayLedger) SaveConsensusCommittee() {
 	err = ioutil.WriteFile(path.Join(d.DataPath, ConsensusCommitteeFile), bytes, 0600)
 }
 
-func (d *IntArrayLedger) LoadConsensusCommittee() (err error) {
+func (d *IntArrayLedger) loadConsensusCommittee() (err error) {
 	byteContent, err := ioutil.ReadFile(path.Join(d.DataPath, ConsensusCommitteeFile))
 	if err != nil {
 		return
@@ -515,7 +577,7 @@ func (d *IntArrayLedger) SaveConsensusState(consensusState *consensus_interface.
 	}
 }
 
-func (d *IntArrayLedger) LoadConsensusState() (err error) {
+func (d *IntArrayLedger) loadConsensusState() (err error) {
 	byteContent, err := ioutil.ReadFile(path.Join(d.DataPath, ConsensusStateFile))
 
 	if err != nil {
@@ -569,11 +631,11 @@ func (d *IntArrayLedger) applyGenesisStore(gs *og_interface.GenesisStore) {
 }
 
 func (n *IntArrayLedger) notifyUnknownNeededEvent(event ogsyncer_interface.Unknown) {
-	n.EventBus.Publish(int(consts.UnknownNeededEvent), event)
+	n.EventBus.PublishAsync(int(consts.UnknownNeededEvent), event)
 }
 
 func (n *IntArrayLedger) notifyNewLocalHeightUpdatedEvent() {
-	n.EventBus.Publish(int(consts.LocalHeightUpdatedEvent), &og_interface.NewLocalHeightUpdatedEventArg{
+	n.EventBus.PublishAsync(int(consts.LocalHeightUpdatedEvent), &og_interface.NewLocalHeightUpdatedEventArg{
 		Height: n.height,
 	})
 }
@@ -591,23 +653,22 @@ func (i *IntArrayProposalGenerator) InitDefault() {
 
 func (i IntArrayProposalGenerator) GenerateProposal(context *consensus_interface.ProposalContext) *consensus_interface.ContentProposal {
 	var b og_interface.BlockContent = nil
-	var ok bool
-	if b, ok = i.Ledger.allBlockContents[context.HighQC.VoteData.Id]; !ok {
+	if b = i.Ledger.GetBlockByHash(context.HighQC.VoteData.Id); b == nil {
 		logrus.WithField("blockId", context.HighQC.VoteData.Id).Warn("prev block not found in ledger. Propose further")
 	}
 	if b == nil {
-		if b, ok = i.Ledger.allBlockContents[context.HighQC.VoteData.ParentId]; !ok {
+		if b = i.Ledger.GetBlockByHash(context.HighQC.VoteData.ParentId); b == nil {
 			logrus.WithField("blockId", context.HighQC.VoteData.ParentId).Warn("parent block not found in ledger. Propose further")
 		}
 	}
 	if b == nil {
-		if b, ok = i.Ledger.allBlockContents[context.HighQC.VoteData.GrandParentId]; !ok {
+		if b = i.Ledger.GetBlockByHash(context.HighQC.VoteData.GrandParentId); b == nil {
 			logrus.WithField("blockId", context.HighQC.VoteData.GrandParentId).Warn("gparent block not found in ledger.")
 		}
 	}
 	if b == nil {
 		logrus.Warn("i cannot propose since the previous blocks is still missing.")
-		i.Ledger.Dump()
+		i.Ledger.dump()
 		return nil
 	}
 

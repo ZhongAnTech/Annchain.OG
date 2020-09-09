@@ -230,6 +230,8 @@ func (d *IntArrayLedger) knowBlockThreadSafe(block og_interface.BlockContent) {
 func (d *IntArrayLedger) ConfirmBlock(block og_interface.BlockContent) {
 	d.loadBlockThreadSafe(block)
 	d.saveLedgerThreadSafe()
+	d.Reporter.Report("height", fmt.Sprintf("%d %s",
+		d.height, d.confirmedBlockContents[d.height]), false)
 }
 
 func (d *IntArrayLedger) loadBlockThreadSafe(block og_interface.BlockContent) {
@@ -246,8 +248,7 @@ func (d *IntArrayLedger) loadBlockThreadSafe(block og_interface.BlockContent) {
 	d.allBlockContents[id] = block
 	// update height
 	d.updateHeight(block)
-	d.Reporter.Report("height", fmt.Sprintf("%d %s",
-		d.height, d.confirmedBlockContents[d.height]), false)
+
 	logrus.WithFields(
 		logrus.Fields{
 			"height": d.height,

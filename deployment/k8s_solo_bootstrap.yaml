@@ -19,7 +19,7 @@ spec:
             claimName: pvc-50g-og-solo
       containers:
         - name: og-solo
-          image: 172.28.152.101:5000/og-solo
+          image: 172.28.152.101:5000/og-solo:zhang-dev-v0.0.1
           env:
             - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
               value: "http://ogboot:8008/7"

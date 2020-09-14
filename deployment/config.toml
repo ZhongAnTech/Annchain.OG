@@ -10,9 +10,9 @@ title = "OG configuration"
 mode="normal"
 
 [annsensus]
-  campaign = true
+  campaign = false
   consensus_path = "consensus0.json"
-  disable = false
+  disable = true
   disable_term_change = true
   genesis_pk = "0x0104c544565e015346da7c29b1161a8369bf58da2adb3a6fc6a806386de2a7965c7fe2990574156d9e5103e0ef2daf081dd0ffce7b434710b908c4b61083322b2b2c;0x0104ed90b29606e51dc050d56b205d5001e1aa8472c9bf10882a9af49d250e735e46cf8164e1174cd35ef5273269fbcced7f72e4f8ecf660dc79ea27e152c16a8475;0x01044e83369a8bacaae5492089904dfaa49e19635cf29c7e6d2697a6f3be63a08cec6f356d506c42fbcda5dffaaca05f8486a3576db53121fbd275f192a95b3b3bee;0x01044ad86a816fd62ec410a3f49bfcfa171929b1b1ddffaced8c5d5ac35b35e6ced61f5b1f30c4d1f9aa8d24944a9e13f6413646f88ffaaf79ff44fd67de01ae12d5"
   partner_number = 4
@@ -28,7 +28,7 @@ mode="normal"
     interval_us = 500000
 
   [auto_client.sequencer]
-    enabled = false
+    enabled = true
     interval_us = 5000000
 
   [auto_client.tx]
@@ -71,7 +71,7 @@ mode="normal"
 
 [p2p]
   bootstrap_node = "true"
-  bootstrap_nodes = ""
+  bootstrap_nodes = "onode://0fef07b9c716bd49c8ec53a3aac399e935bb5a6c286392dce1f0b633fb5fe4d78f60db41dfb7d37490501b209eb0aa43414538f0c5f1350ea0fe2d30d3ff3bec@127.0.0.1:8001"
   enable_sync = true
   enabled = true
   max_peers = 50

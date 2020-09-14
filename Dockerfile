@@ -16,12 +16,11 @@ FROM alpine:latest
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 RUN apk add --no-cache curl iotop busybox-extras
 
+RUN mkdir /pod-data
+
 COPY --from=builder OG/deployment/config.toml /data
 COPY --from=builder OG/deployment/genesis.json /data
 COPY --from=builder OG/build/og /data
-
-# for a temp running folder. This should be mounted from the outside
-RUN mkdir /data
 
 EXPOSE 8000 8001/tcp 8001/udp 8002 8003
 

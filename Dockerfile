@@ -13,6 +13,7 @@ RUN make og
 # Copy OG into basic alpine image
 FROM alpine:latest
 
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 RUN apk add --no-cache curl iotop busybox-extras
 
 COPY --from=builder OG/deployment/config.toml /data

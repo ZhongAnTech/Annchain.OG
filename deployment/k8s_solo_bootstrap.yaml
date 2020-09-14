@@ -6,7 +6,7 @@ spec:
   selector:
     matchLabels:
       app: og-solo
-  replicas: 7
+  replicas: 1
   serviceName: service-og-solo
   template:
     metadata:

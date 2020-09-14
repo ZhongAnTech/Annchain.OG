@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: og-solo
+spec:
+  selector:
+    matchLabels:
+      app: og-solo
+  replicas: 7
+  template:
+    metadata:
+      labels:
+        app: og-solo
+    spec:
+      volumes:
+        - name: gluster-volume
+          persistentVolumeClaim:
+            claimName: pvc-50g-og-solo
+      containers:
+        - name: og-solo
+          image: 172.28.152.101:5000/og-solo
+          env:
+            - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
+              value: "http://ogboot:8008/7"
+            - name: OG_P2P.NETWORK_ID
+              value: "6"
+            - name: OG_MODE
+              value: "normal"
+                - name: OG_P2P_ENABLE_BOOT_SERVER
+                  value: "true"
+                - name: OG_P2P_GEN_NODE_KEY
+                  value: "true"
+          ports:
+            - name: rpc
+              containerPort: 8000
+              protocol: TCP
+            - name: p2p
+              containerPort: 8001
+            - name: websocket
+              containerPort: 8002
+            - name: profiling
+              containerPort: 8003
+          volumeMounts:
+            - name: gluster-volume
+              mountPath: "/rw"
+              readOnly: false
+          command:
+            ["./og", "-c", "/opt/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
+          resources:
+            limits:
+              cpu: "2"
+            requests:
+              cpu: "100m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ognb
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      nodePort: 30300
+      name: rpc
+    - port: 8002
+      nodePort: 30302
+      name: websocket
+    - port: 8003
+      nodePort: 30303
+      name: profiling
+  selector:
+    app: ognb
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-50g-og-solo
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  storageClassName: "gluster-heketi"
+  resources:
+    requests:
+      storage: 50Gi

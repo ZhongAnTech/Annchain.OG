@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/annchain/bloom v2.0.4+incompatible
+	github.com/annchain/commongo v0.0.10
 	github.com/annchain/gcache v0.0.2
 	github.com/annchain/kyber/v3 v3.1.1
 	github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e
@@ -35,7 +36,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tebeka/strftime v0.1.3 // indirect
-	github.com/tinylib/msgp v1.1.0
+	github.com/tinylib/msgp v1.1.2
 	github.com/willf/bitset v1.1.10 // indirect
 	go.mongodb.org/mongo-driver v1.4.0
 	go.uber.org/atomic v1.4.0
@@ -43,5 +44,5 @@ require (
 	golang.org/x/sys v0.0.0-20191008105621-543471e840be
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.3.0
 )

@@ -18,9 +18,9 @@ RUN apk add --no-cache curl iotop busybox-extras
 
 RUN mkdir /pod-data
 
-COPY --from=builder OG/deployment/config.toml /data
-COPY --from=builder OG/deployment/genesis.json /data
-COPY --from=builder OG/build/og /data
+COPY --from=builder OG/deployment/config.toml /data/
+COPY --from=builder OG/deployment/genesis.json /data/
+COPY --from=builder OG/build/og /data/
 
 EXPOSE 8000 8001/tcp 8001/udp 8002 8003
 

@@ -22,7 +22,11 @@ COPY --from=builder OG/deployment/config.toml /data/
 COPY --from=builder OG/deployment/genesis.json /data/
 COPY --from=builder OG/build/og /data/
 
-EXPOSE 8000 8001/tcp 8001/udp 8002 8003
+EXPOSE 8000
+EXPOSE 8001/tcp
+EXPOSE 8001/udp
+EXPOSE 8002
+EXPOSE 8003
 
 WORKDIR /data
 

@@ -8,18 +8,26 @@ spec:
       app: og-solo
   replicas: 1
   serviceName: service-og-solo
+  volumeClaimTemplates:
+    - metadata:
+        name: gluster-volume
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "gluster-heketi"
+        resources:
+          requests:
+            storage: 30Gi
+        selector:
+          matchLabels:
+            target: og-solo
   template:
     metadata:
       labels:
         app: og-solo
     spec:
-      volumes:
-        - name: gluster-volume
-          persistentVolumeClaim:
-            claimName: pvc-50g-og-solo
       containers:
         - name: og-solo
-          image: 172.28.152.101:5000/og-solo:zhang-dev-v0.0.4
+          image: 172.28.152.101:5000/og-solo:zhang-dev-v0.0.5
           env:
             - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
               value: "http://ogboot:8008/7"
@@ -72,17 +80,4 @@ spec:
       nodePort: 30303
       name: profiling
   selector:
-    app: service-og-solo
-
----
-
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: pvc-50g-og-solo
-spec:
-  accessModes: [ "ReadWriteOnce" ]
-  storageClassName: "gluster-heketi"
-  resources:
-    requests:
-      storage: 50Gi
+    app: og-solo

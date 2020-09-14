@@ -18,9 +18,9 @@ RUN apk add --no-cache curl iotop busybox-extras
 
 RUN mkdir /pod-data
 
-COPY --from=builder OG/deployment/config.toml /data/
-COPY --from=builder OG/deployment/genesis.json /data/
-COPY --from=builder OG/build/og /data/
+COPY --from=builder OG/deployment/config.toml /
+COPY --from=builder OG/deployment/genesis.json /
+COPY --from=builder OG/build/og /
 
 EXPOSE 8000
 EXPOSE 8001/tcp
@@ -28,9 +28,9 @@ EXPOSE 8001/udp
 EXPOSE 8002
 EXPOSE 8003
 
-WORKDIR /data
+WORKDIR /
 
-CMD ["./og", "--config", "/data/config.toml", "--multifile_by_level", "--log_line_number", "--log_dir", "/data/log/", "--datadir", "/data", "--genkey", "run"]
+CMD ["./og", "--config", "/config.toml", "--multifile_by_level", "--log_line_number", "--log_dir", "/data/log/", "--datadir", "/data", "--genkey", "run"]
 
 
 

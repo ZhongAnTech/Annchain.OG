@@ -63,7 +63,7 @@ mode="normal"
 [leveldb]
   cache = 16
   handles = 16
-  path = "rw/datadir_0"
+  path = "data/datadir_0"
 
 [log]
   level = "info"

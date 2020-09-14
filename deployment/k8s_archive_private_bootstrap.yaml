@@ -52,9 +52,6 @@ spec:
         resources:
           requests:
             storage: 50Gi
-        selector:
-          matchLabels:
-            target: og
 ------ogar service--------
 apiVersion: v1
 kind: Service

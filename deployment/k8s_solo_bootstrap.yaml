@@ -7,6 +7,7 @@ spec:
     matchLabels:
       app: og-solo
   replicas: 7
+  serviceName: service-og-solo
   template:
     metadata:
       labels:
@@ -57,7 +58,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ognb
+  name: service-og-solo
 spec:
   type: NodePort
   ports:
@@ -71,7 +72,7 @@ spec:
       nodePort: 30303
       name: profiling
   selector:
-    app: ognb
+    app: service-og-solo
 
 ---
 

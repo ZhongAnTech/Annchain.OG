@@ -46,7 +46,7 @@ spec:
               mountPath: "/rw"
               readOnly: false
           command:
-            ["./og", "-c", "/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/rw/datadir_1", "--genkey", "run"]
+            ["./og", "-c", "/data/config.toml", "-m", "-n", "-l", "/rw/log/", "-d", "/data", "--genkey", "run"]
           resources:
             limits:
               cpu: "2"

@@ -15,18 +15,18 @@ FROM alpine:latest
 
 RUN apk add --no-cache curl iotop busybox-extras
 
-COPY --from=builder OG/deployment/config.toml .
-COPY --from=builder OG/deployment/genesis.json .
-COPY --from=builder OG/build/og .
+COPY --from=builder OG/deployment/config.toml /data
+COPY --from=builder OG/deployment/genesis.json /data
+COPY --from=builder OG/build/og /data
 
 # for a temp running folder. This should be mounted from the outside
-RUN mkdir /rw
+RUN mkdir /data
 
 EXPOSE 8000 8001/tcp 8001/udp 8002 8003
 
-WORKDIR /
+WORKDIR /data
 
-CMD ["./og", "--config", "/config.toml", "--multifile_by_level", "--log_line_number", "--log_dir", "/rw/log/", "--datadir", "/rw/datadir_1", "--genkey", "run"]
+CMD ["./og", "--config", "/data/config.toml", "--multifile_by_level", "--log_line_number", "--log_dir", "/data/log/", "--datadir", "/data", "--genkey", "run"]
 
 
 

@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: og-solo
-          image: 172.28.152.101:5000/og-solo:zhang-dev-v0.0.5
+          image: 172.28.152.101:5000/og-solo:zhang-dev-v0.0.6
           env:
             - name: OG_P2P.BOOTSTRAP_CONFIG_SERVER
               value: "http://ogboot:8008/7"
@@ -51,7 +51,7 @@ spec:
               mountPath: "/data"
               readOnly: false
           command:
-            ["./og", "-c", "/config.toml", "-m", "-n", "-l", "/data/log/", "-d", "/data", "--genkey", "run"]
+            ["./og", "-c", "/config.toml", "-m", "-n", "-l", "/data/log/", "-d", "/", "--genkey", "run"]
           resources:
             limits:
               cpu: "2"

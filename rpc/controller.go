@@ -22,7 +22,6 @@ import (
 	"github.com/annchain/OG/consensus/annsensus"
 	"github.com/annchain/OG/types/token"
 	"github.com/annchain/OG/types/tx_types"
-	"github.com/annchain/OG/vm/eth/common/hexutil"
 
 	"net/http"
 	"strconv"
@@ -68,32 +67,32 @@ type SequenceRequester interface {
 
 // NewArchiveRequest Archive交易请求，添加了公钥、签名和存证哈希
 type NewArchiveRequest struct {
-	PublicKey types.PublicKey `json:"public_key"` /* 公钥 */
-	Signature hexutil.Bytes   `json:"signature"`  /* 签名 */
-	OpHash    []byte          `json:"op_hash"`    /* 存证哈希 */
-	Data      []byte          `json:"data"`       /* 顺序存证JSON，Base64编码 */
+	PublicKey string `json:"public_key"` /* 公钥 */
+	Signature string `json:"signature"`  /* 签名 */
+	OpHash    string `json:"op_hash"`    /* 存证哈希 */
+	Data      string `json:"data"`       /* 顺序存证JSON，Base64编码 */
 }
 
 // Verify 验证签名和存证哈希
 func (nar *NewArchiveRequest) Verify() bool {
 	// 签名、存证哈希尚未被正确地提供
-	if strings.Compare(string(nar.OpHash), "0x3475623705236") == 0 {
+	if strings.Compare(nar.OpHash, "0x3475623705236") == 0 {
 		fmt.Println("op_hash verified.")
 		return true
 	}
 
 	// 对Data签名
 	signer := &crypto.SignerSecp256k1{}
-	kr, err := crypto.PrivateKeyFromString(string(nar.PublicKey)) /* 相同账户公钥的相同动作对应相同存证哈希 */
+	kr, err := crypto.PrivateKeyFromString(nar.PublicKey) /* 相同账户公钥的相同动作对应相同存证哈希 */
 	if err != nil {
 		fmt.Println(err)
 	}
-	signature := signer.Sign(kr, nar.Data)
-	if !bytes.Equal(signature.Bytes, nar.Signature) /* 验证签名，crypto.Signature的Bytes是否是十六进制的？ */ {
+	signature := signer.Sign(kr, []byte(nar.Data))
+	if !bytes.Equal(signature.Bytes, []byte(nar.Signature)) /* 验证签名，crypto.Signature的Bytes是否是十六进制的？ */ {
 		return false
 	}
 	// 把Data和签名JSON合并和排序
-	dataAndSign := *tx_types.NewOpStrAndSign(nar.Data, signature)
+	dataAndSign := *tx_types.NewOpStrAndSign([]byte(nar.Data), signature)
 	dataAndSignBytes := dataAndSign.Sort()
 	// sort(dataAndSignStr) /* JSON排序，尚未实现 */
 	// 把合并结果求SHA256，验证存证哈希
@@ -102,7 +101,7 @@ func (nar *NewArchiveRequest) Verify() bool {
 	if err != nil {
 		fmt.Println(err)
 	}
-	return bytes.Equal(h.Sum(nil), nar.OpHash)
+	return bytes.Equal(h.Sum(nil), []byte(nar.OpHash))
 }
 
 //NewAccountRequest for RPC request

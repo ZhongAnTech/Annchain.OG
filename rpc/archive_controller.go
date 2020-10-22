@@ -65,7 +65,7 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 		return
 	}
 	var buf bytes.Buffer
-	buf.Write(txReq.Data)
+	buf.Write([]byte(txReq.Data))
 	//TODO compress data
 	logrus.WithField("id ", id).WithField("data  ", string(txReq.Data)).Trace("got archive request")
 	tx, err = r.TxCreator.NewArchiveWithSeal(buf.Bytes())

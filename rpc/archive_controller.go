@@ -56,12 +56,12 @@ func (r *RpcController) NewArchive(c *gin.Context) {
 	// 处理NewArchiveRequest类型数据
 	// 验证签名和存证哈希
 	if !txReq.Verify() {
-		fmt.Println("New archive not verified.")
+		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: signature and op_hash verification failed"), nil)
 		return
 	}
 	//c.Request.Context()
 	if len(txReq.Data) == 0 {
-		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: no data "), nil)
+		Response(c, http.StatusBadRequest, fmt.Errorf("request format error: no data"), nil)
 		return
 	}
 	var buf bytes.Buffer

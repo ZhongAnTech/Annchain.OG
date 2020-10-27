@@ -76,7 +76,7 @@ type NewArchiveRequest struct {
 // Verify 验证签名和存证哈希
 func (nar *NewArchiveRequest) Verify() bool {
 	// 签名、存证哈希尚未被正确地提供
-	if strings.Compare(nar.OpHash, "0x3475623705236") == 0 {
+	if len(nar.OpHash) > 0 {
 		fmt.Println("op_hash verified.")
 		return true
 	}

@@ -2,12 +2,12 @@ package state
 
 import (
 	"fmt"
-	"github.com/annchain/commongo/marshaller"
 	"sync"
 	"time"
 
 	ogTypes "github.com/annchain/OG/og_interface"
 	crypto "github.com/annchain/OG/ogcrypto"
+	"github.com/annchain/commongo/marshaller"
 	"github.com/annchain/commongo/math"
 	"github.com/annchain/trie"
 	log "github.com/sirupsen/logrus"

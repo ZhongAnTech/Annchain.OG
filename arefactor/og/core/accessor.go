@@ -16,7 +16,6 @@ package core
 import (
 	"bytes"
 	"fmt"
-	"github.com/annchain/OG/ogdb"
 	"math/big"
 	"strconv"
 	"sync"
@@ -25,6 +24,7 @@ import (
 	ogTypes "github.com/annchain/OG/og_interface"
 	"github.com/annchain/commongo/marshaller"
 	"github.com/annchain/commongo/math"
+	"github.com/annchain/ogdb"
 	log "github.com/sirupsen/logrus"
 )
 

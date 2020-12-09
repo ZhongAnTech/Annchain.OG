@@ -4,13 +4,13 @@ go 1.14
 
 require (
 	github.com/annchain/OG v0.0.9
-	github.com/annchain/ogdb v0.0.0-20200810103232-31fa52e6b4c5
 	github.com/annchain/commongo v0.0.3
 	github.com/annchain/kyber/v3 v3.1.1
+	github.com/annchain/ogdb v0.0.1
 	github.com/annchain/trie v0.0.0-20200810071945-f021089b234f
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/gin-gonic/gin v1.6.3
-	github.com/hashicorp/golang-lru v0.5.4
+	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/latifrons/goffchan v1.0.0
 	github.com/latifrons/soccerdash v1.1.2
 	github.com/libp2p/go-libp2p v0.10.3

@@ -7,6 +7,7 @@ require (
 	github.com/annchain/commongo v0.0.3
 	github.com/annchain/gcache v0.0.2
 	github.com/annchain/kyber/v3 v3.1.1
+	github.com/annchain/ogdb v0.0.1 // indirect
 	github.com/annchain/trie v0.0.0-20200810071945-f021089b234f // indirect
 	github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e
 	github.com/bshuster-repo/logrus-logstash-hook v0.0.0-20190911164539-b3d898b5138a

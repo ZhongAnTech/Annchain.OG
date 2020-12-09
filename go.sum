@@ -34,11 +34,14 @@ github.com/annchain/commongo v0.0.1 h1:2EeWmcYWXHFD4ZUY4/iPvjv2MGsy6TfE34W1zfcaS
 github.com/annchain/commongo v0.0.2 h1:YhMPEzecIybM+ZkeHTHr04uzr+CS/5PCWq+z5wcuOJQ=
 github.com/annchain/commongo v0.0.3 h1:DFbN7vst1hzp2qNMRI6g2/fo7YgxbvXuG9tj26Phv+U=
 github.com/annchain/commongo v0.0.3/go.mod h1:YGb5Ij+N5lFJ+0M5a1hYakl+8iIyaUFPeACyLO2fMTY=
+github.com/annchain/commongo v0.0.10 h1:/9Gz+IIz1NxtPvdanLmja+0pF8f2/zGbChCjRNpVnB0=
 github.com/annchain/gcache v0.0.2 h1:vdQkSVT7iKiQl6yM5wIPR4YymTdCmdCrAc0/BY/MRAk=
 github.com/annchain/gcache v0.0.2/go.mod h1:2eUoU39YhvRAJGoI7ROAOAdoGt03FxDx2b4qjFGNdd8=
 github.com/annchain/kyber/v3 v3.1.1 h1:Xq4bhZGLz1wXvzkxlvCYbxvgkkYQicNqfNHC06fNWaw=
 github.com/annchain/kyber/v3 v3.1.1/go.mod h1:WhRE3Gn8VmTZsuzTamPekKDwv0kBwFXu0xNsfd86oE8=
 github.com/annchain/ogdb v0.0.0-20200810103232-31fa52e6b4c5 h1:UDmGfDyXvi0iQJTT7LjTgBrwDr0Ih4g7lfIzhjqniiY=
+github.com/annchain/ogdb v0.0.1 h1:m94h6qDvwmiFLFOWLBE95gC/1PsWlgrYiedUpJfGPTs=
+github.com/annchain/ogdb v0.0.1/go.mod h1:zGVzuNgie4S8/+jk1531lvJXPX7JMIm/uKBuKuVsJ70=
 github.com/annchain/trie v0.0.0-20200810071945-f021089b234f h1:4sgkmqCmWcr36QCWq6bxD9V8yuXdSXgyUPWYjxibq0I=
 github.com/annchain/trie v0.0.0-20200810071945-f021089b234f/go.mod h1:pje5Uwcx22HWARLRvX2n+etI35hFbUu0axIoYkhQeq4=
 github.com/aristanetworks/goarista v0.0.0-20190528200627-2e9fd846018e h1:4chHjskWkpUzEg3l+PoFxXVVRU8uSGY6DSGnXH65OwE=

@@ -10,9 +10,7 @@ require (
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
-	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/gin-gonic/gin v1.5.0
-	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
 	github.com/go-co-op/gocron v0.2.0
 	github.com/golang/snappy v0.0.1
 	github.com/google/uuid v1.1.1
@@ -21,10 +19,7 @@ require (
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.7.6
 	github.com/jackpal/go-nat-pmp v1.0.1
-	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/latifrons/soccerdash v1.1.2
-	github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 // indirect
-	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/magiconair/properties v1.8.0
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
@@ -34,13 +29,12 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/tebeka/strftime v0.1.3 // indirect
 	github.com/tinylib/msgp v1.1.0
 	github.com/willf/bitset v1.1.10 // indirect
 	go.mongodb.org/mongo-driver v1.4.0
 	go.uber.org/atomic v1.4.0
-	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
-	golang.org/x/sys v0.0.0-20191008105621-543471e840be
+	golang.org/x/crypto v0.1.0
+	golang.org/x/sys v0.1.0
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.2.2
